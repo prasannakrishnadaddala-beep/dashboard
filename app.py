@@ -20,8 +20,14 @@ app = Flask(__name__, template_folder='templates')
 app.config['JSON_SORT_KEYS'] = False
 
 S3_BUCKET             = os.environ.get('S3_BUCKET', 'pe-mule-prod-log')
-S3_PREFIX             = os.environ.get('S3_PREFIX', '10.1.7.84/')
+# Supports multiple server prefixes separated by commas, e.g. "10.1.7.84/,10.1.7.85/"
+_S3_PREFIX_RAW        = os.environ.get('S3_PREFIXES', os.environ.get('S3_PREFIX', '10.1.7.84/'))
+S3_PREFIXES           = [p.strip() for p in _S3_PREFIX_RAW.split(',') if p.strip()]
+S3_PREFIX             = S3_PREFIXES[0]   # kept for backward-compat / debug route
 AWS_REGION            = os.environ.get('AWS_REGION', 'ap-south-1')
+# Log timestamps are in IST (UTC+5:30). Railway runs in UTC.
+# Set TZ_OFFSET_HOURS=5.5 in Railway to match your log timezone.
+TZ_OFFSET_HOURS       = float(os.environ.get('TZ_OFFSET_HOURS', '5.5'))
 CACHE_TTL             = int(os.environ.get('CACHE_TTL', '300'))
 CACHE_TTL_RECENT      = int(os.environ.get('CACHE_TTL_RECENT', '60'))   # shorter TTL for hours_back queries
 ALERT_FILE            = os.environ.get('ALERT_FILE', 'alerts.json')
@@ -48,6 +54,10 @@ def cache_set(key, val):
 def cache_clear():
     with _cache_lock:
         _cache.clear()
+
+def local_now():
+    """Return current datetime in the log's local timezone (avoids UTC vs IST mismatch)."""
+    return datetime.utcnow() + timedelta(hours=TZ_OFFSET_HOURS)
 
 def get_s3():
     if not HAS_BOTO:
@@ -90,30 +100,32 @@ def list_s3_files():
     s3 = get_s3()
     paginator = s3.get_paginator('list_objects_v2')
     files, skipped = [], 0
-    for page in paginator.paginate(Bucket=S3_BUCKET, Prefix=S3_PREFIX):
-        for obj in page.get('Contents', []):
-            if obj['Size'] == 0:
-                continue
-            key = obj['Key']
-            filename = key.split('/')[-1]
-            result = _parse_filename(filename)
-            if result is None:
-                skipped += 1
-                continue
-            api, date = result
-            if date is None:
-                date = obj['LastModified'].strftime('%Y-%m-%d')
-            files.append({
-                'key':           key,
-                'api':           api,
-                'date':          date,
-                'filename':      filename,
-                'size':          obj['Size'],
-                'last_modified': obj['LastModified'].isoformat(),
-            })
+    for prefix in S3_PREFIXES:                                      # ← iterate all servers
+        for page in paginator.paginate(Bucket=S3_BUCKET, Prefix=prefix):
+            for obj in page.get('Contents', []):
+                if obj['Size'] == 0:
+                    continue
+                key = obj['Key']
+                filename = key.split('/')[-1]
+                result = _parse_filename(filename)
+                if result is None:
+                    skipped += 1
+                    continue
+                api, date = result
+                if date is None:
+                    date = obj['LastModified'].strftime('%Y-%m-%d')
+                files.append({
+                    'key':           key,
+                    'prefix':        prefix,                         # ← track which server
+                    'api':           api,
+                    'date':          date,
+                    'filename':      filename,
+                    'size':          obj['Size'],
+                    'last_modified': obj['LastModified'].isoformat(),
+                })
     files.sort(key=lambda x: (x['date'], x['api']), reverse=True)
     cache_set('s3:filelist', files)
-    app.logger.info(f"S3: {len(files)} files matched, {skipped} skipped under s3://{S3_BUCKET}/{S3_PREFIX}")
+    app.logger.info(f"S3: {len(files)} files matched, {skipped} skipped across {S3_PREFIXES}")
     return files
 
 def stream_s3_file_lines(key):
@@ -365,7 +377,11 @@ def health():
 @app.route('/api/debug')
 def debug():
     info = {
-        'boto3_installed': HAS_BOTO, 'S3_BUCKET': S3_BUCKET, 'S3_PREFIX': S3_PREFIX,
+        'boto3_installed': HAS_BOTO, 'S3_BUCKET': S3_BUCKET,
+        'S3_PREFIXES': S3_PREFIXES,                            # shows all servers
+        'S3_PREFIX': S3_PREFIX,                                # first prefix (compat)
+        'TZ_OFFSET_HOURS': TZ_OFFSET_HOURS,
+        'local_now': local_now().isoformat(),
         'AWS_REGION': AWS_REGION, 'has_access_key': bool(os.environ.get('AWS_ACCESS_KEY_ID')),
         'has_secret_key': bool(os.environ.get('AWS_SECRET_ACCESS_KEY')),
         'max_files_per_request': MAX_FILES_PER_REQUEST,
@@ -386,7 +402,7 @@ def debug():
                 for f in files[:10]
             ]
         else:
-            info['warning'] = f"0 files matched under s3://{S3_BUCKET}/{S3_PREFIX}"
+            info['warning'] = f"0 files matched under s3://{S3_BUCKET} with prefixes {S3_PREFIXES}"
     except Exception as e:
         info['s3_ok'] = False
         info['error'] = str(e)
@@ -413,9 +429,9 @@ def list_dates():
 @app.route('/api/stats')
 def get_stats():
     api        = request.args.get('api', '')
-    hours_back = request.args.get('hours_back', type=int)      # NEW: timestamp-based query
-    date_from  = request.args.get('date_from', (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d'))
-    date_to    = request.args.get('date_to',  datetime.now().strftime('%Y-%m-%d'))
+    hours_back = request.args.get('hours_back', type=int)
+    date_from  = request.args.get('date_from', (local_now() - timedelta(days=7)).strftime('%Y-%m-%d'))
+    date_to    = request.args.get('date_to',  local_now().strftime('%Y-%m-%d'))
     show_all   = request.args.get('all', 'false').lower() == 'true'
 
     ck = f'stats:{api}:{hours_back or ""}:{date_from}:{date_to}:{show_all}'
@@ -430,17 +446,22 @@ def get_stats():
         return jsonify({'error': str(e), **empty_stats(), 'files_loaded': 0}), 500
 
     if hours_back:
-        # ── Timestamp-based: read tail of today's (and maybe yesterday's) files ──
-        cutoff_dt = datetime.now() - timedelta(hours=hours_back)
-        today     = datetime.now().strftime('%Y-%m-%d')
-        yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
+        # ── Timestamp-based: use LOCAL time to avoid UTC vs IST mismatch ──
+        now_local = local_now()
+        cutoff_dt = now_local - timedelta(hours=hours_back)
+        # Include today + yesterday + day-before in local time (covers cross-midnight edge cases)
+        candidate_dates = {
+            now_local.strftime('%Y-%m-%d'),
+            (now_local - timedelta(days=1)).strftime('%Y-%m-%d'),
+            (now_local - timedelta(days=2)).strftime('%Y-%m-%d'),
+        }
         candidates = [
             f for f in files
-            if (not api or f['api'] == api) and f['date'] in (today, yesterday)
+            if (not api or f['api'] == api) and f['date'] in candidate_dates
         ]
         matched = candidates[:MAX_FILES_PER_REQUEST]
         entries = load_entries_for_files(matched, tail=True)
-        # Filter by actual log timestamp (not just file date)
+        # Filter by actual log timestamp vs local cutoff (both in same IST timezone)
         entries = [e for e in entries if _parse_ts(e['timestamp']) >= cutoff_dt]
         per_minute_mode = hours_back <= 12
     elif show_all:
@@ -462,7 +483,7 @@ def get_stats():
         'date_from':       date_from,
         'date_to':         date_to,
         'hours_back':      hours_back,
-        'cutoff_ts':       (datetime.now() - timedelta(hours=hours_back)).isoformat() if hours_back else None,
+        'cutoff_ts':       (local_now() - timedelta(hours=hours_back)).isoformat() if hours_back else None,
     })
     if files:
         all_dates = sorted(set(f['date'] for f in files))
@@ -490,13 +511,17 @@ def get_logs():
         return jsonify({'error': str(e), 'logs': [], 'total': 0}), 500
 
     if hours_back:
-        # Timestamp-based: load tail of today + yesterday
-        cutoff_dt = datetime.now() - timedelta(hours=hours_back)
-        today     = datetime.now().strftime('%Y-%m-%d')
-        yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
+        # Timestamp-based: use LOCAL time to avoid UTC vs IST mismatch
+        now_local = local_now()
+        cutoff_dt = now_local - timedelta(hours=hours_back)
+        candidate_dates = {
+            now_local.strftime('%Y-%m-%d'),
+            (now_local - timedelta(days=1)).strftime('%Y-%m-%d'),
+            (now_local - timedelta(days=2)).strftime('%Y-%m-%d'),
+        }
         candidates = [
             f for f in files
-            if (not api or f['api'] == api) and f['date'] in (today, yesterday)
+            if (not api or f['api'] == api) and f['date'] in candidate_dates
         ]
         matched = candidates[:MAX_FILES_PER_REQUEST]
         entries = load_entries_for_files(matched, tail=True)
@@ -506,7 +531,7 @@ def get_logs():
         matched    = candidates[:MAX_FILES_PER_REQUEST]
         entries    = load_entries_for_files(matched, tail=False)
     else:
-        cutoff = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
+        cutoff = (local_now() - timedelta(days=7)).strftime('%Y-%m-%d')
         candidates = [f for f in files if (not api or f['api'] == api) and f['date'] >= cutoff]
         matched    = candidates[:MAX_FILES_PER_REQUEST]
         entries    = load_entries_for_files(matched, tail=False)

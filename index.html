@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>MuleSoft Log Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080C12;--bg2:#0E1420;--bg3:#151C2B;--card:#121929;
+  --border:#1E2A40;--border2:#263352;--text:#C8D4E8;--text2:#7A8FAF;--text3:#4A5F7A;
+  --accent:#FF6B35;--accent2:#FF9563;--green:#00E5A0;--red:#FF3B5C;
+  --yellow:#FFB800;--blue:#4D9EFF;--purple:#A78BFA;--teal:#22D3EE;
+  --fh:'Syne',sans-serif;--fm:'Space Mono',monospace;--r:10px;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--fm);font-size:13px;line-height:1.5}
+.app{display:flex;flex-direction:column;min-height:100vh}
+/* Topbar */
+.topbar{display:flex;align-items:center;gap:14px;padding:0 22px;height:54px;background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+.logo{font-family:var(--fh);font-size:16px;font-weight:800;color:var(--accent);display:flex;align-items:center;gap:8px;white-space:nowrap}
+.logo::before{content:'◈';font-size:18px}
+.sep{width:1px;height:26px;background:var(--border)}
+.ctrls{display:flex;align-items:center;gap:10px;flex:1;flex-wrap:wrap}
+.tr{display:flex;align-items:center;gap:8px;margin-left:auto}
+/* Inputs */
+select,input[type=date],input[type=text],input[type=number],input[type=url],textarea{
+  background:var(--bg3);border:1px solid var(--border);color:var(--text);
+  font-family:var(--fm);font-size:12px;padding:6px 10px;border-radius:6px;outline:none;transition:border-color .2s}
+select:focus,input:focus,textarea:focus{border-color:var(--accent)}
+label{font-size:11px;color:var(--text2)}
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:6px;border:none;
+  font-family:var(--fm);font-size:12px;cursor:pointer;transition:all .2s;white-space:nowrap}
+.btn-p{background:var(--accent);color:#fff}.btn-p:hover{background:var(--accent2)}
+.btn-g{background:transparent;color:var(--text2);border:1px solid var(--border)}.btn-g:hover{border-color:var(--accent);color:var(--accent)}
+.btn-g.tr-active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-d{background:transparent;color:var(--red);border:1px solid var(--red)}.btn-d:hover{background:var(--red);color:#fff}
+.btn-sm{padding:4px 10px;font-size:11px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+/* Tabs */
+.tabs{display:flex;gap:2px;background:var(--bg2);padding:0 22px;border-bottom:1px solid var(--border)}
+.tab{padding:12px 18px;cursor:pointer;font-size:12px;color:var(--text2);border-bottom:2px solid transparent;transition:all .2s;letter-spacing:.5px}
+.tab:hover{color:var(--text)}.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+/* Main */
+.main{flex:1;padding:18px 22px;max-width:1600px;margin:0 auto;width:100%}
+.tp{display:none}.tp.active{display:block}
+/* Cards */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:13px;margin-bottom:20px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:15px 17px;position:relative;overflow:hidden;transition:border-color .2s}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--ca,var(--accent))}
+.card-lbl{font-size:10px;color:var(--text2);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px}
+.card-val{font-family:var(--fh);font-size:28px;font-weight:800;color:var(--text);line-height:1}
+.card-sub{font-size:10px;color:var(--text3);margin-top:4px}
+.card-icon{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:26px;opacity:.07}
+.c-err{--ca:var(--red)}.c-warn{--ca:var(--yellow)}.c-ok{--ca:var(--green)}.c-blue{--ca:var(--blue)}.c-pur{--ca:var(--purple)}
+/* Charts */
+.cr1{display:grid;grid-template-columns:2fr 1fr 1fr;gap:13px;margin-bottom:13px}
+.cr2{display:grid;grid-template-columns:1fr 1fr 1fr;gap:13px}
+.cbox{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:15px}
+.ctitle{font-family:var(--fh);font-size:11px;font-weight:700;color:var(--text2);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.ctitle span{color:var(--accent)}
+canvas{display:block}
+/* Log table */
+.lc{display:flex;gap:10px;margin-bottom:13px;flex-wrap:wrap;align-items:center}
+.ltw{overflow-x:auto;border:1px solid var(--border);border-radius:var(--r)}
+table{width:100%;border-collapse:collapse;font-size:11px}
+thead{background:var(--bg3)}
+th{padding:9px 11px;text-align:left;color:var(--text2);font-weight:700;letter-spacing:.5px;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:8px 11px;border-bottom:1px solid var(--border);vertical-align:top}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--bg3)}
+.badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.5px}
+.bINFO{background:rgba(77,158,255,.15);color:var(--blue)}
+.bERROR{background:rgba(255,59,92,.18);color:var(--red)}
+.bWARN{background:rgba(255,184,0,.15);color:var(--yellow)}
+.bok{background:rgba(0,229,160,.13);color:var(--green)}
+.bfail{background:rgba(255,59,92,.18);color:var(--red)}
+.bcreated{background:rgba(255,107,53,.13);color:var(--accent)}
+.mono{font-family:var(--fm);font-size:11px}
+.tdim{color:var(--text3)}.tred{color:var(--red)}.tgrn{color:var(--green)}.torn{color:var(--accent)}
+.ttrunc{max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Pagination */
+.pg{display:flex;align-items:center;gap:8px;margin-top:13px;justify-content:center}
+.pb{padding:5px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:5px;
+  color:var(--text2);cursor:pointer;font-family:var(--fm);font-size:12px;transition:all .2s}
+.pb:hover,.pb.active{border-color:var(--accent);color:var(--accent)}
+.pb:disabled{opacity:.4;cursor:not-allowed}
+/* Alerts */
+.ag{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:19px}
+.ptitle{font-family:var(--fh);font-size:13px;font-weight:700;margin-bottom:15px;color:var(--text)}
+.fg{margin-bottom:11px}.fg label{display:block;margin-bottom:4px}
+.fg input,.fg select,.fg textarea{width:100%}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ai{border:1px solid var(--border);border-radius:8px;padding:11px 13px;margin-bottom:9px;display:flex;align-items:flex-start;gap:11px;background:var(--bg3)}
+.ai-info{flex:1}.ai-name{font-weight:700;margin-bottom:2px}.ai-meta{font-size:11px;color:var(--text2)}
+.ai-acts{display:flex;gap:6px;align-items:center}
+.tog{position:relative;display:inline-block;width:36px;height:20px}
+.tog input{display:none}
+.tsl{position:absolute;inset:0;background:var(--bg);border:1px solid var(--border);border-radius:20px;cursor:pointer;transition:.3s}
+.tsl::before{content:'';position:absolute;left:2px;top:50%;transform:translateY(-50%);width:14px;height:14px;background:var(--text3);border-radius:50%;transition:.3s}
+.tog input:checked+.tsl{background:var(--accent);border-color:var(--accent)}
+.tog input:checked+.tsl::before{left:calc(100% - 16px);background:#fff}
+/* Loading */
+.ld{text-align:center;padding:55px 20px;color:var(--text2)}
+.sp{display:inline-block;width:30px;height:30px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:11px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.emp{text-align:center;padding:35px 20px;color:var(--text3)}
+/* Toast */
+#toast{position:fixed;bottom:22px;right:22px;z-index:9999;padding:11px 18px;border-radius:8px;font-size:12px;
+  background:var(--bg3);border:1px solid var(--border);color:var(--text);
+  transform:translateY(80px);opacity:0;transition:all .3s;max-width:320px}
+#toast.show{transform:translateY(0);opacity:1}
+#toast.ok{border-color:var(--green);color:var(--green)}
+#toast.err{border-color:var(--red);color:var(--red)}
+/* Section */
+.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px}
+.st{font-family:var(--fh);font-size:12px;font-weight:700;color:var(--text2);letter-spacing:.8px;text-transform:uppercase}
+.flex{display:flex;align-items:center;gap:8px}
+.mla{margin-left:auto}
+.sdot{width:7px;height:7px;border-radius:50%;display:inline-block}
+.dlive{background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@media(max-width:1100px){.cr1{grid-template-columns:1fr 1fr}.cr2{grid-template-columns:1fr 1fr}}
+@media(max-width:700px){.cr1,.cr2,.ag{grid-template-columns:1fr}.ctrls{display:none}}
+</style>
+</head>
+<body>
+<div class="app">
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="logo">MuleSoft Intelligence</div>
+  <div class="sep"></div>
+  <div class="ctrls">
+    <div class="flex"><label>API</label><select id="sel-api" style="min-width:210px"><option value="">All APIs</option></select></div>
+    <div class="flex" id="tr-btns" style="gap:4px">
+      <button class="btn btn-g btn-sm tr-btn" data-h="1">1H</button>
+      <button class="btn btn-g btn-sm tr-btn" data-h="2">2H</button>
+      <button class="btn btn-g btn-sm tr-btn" data-h="6">6H</button>
+      <button class="btn btn-g btn-sm tr-btn" data-h="12">12H</button>
+      <button class="btn btn-g btn-sm tr-btn" data-h="24">24H</button>
+      <button class="btn btn-g btn-sm tr-btn" data-h="168">7D</button>
+      <button class="btn btn-g btn-sm" id="btn-custom" title="Use date range below">Custom</button>
+    </div>
+    <div class="flex" id="date-range-row">
+      <label>From</label><input type="date" id="df"/>
+      <label>To</label><input type="date" id="dt"/>
+    </div>
+    <button class="btn btn-p btn-sm" id="btn-load">▶ Load</button>
+    <button class="btn btn-g btn-sm" id="btn-ref">↺ Refresh</button>
+  </div>
+  <div class="tr">
+    <span class="sdot dlive"></span>
+    <span style="font-size:11px;color:var(--text2)" id="stxt">Ready</span>
+  </div>
+</div>
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" data-tab="overview">Overview</div>
+  <div class="tab" data-tab="logs">Log Explorer</div>
+  <div class="tab" data-tab="payments">Payments</div>
+  <div class="tab" data-tab="alerts">Alerts</div>
+</div>
+<!-- MAIN -->
+<div class="main">
+
+<!-- OVERVIEW -->
+<div class="tp active" id="tab-overview">
+  <div id="ov-ld" class="ld" style="display:none"><div class="sp"></div><div>Fetching from S3…</div></div>
+  <div id="ov-ct">
+    <div class="cards">
+      <div class="card"><div class="card-lbl">Total Requests</div><div class="card-val" id="c-tot">—</div><div class="card-sub" id="c-files">—</div><div class="card-icon">📊</div></div>
+      <div class="card c-err"><div class="card-lbl">Errors</div><div class="card-val tred" id="c-err">—</div><div class="card-sub" id="c-erate">—</div><div class="card-icon">🔴</div></div>
+      <div class="card c-warn"><div class="card-lbl">Warnings</div><div class="card-val" style="color:var(--yellow)" id="c-warn">—</div><div class="card-sub">WARN level</div><div class="card-icon">⚠️</div></div>
+      <div class="card c-ok"><div class="card-lbl">Orders Created</div><div class="card-val tgrn" id="c-cre">—</div><div class="card-sub">Razorpay orders</div><div class="card-icon">🧾</div></div>
+      <div class="card c-blue"><div class="card-lbl">Captured</div><div class="card-val" style="color:var(--blue)" id="c-cap">—</div><div class="card-sub" id="c-fail">—</div><div class="card-icon">💳</div></div>
+      <div class="card c-pur"><div class="card-lbl">Revenue (INR)</div><div class="card-val" style="color:var(--purple)" id="c-rev">—</div><div class="card-sub">captured sum</div><div class="card-icon">₹</div></div>
+    </div>
+    <div class="cr1">
+      <div class="cbox"><div class="ctitle"><span>◆</span>Request Timeline</div><canvas id="ch-tl" height="200"></canvas></div>
+      <div class="cbox"><div class="ctitle"><span>◆</span>Endpoints</div><canvas id="ch-ep" height="200"></canvas></div>
+      <div class="cbox"><div class="ctitle"><span>◆</span>Payment Status</div><canvas id="ch-ps" height="200"></canvas></div>
+    </div>
+    <div class="cr2">
+      <div class="cbox"><div class="ctitle"><span>◆</span>Errors by Endpoint</div><canvas id="ch-ee" height="200"></canvas></div>
+      <div class="cbox"><div class="ctitle"><span>◆</span>Flow Distribution</div><canvas id="ch-fl" height="200"></canvas></div>
+      <div class="cbox"><div class="ctitle"><span>◆</span>UPI Methods</div><canvas id="ch-pm" height="200"></canvas></div>
+    </div>
+    <div style="margin-top:15px">
+      <div class="sh"><div class="st">Recent Errors & Warnings</div><span id="rc-ct" style="font-size:11px;color:var(--text3)"></span></div>
+      <div class="ltw"><table><thead><tr><th>Level</th><th>Timestamp</th><th>API</th><th>Endpoint</th><th>Flow</th><th>Error Code</th><th>Message</th></tr></thead>
+      <tbody id="re-body"><tr><td colspan="7" class="emp">✓ No errors in range</td></tr></tbody></table></div>
+    </div>
+  </div>
+</div>
+
+<!-- LOGS -->
+<div class="tp" id="tab-logs">
+  <div class="lc">
+    <select id="l-api" style="min-width:200px"><option value="">All APIs</option></select>
+    <select id="l-date"><option value="">All dates</option></select>
+    <select id="l-lvl"><option value="">All levels</option><option>ERROR</option><option>WARN</option><option>INFO</option><option>DEBUG</option></select>
+    <select id="l-ep"><option value="">All endpoints</option></select>
+    <input type="text" id="l-srch" placeholder="Search loan#, customer, paymentId…" style="min-width:240px"/>
+    <button class="btn btn-p btn-sm" id="btn-srch">Search</button>
+    <span class="mla" style="font-size:11px;color:var(--text2)" id="l-tot"></span>
+  </div>
+  <div id="l-ld" class="ld" style="display:none"><div class="sp"></div><div>Loading…</div></div>
+  <div class="ltw" id="l-tw">
+    <table><thead><tr><th>Level</th><th>Timestamp</th><th>API</th><th>M</th><th>Endpoint</th><th>Flow</th><th>Rz Status</th><th>Amount ₹</th><th>Error Code</th><th>Loan#</th><th>Message</th></tr></thead>
+    <tbody id="l-body"><tr><td colspan="11" class="emp">Select API and click Search</td></tr></tbody></table>
+  </div>
+  <div class="pg" id="l-pg"></div>
+</div>
+
+<!-- PAYMENTS -->
+<div class="tp" id="tab-payments">
+  <div id="p-ld" class="ld" style="display:none"><div class="sp"></div><div>Loading…</div></div>
+  <div id="p-ct">
+    <div class="cards" style="margin-bottom:18px">
+      <div class="card c-ok"><div class="card-lbl">Orders Created</div><div class="card-val tgrn" id="p-cre">—</div></div>
+      <div class="card c-blue"><div class="card-lbl">Captured</div><div class="card-val" style="color:var(--blue)" id="p-cap">—</div></div>
+      <div class="card c-err"><div class="card-lbl">Failed</div><div class="card-val tred" id="p-fail">—</div></div>
+      <div class="card c-pur"><div class="card-lbl">Total Revenue</div><div class="card-val" style="color:var(--purple)" id="p-rev">—</div></div>
+    </div>
+    <div class="cr1">
+      <div class="cbox"><div class="ctitle"><span>◆</span>Daily Activity</div><canvas id="ch-da" height="200"></canvas></div>
+      <div class="cbox"><div class="ctitle"><span>◆</span>Order → Capture Funnel</div><canvas id="ch-fn" height="200"></canvas></div>
+      <div class="cbox"><div class="ctitle"><span>◆</span>UPI Methods</div><canvas id="ch-um" height="200"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ALERTS -->
+<div class="tp" id="tab-alerts">
+  <div class="ag">
+    <div class="panel">
+      <div class="ptitle">Create Alert Rule</div>
+      <div class="fg"><label>Alert Name *</label><input type="text" id="al-nm" placeholder="e.g. High Error Rate"/></div>
+      <div class="fr">
+        <div class="fg"><label>API Filter</label><select id="al-api"><option value="">All APIs</option></select></div>
+        <div class="fg"><label>Metric *</label><select id="al-mt">
+          <option value="errors">Error Count</option>
+          <option value="error_rate">Error Rate (%)</option>
+          <option value="payments_failed">Failed Payments</option>
+          <option value="total_requests">Total Requests</option>
+          <option value="warnings">Warning Count</option>
+        </select></div>
+      </div>
+      <div class="fr">
+        <div class="fg"><label>Operator</label><select id="al-op"><option value=">">&#62; greater than</option><option value=">=">&#62;= at least</option><option value="<">&#60; less than</option></select></div>
+        <div class="fg"><label>Threshold *</label><input type="number" id="al-th" placeholder="10" min="0"/></div>
+      </div>
+      <div class="fg"><label>Webhook URL (Slack / Teams)</label><input type="url" id="al-wh" placeholder="https://hooks.slack.com/…"/></div>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button class="btn btn-p" id="btn-cal">+ Create Alert</button>
+        <button class="btn btn-g" id="btn-twh">Test Webhook</button>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ptitle">Active Alert Rules</div>
+      <div id="al-list"><div class="emp">🔔 No alerts configured</div></div>
+    </div>
+  </div>
+  <div class="panel" style="margin-top:15px">
+    <div class="ptitle">How Alerts Work</div>
+    <div style="color:var(--text2);font-size:12px;line-height:1.9">
+      Checks every <strong style="color:var(--text)">5 minutes</strong> against today's S3 logs. Fires an HTTP POST to your webhook when threshold is breached.<br/>
+      <strong style="color:var(--accent)">Metrics:</strong>
+      <code>errors</code> error log count ·
+      <code>error_rate</code> % of total ·
+      <code>payments_failed</code> Razorpay error_code count ·
+      <code>total_requests</code> total entries ·
+      <code>warnings</code> WARN count
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+</div><!-- /app -->
+<div id="toast"></div>
+
+<script>
+// ─── Tiny Canvas Chart Library (no CDN needed) ────────────────────────────
+const CHR = (() => {
+  const C = (id) => document.getElementById(id);
+  const _instances = {};
+
+  function clear(id) {
+    if (_instances[id]) { _instances[id] = null; }
+    const el = C(id); if (!el) return;
+    const ctx = el.getContext('2d');
+    ctx.clearRect(0, 0, el.width, el.height);
+  }
+
+  function resize(canvas, h) {
+    const w = canvas.parentElement.clientWidth - 30;
+    canvas.width  = w * devicePixelRatio;
+    canvas.height = h * devicePixelRatio;
+    canvas.style.width  = w  + 'px';
+    canvas.style.height = h + 'px';
+    const ctx = canvas.getContext('2d');
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+    return [w, h, ctx];
+  }
+
+  const COLS = ['#FF6B35','#4D9EFF','#00E5A0','#FFB800','#A78BFA','#22D3EE','#FF3B5C','#F472B6'];
+  const GRID = '#1E2A40'; const LBL = '#7A8FAF'; const TXT = '#C8D4E8';
+
+  function textFit(ctx, text, maxW) {
+    let sz = 11;
+    ctx.font = sz + 'px "Space Mono",monospace';
+    while (ctx.measureText(text).width > maxW && sz > 7) { sz--; ctx.font = sz + 'px "Space Mono",monospace'; }
+    return text;
+  }
+
+  /* ── Bar chart ── */
+  function bar(id, labels, values, colors, opts = {}) {
+    clear(id);
+    const canvas = C(id); if (!canvas) return;
+    const h = opts.h || 200;
+    const [W, H, ctx] = resize(canvas, h);
+    const horiz = opts.horiz || false;
+
+    const pad = { t:10, r:14, b: horiz ? 30 : 50, l: horiz ? 120 : 40 };
+    const cw = W - pad.l - pad.r;
+    const ch = H - pad.t - pad.b;
+    const n  = values.length;
+    if (!n) return;
+
+    const max = Math.max(...values, 1);
+    const cols = Array.isArray(colors) ? colors : COLS;
+
+    ctx.font = '10px "Space Mono",monospace';
+    ctx.fillStyle = LBL;
+
+    if (!horiz) {
+      // vertical bars
+      const bw = Math.max(4, (cw / n) * 0.6);
+      const gap = cw / n;
+      // grid lines
+      for (let i=0;i<=4;i++) {
+        const y = pad.t + ch - (ch * i / 4);
+        ctx.strokeStyle = GRID; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l+cw, y); ctx.stroke();
+        const v = Math.round(max * i / 4);
+        ctx.fillStyle = LBL; ctx.textAlign = 'right';
+        ctx.fillText(v > 999 ? (v/1000).toFixed(1)+'k' : v, pad.l - 4, y + 4);
+      }
+      labels.forEach((lbl, i) => {
+        const x = pad.l + gap * i + gap/2;
+        const bh = ch * (values[i] / max);
+        const y  = pad.t + ch - bh;
+        ctx.fillStyle = (cols[i % cols.length]) + 'CC';
+        ctx.beginPath();
+        ctx.roundRect(x - bw/2, y, bw, bh, [3,3,0,0]);
+        ctx.fill();
+        // value on top
+        ctx.fillStyle = TXT; ctx.textAlign='center';
+        if (bh > 16) ctx.fillText(values[i], x, y - 4);
+        // x label
+        ctx.fillStyle = LBL; ctx.textAlign='center';
+        const sl = String(lbl).length > 12 ? String(lbl).slice(0,12)+'…' : String(lbl);
+        ctx.save(); ctx.translate(x, pad.t+ch+12); ctx.rotate(-0.5); ctx.fillText(sl, 0, 0); ctx.restore();
+      });
+    } else {
+      // horizontal bars
+      const bh2 = Math.max(3, (ch / n) * 0.55);
+      const gap2 = ch / n;
+      for (let i=0;i<=4;i++) {
+        const x = pad.l + cw * i / 4;
+        ctx.strokeStyle = GRID; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(x,pad.t); ctx.lineTo(x,pad.t+ch); ctx.stroke();
+        const v = Math.round(max * i / 4);
+        ctx.fillStyle=LBL; ctx.textAlign='center';
+        ctx.fillText(v>999?(v/1000).toFixed(1)+'k':v, x, pad.t+ch+14);
+      }
+      labels.forEach((lbl,i) => {
+        const y = pad.t + gap2 * i + gap2/2;
+        const bw2 = cw * (values[i] / max);
+        ctx.fillStyle = (cols[i % cols.length]) + 'CC';
+        ctx.beginPath();
+        ctx.roundRect(pad.l, y - bh2/2, bw2, bh2, [0,3,3,0]);
+        ctx.fill();
+        // label left
+        ctx.fillStyle = LBL; ctx.textAlign='right';
+        const sl = String(lbl).length > 18 ? String(lbl).slice(0,18)+'…' : String(lbl);
+        ctx.fillText(sl, pad.l - 6, y + 4);
+        // value inside/right
+        ctx.fillStyle = TXT; ctx.textAlign='left';
+        ctx.fillText(values[i], pad.l + bw2 + 4, y + 4);
+      });
+    }
+    _instances[id] = true;
+  }
+
+  /* ── Line chart ── */
+  function line(id, labels, datasets, opts = {}) {
+    clear(id);
+    const canvas = C(id); if (!canvas) return;
+    const h = opts.h || 200;
+    const [W, H, ctx] = resize(canvas, h);
+    const pad = { t:10, r:14, b:48, l:42 };
+    const cw = W - pad.l - pad.r;
+    const ch = H - pad.t - pad.b;
+    const n  = labels.length;
+    if (!n) return;
+
+    const allVals = datasets.flatMap(d => d.data);
+    const max = Math.max(...allVals, 1);
+
+    ctx.font = '10px "Space Mono",monospace';
+
+    // grid
+    for (let i=0;i<=4;i++) {
+      const y = pad.t + ch - (ch * i / 4);
+      ctx.strokeStyle = GRID; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(pad.l+cw,y); ctx.stroke();
+      const v = Math.round(max * i / 4);
+      ctx.fillStyle = LBL; ctx.textAlign='right';
+      ctx.fillText(v>999?(v/1000).toFixed(1)+'k':v, pad.l-4, y+4);
+    }
+
+    datasets.forEach((ds, di) => {
+      const col = ds.color || COLS[di];
+      const pts = ds.data.map((v,i) => [pad.l + cw * i / Math.max(n-1,1), pad.t + ch - ch * v / max]);
+
+      // fill
+      ctx.beginPath();
+      ctx.moveTo(pts[0][0], pad.t+ch);
+      pts.forEach(([x,y]) => ctx.lineTo(x,y));
+      ctx.lineTo(pts[pts.length-1][0], pad.t+ch);
+      ctx.closePath();
+      ctx.fillStyle = col + '22';
+      ctx.fill();
+
+      // line
+      ctx.beginPath();
+      ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.lineJoin='round';
+      pts.forEach(([x,y],i) => i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y));
+      ctx.stroke();
+
+      // dots
+      pts.forEach(([x,y]) => {
+        ctx.beginPath(); ctx.arc(x,y,3,0,Math.PI*2);
+        ctx.fillStyle=col; ctx.fill();
+      });
+    });
+
+    // x labels
+    ctx.fillStyle = LBL; ctx.textAlign='center';
+    const step = Math.max(1, Math.floor(n / 10));
+    labels.forEach((lbl,i) => {
+      if (i % step !== 0) return;
+      const x = pad.l + cw * i / Math.max(n-1,1);
+      const sl = String(lbl).slice(-5);
+      ctx.save(); ctx.translate(x, pad.t+ch+12); ctx.rotate(-0.6); ctx.fillText(sl,0,0); ctx.restore();
+    });
+    _instances[id] = true;
+  }
+
+  /* ── Doughnut ── */
+  function donut(id, labels, values, colors, opts = {}) {
+    clear(id);
+    const canvas = C(id); if (!canvas) return;
+    const h = opts.h || 200;
+    const [W, H, ctx] = resize(canvas, h);
+    const total = values.reduce((a,b)=>a+b,0);
+    if (!total) return;
+    const cols = colors || COLS;
+
+    const lh = 18; const lpad = 12;
+    const legendH = Math.ceil(labels.length / 2) * lh + lpad;
+    const cx = W/2, cy = (H-legendH)/2;
+    const r  = Math.min(cx, cy) - 10;
+    const ir = r * 0.55;
+
+    let angle = -Math.PI/2;
+    values.forEach((v,i) => {
+      const sweep = (v/total) * Math.PI*2;
+      ctx.beginPath();
+      ctx.moveTo(cx,cy); ctx.arc(cx,cy,r,angle,angle+sweep);
+      ctx.closePath();
+      ctx.fillStyle = cols[i%cols.length];
+      ctx.fill();
+      angle += sweep;
+    });
+
+    // hole
+    ctx.beginPath(); ctx.arc(cx,cy,ir,0,Math.PI*2);
+    ctx.fillStyle = '#121929'; ctx.fill();
+
+    // center text
+    ctx.fillStyle = TXT; ctx.textAlign='center';
+    ctx.font = 'bold 16px "Syne",sans-serif';
+    ctx.fillText(total, cx, cy+2);
+    ctx.font = '9px "Space Mono",monospace';
+    ctx.fillStyle = LBL;
+    ctx.fillText('total', cx, cy+15);
+
+    // legend
+    const lx0 = 8; let lx = lx0, ly = H - legendH + lpad;
+    const colW = W/2;
+    labels.forEach((lbl,i) => {
+      ctx.fillStyle = cols[i%cols.length];
+      ctx.fillRect(lx, ly-8, 10, 10);
+      ctx.fillStyle = LBL; ctx.textAlign='left'; ctx.font='10px "Space Mono",monospace';
+      const pct = Math.round(values[i]/total*100);
+      ctx.fillText(String(lbl).slice(0,14)+' '+pct+'%', lx+13, ly);
+      if ((i+1)%2===0) { lx=lx0; ly+=lh; } else { lx=colW; }
+    });
+    _instances[id] = true;
+  }
+
+  return { bar, line, donut, clear };
+})();
+
+// ─── App State & Helpers ─────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const fmt  = n => typeof n==='number' ? n.toLocaleString('en-IN') : '—';
+const fmtR = n => typeof n==='number' ? '₹'+(n>=100000?(n/100000).toFixed(2)+'L':n.toLocaleString('en-IN')) : '—';
+function toast(msg, type='') {
+  const t=$('toast'); t.textContent=msg; t.className='show '+(type==='success'?'ok':type==='error'?'err':'');
+  clearTimeout(t._t); t._t=setTimeout(()=>t.className='',3200);
+}
+async function apiFetch(path) {
+  const r = await fetch(path);
+  if (!r.ok) throw new Error('HTTP '+r.status);
+  return r.json();
+}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+let gStats=null, logsPage=1, activeHoursBack=null;
+
+const ACCENT='#FF6B35',GREEN='#00E5A0',RED='#FF3B5C',YELLOW='#FFB800',
+      BLUE='#4D9EFF',PURPLE='#A78BFA',TEAL='#22D3EE';
+
+// ─── Boot ────────────────────────────────────────────────────────────────────
+(async function boot(){
+  const today=new Date(), week=new Date(today);
+  week.setDate(today.getDate()-7);
+  $('dt').value=today.toISOString().slice(0,10);
+  $('df').value=week.toISOString().slice(0,10);
+  // Hide custom date range by default; show only when Custom is chosen
+  $('date-range-row').style.display='none';
+  try {
+    const {apis,total_files}=await apiFetch('/api/apis');
+    ['sel-api','l-api','al-api'].forEach(id=>{
+      const el=$(id); if(!el) return;
+      apis.forEach(a=>{ const o=document.createElement('option'); o.value=a; o.textContent=a; el.appendChild(o); });
+    });
+    $('stxt').textContent=total_files+' log files in S3';
+    loadAlerts();
+    // Auto-load with 1H by default
+    setActiveTimeBtn('1', true);
+  } catch(e){ toast('Backend error: '+e.message,'error'); $('stxt').textContent='Error'; }
+})();
+
+// ─── Time-range buttons ───────────────────────────────────────────────────────
+function setActiveTimeBtn(h, autoLoad) {
+  document.querySelectorAll('.tr-btn').forEach(b => b.classList.remove('tr-active'));
+  $('btn-custom').classList.remove('tr-active');
+  if (h === 'custom') {
+    $('btn-custom').classList.add('tr-active');
+    $('date-range-row').style.display='flex';
+    activeHoursBack = null;
+  } else {
+    const btn = document.querySelector(`.tr-btn[data-h="${h}"]`);
+    if (btn) btn.classList.add('tr-active');
+    $('date-range-row').style.display='none';
+    activeHoursBack = parseInt(h, 10);
+  }
+  if (autoLoad) loadOverview();
+}
+
+document.querySelectorAll('.tr-btn').forEach(btn => {
+  btn.addEventListener('click', () => setActiveTimeBtn(btn.dataset.h, true));
+});
+$('btn-custom').addEventListener('click', () => setActiveTimeBtn('custom', false));
+
+// Tabs
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.tp').forEach(p=>p.classList.remove('active'));
+    tab.classList.add('active');
+    $('tab-'+tab.dataset.tab).classList.add('active');
+    if(tab.dataset.tab==='payments' && gStats) renderPayTab(gStats);
+  });
+});
+
+// ─── Overview ────────────────────────────────────────────────────────────────
+$('btn-load').addEventListener('click', loadOverview);
+$('btn-ref').addEventListener('click', async()=>{
+  await fetch('/api/cache/clear',{method:'POST'});
+  toast('Cache cleared','success'); loadOverview();
+});
+
+async function loadOverview(){
+  const apiV=$('sel-api').value;
+  let params;
+  if (activeHoursBack) {
+    // Quick time-range mode: send hours_back, backend uses local IST time
+    params = new URLSearchParams({hours_back: activeHoursBack});
+  } else {
+    const dfrom=$('df').value, dto=$('dt').value;
+    if(!dfrom||!dto){ toast('Select a date range','error'); return; }
+    params = new URLSearchParams({date_from:dfrom, date_to:dto});
+  }
+  if(apiV) params.set('api',apiV);
+
+  $('ov-ld').style.display='block'; $('ov-ct').style.opacity='0.3';
+  const rangeLabel = activeHoursBack ? `Last ${activeHoursBack}H` : 'Custom range';
+  $('stxt').textContent=`Loading ${rangeLabel}…`;
+  try {
+    gStats = await apiFetch('/api/stats?'+params);
+    renderCards(gStats); renderCharts(gStats); renderRecentErrors(gStats.recent_errors||[]);
+    populateEndpointDropdown(gStats);
+    const label = activeHoursBack
+      ? `last ${activeHoursBack}h · ${gStats.cutoff_ts ? gStats.cutoff_ts.slice(11,16)+' → now' : ''}`
+      : `${gStats.date_from} → ${gStats.date_to}`;
+    $('stxt').textContent=`${gStats.files_loaded||0} files · ${fmt(gStats.total)} entries · ${label}`;
+  } catch(e){ toast('Failed: '+e.message,'error'); $('stxt').textContent='Error'; }
+  finally { $('ov-ld').style.display='none'; $('ov-ct').style.opacity='1'; }
+}
+
+// ─── Dynamic endpoint dropdown ────────────────────────────────────────────────
+function populateEndpointDropdown(s) {
+  const epSel = $('l-ep');
+  const prev = epSel.value;
+  epSel.innerHTML = '<option value="">All endpoints</option>';
+  Object.keys(s.endpoints || {}).forEach(ep => {
+    const o = document.createElement('option');
+    // ep is like "POST /documentCompareAPI" — store full string as value for flexible matching
+    o.value = ep.split(' ').slice(1).join(' ');  // "/documentCompareAPI"
+    o.textContent = ep;
+    epSel.appendChild(o);
+  });
+  // Restore previous selection if still valid
+  if ([...epSel.options].some(o => o.value === prev)) epSel.value = prev;
+}
+
+function renderCards(s){
+  $('c-tot').textContent=fmt(s.total); $('c-files').textContent=(s.files_loaded||0)+' files';
+  $('c-err').textContent=fmt(s.errors); $('c-erate').textContent=s.error_rate+'% error rate';
+  $('c-warn').textContent=fmt(s.warnings);
+  $('c-cre').textContent=fmt(s.payments_created);
+  $('c-cap').textContent=fmt(s.payments_captured);
+  $('c-fail').textContent=fmt(s.payments_failed)+' failed';
+  $('c-rev').textContent=fmtR(s.revenue_inr);
+}
+
+function renderCharts(s){
+  // Timeline line chart
+  const hours=s.hourly_labels||[];
+  CHR.line('ch-tl', hours.map(h=>h.slice(11)), [{data:s.hourly_values||[],color:ACCENT}]);
+
+  // Endpoints bar
+  const epK=Object.keys(s.endpoints||{}).slice(0,6);
+  CHR.bar('ch-ep',epK.map(k=>k.replace('POST ','POST\n').replace('GET ','')),epK.map(k=>s.endpoints[k]),[ACCENT,BLUE],{horiz:true});
+
+  // Payment status donut
+  const psK=Object.keys(s.payment_statuses||{});
+  CHR.donut('ch-ps',psK,psK.map(k=>s.payment_statuses[k]),psK.map(k=>k==='captured'?GREEN:k==='created'?ACCENT:RED));
+
+  // Errors by endpoint bar
+  const eeK=Object.keys(s.err_by_endpoint||{}).slice(0,5);
+  if(eeK.length) CHR.bar('ch-ee',eeK.map(k=>k.replace('POST ','').replace('GET ','')),eeK.map(k=>s.err_by_endpoint[k]),[RED],{horiz:true});
+
+  // Flows bar
+  const flK=Object.keys(s.flows||{}).slice(0,4);
+  CHR.bar('ch-fl',flK.map(k=>k.replace('implemtation_','').replace('_flowSub_Flow','').replace('-log-flow','')),
+    flK.map(k=>s.flows[k]),[BLUE,TEAL,PURPLE,GREEN]);
+
+  // UPI methods donut
+  const pmK=Object.keys(s.payment_methods||{});
+  if(pmK.length) CHR.donut('ch-pm',pmK,pmK.map(k=>s.payment_methods[k]),[TEAL,PURPLE,YELLOW,BLUE]);
+}
+
+function renderRecentErrors(errors){
+  const body=$('re-body');
+  $('rc-ct').textContent=errors.length+' entries';
+  if(!errors.length){ body.innerHTML='<tr><td colspan="7" class="emp">✓ No errors in selected range</td></tr>'; return; }
+  body.innerHTML=errors.slice(-20).reverse().map(e=>`<tr>
+    <td><span class="badge b${e.level}">${e.level}</span></td>
+    <td class="mono tdim" style="white-space:nowrap;font-size:10px">${e.timestamp}</td>
+    <td class="tdim">${e.api}</td>
+    <td><span class="torn mono">${e.method} ${e.endpoint}</span></td>
+    <td class="tdim" style="font-size:10px">${(e.flow||'').replace('implemtation_','').replace('_flowSub_Flow','')}</td>
+    <td>${e.error_code?`<span class="tred">${e.error_code}</span>`:'<span class="tdim">—</span>'}</td>
+    <td class="ttrunc tdim">${esc(e.message||'')}</td>
+  </tr>`).join('');
+}
+
+// ─── Payments tab ─────────────────────────────────────────────────────────────
+function renderPayTab(s){
+  if(!s) return;
+  $('p-cre').textContent=fmt(s.payments_created);
+  $('p-cap').textContent=fmt(s.payments_captured);
+  $('p-fail').textContent=fmt(s.payments_failed);
+  $('p-rev').textContent=fmtR(s.revenue_inr);
+
+  const dK=Object.keys(s.daily||{});
+  CHR.line('ch-da',dK,[{data:dK.map(k=>s.daily[k]),color:PURPLE}]);
+  CHR.bar('ch-fn',['Created','Captured','Failed'],[s.payments_created,s.payments_captured,s.payments_failed],[ACCENT,GREEN,RED]);
+
+  const pmK=Object.keys(s.payment_methods||{});
+  if(pmK.length) CHR.donut('ch-um',pmK,pmK.map(k=>s.payment_methods[k]),[TEAL,BLUE,YELLOW,GREEN]);
+}
+
+// ─── Log Explorer ──────────────────────────────────────────────────────────────
+$('btn-srch').addEventListener('click',()=>{logsPage=1;loadLogs();});
+$('l-api').addEventListener('change', async()=>{
+  const a=$('l-api').value;
+  const {dates}=await apiFetch('/api/dates'+(a?'?api='+a:''));
+  const sel=$('l-date');
+  sel.innerHTML='<option value="">All dates</option>';
+  dates.forEach(d=>{ const o=document.createElement('option'); o.value=d; o.textContent=d; sel.appendChild(o); });
+});
+
+async function loadLogs(){
+  const p=new URLSearchParams({
+    api:$('l-api').value, date:$('l-date').value,
+    level:$('l-lvl').value, endpoint:$('l-ep').value,
+    search:$('l-srch').value, page:logsPage, per_page:50
+  });
+  // If a quick time-range is active and no specific date is chosen, pass hours_back
+  if (activeHoursBack && !$('l-date').value) {
+    p.set('hours_back', activeHoursBack);
+    p.delete('date');
+  }
+  $('l-ld').style.display='block'; $('l-tw').style.opacity='0.3';
+  try {
+    const d=await apiFetch('/api/logs?'+p);
+    renderLogsTable(d.logs||[]);
+    $('l-tot').textContent=fmt(d.total)+' entries · pg '+d.page+'/'+d.pages;
+    renderPagination(d.page,d.pages);
+  } catch(e){ toast('Failed: '+e.message,'error'); }
+  finally{ $('l-ld').style.display='none'; $('l-tw').style.opacity='1'; }
+}
+
+function renderLogsTable(logs){
+  const body=$('l-body');
+  if(!logs.length){ body.innerHTML='<tr><td colspan="11" class="emp">No logs match filters</td></tr>'; return; }
+  body.innerHTML=logs.map(e=>{
+    const rzB=e.rz_status?`<span class="badge b${e.rz_status==='captured'?'ok':e.rz_status==='created'?'created':'fail'}">${e.rz_status}</span>`:'<span class="tdim">—</span>';
+    return `<tr>
+      <td><span class="badge b${e.level}">${e.level}</span></td>
+      <td class="mono tdim" style="font-size:10px;white-space:nowrap">${e.timestamp}</td>
+      <td class="tdim">${e.api}</td>
+      <td><span class="badge b${e.method==='POST'?'created':'INFO'}">${e.method}</span></td>
+      <td class="mono torn">${e.endpoint}</td>
+      <td class="tdim" style="font-size:10px">${(e.flow||'').replace('implemtation_','').replace('_flowSub_Flow','')}</td>
+      <td>${rzB}</td>
+      <td class="mono">${e.amount_inr!=null?'₹'+e.amount_inr.toLocaleString('en-IN'):'—'}</td>
+      <td>${e.error_code?`<span class="tred">${e.error_code}</span>`:'<span class="tdim">—</span>'}</td>
+      <td class="mono tdim" style="font-size:10px">${e.loan_number||'—'}</td>
+      <td class="ttrunc tdim">${esc(e.message||'')}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderPagination(page,pages){
+  const el=$('l-pg'); if(pages<=1){el.innerHTML='';return;}
+  let h=`<button class="pb" ${page===1?'disabled':''} onclick="goPage(${page-1})">‹ Prev</button>`;
+  const s=Math.max(1,page-3), e2=Math.min(pages,s+6);
+  for(let p=s;p<=e2;p++) h+=`<button class="pb ${p===page?'active':''}" onclick="goPage(${p})">${p}</button>`;
+  h+=`<button class="pb" ${page===pages?'disabled':''} onclick="goPage(${page+1})">Next ›</button>`;
+  el.innerHTML=h;
+}
+function goPage(p){logsPage=p;loadLogs();}
+
+// ─── Alerts ───────────────────────────────────────────────────────────────────
+$('btn-cal').addEventListener('click', async()=>{
+  const nm=$('al-nm').value.trim(), th=$('al-th').value;
+  if(!nm||!th){toast('Name and threshold required','error');return;}
+  try {
+    await fetch('/api/alerts',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name:nm,api:$('al-api').value,metric:$('al-mt').value,
+        operator:$('al-op').value,threshold:parseFloat(th),webhook_url:$('al-wh').value.trim(),enabled:true})});
+    toast('Alert created ✓','success'); $('al-nm').value=''; $('al-th').value=''; loadAlerts();
+  } catch(e){toast('Failed: '+e.message,'error');}
+});
+
+$('btn-twh').addEventListener('click', async()=>{
+  const url=$('al-wh').value.trim();
+  if(!url){toast('Enter a webhook URL','error');return;}
+  try {
+    const r=await fetch('/api/alerts/test-webhook',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({webhook_url:url})});
+    const d=await r.json();
+    if(d.success) toast('Sent ✓ status '+d.status_code,'success'); else toast('Failed: '+d.error,'error');
+  } catch(e){toast('Error: '+e.message,'error');}
+});
+
+async function loadAlerts(){
+  try{
+    const {alerts}=await apiFetch('/api/alerts');
+    const el=$('al-list');
+    if(!alerts.length){el.innerHTML='<div class="emp">🔔 No alerts configured</div>';return;}
+    el.innerHTML=alerts.map(a=>`<div class="ai">
+      <div class="ai-info">
+        <div class="ai-name">${esc(a.name)}</div>
+        <div class="ai-meta">${a.api||'All APIs'} · <code>${a.metric}</code> ${a.operator} ${a.threshold}${a.last_fired?' · Last: '+a.last_fired.slice(0,16):''}</div>
+        ${a.webhook_url?`<div class="ai-meta tdim">${a.webhook_url.slice(0,48)}…</div>`:''}
+      </div>
+      <div class="ai-acts">
+        <label class="tog"><input type="checkbox" ${a.enabled?'checked':''} onchange="togAlert('${a.id}',this.checked)"><span class="tsl"></span></label>
+        <button class="btn btn-d btn-sm" onclick="delAlert('${a.id}')">✕</button>
+      </div>
+    </div>`).join('');
+  }catch(e){toast('Could not load alerts','error');}
+}
+async function togAlert(id,e){
+  await fetch('/api/alerts/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:e})});
+  toast(e?'Enabled':'Disabled');
+}
+async function delAlert(id){
+  if(!confirm('Delete this alert?')) return;
+  await fetch('/api/alerts/'+id,{method:'DELETE'}); toast('Deleted'); loadAlerts();
+}
+
+// Re-draw charts on window resize
+let _rt; window.addEventListener('resize',()=>{ clearTimeout(_rt); _rt=setTimeout(()=>{ if(gStats){renderCharts(gStats); renderPayTab(gStats);} },300); });
+</script>
+</body>
+</html>
