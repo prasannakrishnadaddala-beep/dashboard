@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MuleSoft Log Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+/* ── Reset & tokens ───────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:         #080C12;
+  --bg2:        #0E1420;
+  --bg3:        #151C2B;
+  --card:       #121929;
+  --border:     #1E2A40;
+  --border2:    #263352;
+  --text:       #C8D4E8;
+  --text2:      #7A8FAF;
+  --text3:      #4A5F7A;
+  --accent:     #FF6B35;
+  --accent2:    #FF9563;
+  --green:      #00E5A0;
+  --red:        #FF3B5C;
+  --yellow:     #FFB800;
+  --blue:       #4D9EFF;
+  --purple:     #A78BFA;
+  --font-head:  'Syne', sans-serif;
+  --font-mono:  'Space Mono', monospace;
+  --radius:     10px;
+  --shadow:     0 4px 24px rgba(0,0,0,0.5);
+}
+
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font-mono); font-size: 13px; line-height: 1.5; }
+
+/* ── Layout ────────────────────────────────────────────────────── */
+.app { display: flex; flex-direction: column; min-height: 100vh; }
+
+/* ── Topbar ────────────────────────────────────────────────────── */
+.topbar {
+  display: flex; align-items: center; gap: 16px;
+  padding: 0 24px; height: 56px;
+  background: var(--bg2); border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 100;
+}
+.topbar-logo {
+  font-family: var(--font-head); font-size: 17px; font-weight: 800;
+  color: var(--accent); letter-spacing: -0.5px; white-space: nowrap;
+  display: flex; align-items: center; gap: 8px;
+}
+.topbar-logo::before { content: '◈'; font-size: 20px; }
+.topbar-sep { width: 1px; height: 28px; background: var(--border); }
+.topbar-controls { display: flex; align-items: center; gap: 10px; flex: 1; flex-wrap: wrap; }
+.topbar-right { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+
+/* ── Controls ──────────────────────────────────────────────────── */
+select, input[type="date"], input[type="text"], input[type="number"],
+input[type="url"], textarea {
+  background: var(--bg3); border: 1px solid var(--border);
+  color: var(--text); font-family: var(--font-mono); font-size: 12px;
+  padding: 6px 10px; border-radius: 6px; outline: none;
+  transition: border-color .2s;
+}
+select:focus, input:focus, textarea:focus { border-color: var(--accent); }
+select { cursor: pointer; }
+label { font-size: 11px; color: var(--text2); }
+
+/* ── Buttons ───────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 14px; border-radius: 6px; border: none;
+  font-family: var(--font-mono); font-size: 12px; cursor: pointer;
+  transition: all .2s; white-space: nowrap;
+}
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent2); }
+.btn-ghost { background: transparent; color: var(--text2); border: 1px solid var(--border); }
+.btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+.btn-danger { background: transparent; color: var(--red); border: 1px solid var(--red); }
+.btn-danger:hover { background: var(--red); color: #fff; }
+.btn-sm { padding: 4px 10px; font-size: 11px; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* ── Tabs ──────────────────────────────────────────────────────── */
+.tabs { display: flex; gap: 2px; background: var(--bg2); padding: 0 24px; border-bottom: 1px solid var(--border); }
+.tab {
+  padding: 12px 18px; cursor: pointer; font-size: 12px; color: var(--text2);
+  border-bottom: 2px solid transparent; transition: all .2s; letter-spacing: .5px;
+}
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ── Main ──────────────────────────────────────────────────────── */
+.main { flex: 1; padding: 20px 24px; max-width: 1600px; margin: 0 auto; width: 100%; }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+
+/* ── Summary cards ─────────────────────────────────────────────── */
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; margin-bottom: 22px; }
+.card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px 18px;
+  position: relative; overflow: hidden; transition: border-color .2s;
+}
+.card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: var(--card-accent, var(--accent));
+}
+.card:hover { border-color: var(--border2); }
+.card-label { font-size: 10px; color: var(--text2); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+.card-value { font-family: var(--font-head); font-size: 28px; font-weight: 800; color: var(--text); line-height: 1; }
+.card-sub { font-size: 10px; color: var(--text3); margin-top: 4px; }
+.card-icon { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); font-size: 28px; opacity: .08; }
+
+.card--err   { --card-accent: var(--red);    }
+.card--warn  { --card-accent: var(--yellow); }
+.card--ok    { --card-accent: var(--green);  }
+.card--blue  { --card-accent: var(--blue);   }
+.card--purple{ --card-accent: var(--purple); }
+
+/* ── Charts grid ───────────────────────────────────────────────── */
+.charts { display: grid; gap: 14px; }
+.charts-row { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+.charts-row2 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+.chart-box {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px;
+}
+.chart-title {
+  font-family: var(--font-head); font-size: 12px; font-weight: 700;
+  color: var(--text2); letter-spacing: 1px; text-transform: uppercase;
+  margin-bottom: 14px; display: flex; align-items: center; gap: 6px;
+}
+.chart-title span { color: var(--accent); }
+.chart-canvas-wrap { position: relative; height: 220px; }
+
+/* ── Log table ─────────────────────────────────────────────────── */
+.log-controls { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
+.log-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); }
+table { width: 100%; border-collapse: collapse; font-size: 11px; }
+thead { background: var(--bg3); }
+th { padding: 10px 12px; text-align: left; color: var(--text2); font-weight: 700; letter-spacing: .5px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--bg3); }
+
+.badge {
+  display: inline-block; padding: 2px 7px; border-radius: 4px;
+  font-size: 10px; font-weight: 700; letter-spacing: .5px;
+}
+.badge-INFO   { background: rgba(77,158,255,.15); color: var(--blue); }
+.badge-ERROR  { background: rgba(255,59,92,.18);  color: var(--red); }
+.badge-WARN   { background: rgba(255,184,0,.15);  color: var(--yellow); }
+.badge-DEBUG  { background: rgba(167,139,250,.12); color: var(--purple); }
+.badge-ok     { background: rgba(0,229,160,.13); color: var(--green); }
+.badge-fail   { background: rgba(255,59,92,.18);  color: var(--red); }
+.badge-created{ background: rgba(255,107,53,.13); color: var(--accent); }
+
+.mono { font-family: var(--font-mono); font-size: 11px; }
+.text-sm { font-size: 11px; }
+.text-dim { color: var(--text3); }
+.text-red { color: var(--red); }
+.text-green { color: var(--green); }
+.text-orange { color: var(--accent); }
+.text-trunc { max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ── Pagination ────────────────────────────────────────────────── */
+.pagination { display: flex; align-items: center; gap: 8px; margin-top: 14px; justify-content: center; }
+.page-btn {
+  padding: 5px 12px; background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 5px; color: var(--text2); cursor: pointer; font-family: var(--font-mono);
+  font-size: 12px; transition: all .2s;
+}
+.page-btn:hover, .page-btn.active { border-color: var(--accent); color: var(--accent); }
+.page-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+/* ── Alerts panel ──────────────────────────────────────────────── */
+.alerts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.panel { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+.panel-title { font-family: var(--font-head); font-size: 14px; font-weight: 700; margin-bottom: 16px; color: var(--text); }
+.form-group { margin-bottom: 12px; }
+.form-group label { display: block; margin-bottom: 4px; }
+.form-group input, .form-group select { width: 100%; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+.alert-item {
+  border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px;
+  margin-bottom: 10px; display: flex; align-items: flex-start; gap: 12px;
+  background: var(--bg3);
+}
+.alert-item-info { flex: 1; }
+.alert-name { font-weight: 700; margin-bottom: 2px; }
+.alert-meta { font-size: 11px; color: var(--text2); }
+.alert-actions { display: flex; gap: 6px; align-items: center; }
+.toggle { position: relative; display: inline-block; width: 36px; height: 20px; }
+.toggle input { display: none; }
+.toggle-slider {
+  position: absolute; inset: 0; background: var(--bg); border: 1px solid var(--border);
+  border-radius: 20px; cursor: pointer; transition: .3s;
+}
+.toggle-slider::before {
+  content: ''; position: absolute; left: 2px; top: 50%;
+  transform: translateY(-50%); width: 14px; height: 14px;
+  background: var(--text3); border-radius: 50%; transition: .3s;
+}
+.toggle input:checked + .toggle-slider { background: var(--accent); border-color: var(--accent); }
+.toggle input:checked + .toggle-slider::before { left: calc(100% - 16px); background: #fff; }
+
+/* ── Loading & empty ───────────────────────────────────────────── */
+.loading { text-align: center; padding: 60px 20px; color: var(--text2); }
+.loading-spinner { display: inline-block; width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; margin-bottom: 12px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.empty { text-align: center; padding: 40px 20px; color: var(--text3); }
+.empty-icon { font-size: 36px; margin-bottom: 8px; }
+
+/* ── Toast ─────────────────────────────────────────────────────── */
+#toast {
+  position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+  padding: 12px 20px; border-radius: 8px; font-size: 12px;
+  background: var(--bg3); border: 1px solid var(--border);
+  color: var(--text); box-shadow: var(--shadow);
+  transform: translateY(80px); opacity: 0; transition: all .3s;
+  max-width: 320px;
+}
+#toast.show { transform: translateY(0); opacity: 1; }
+#toast.success { border-color: var(--green); color: var(--green); }
+#toast.error   { border-color: var(--red);   color: var(--red);   }
+
+/* ── Misc ──────────────────────────────────────────────────────── */
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.section-title { font-family: var(--font-head); font-size: 13px; font-weight: 700; color: var(--text2); letter-spacing: .8px; text-transform: uppercase; }
+.divider { height: 1px; background: var(--border); margin: 20px 0; }
+.flex { display: flex; align-items: center; gap: 8px; }
+.ml-auto { margin-left: auto; }
+.status-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+.dot-live { background: var(--green); animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+@media (max-width: 1100px) {
+  .charts-row { grid-template-columns: 1fr 1fr; }
+  .charts-row2 { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 700px) {
+  .charts-row, .charts-row2 { grid-template-columns: 1fr; }
+  .alerts-grid { grid-template-columns: 1fr; }
+  .topbar-controls { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+<!-- ── TOPBAR ─────────────────────────────────────────────── -->
+<div class="topbar">
+  <div class="topbar-logo">MuleSoft Intelligence</div>
+  <div class="topbar-sep"></div>
+  <div class="topbar-controls">
+    <div class="flex">
+      <label>API</label>
+      <select id="sel-api" style="min-width:220px">
+        <option value="">All APIs</option>
+      </select>
+    </div>
+    <div class="flex">
+      <label>From</label>
+      <input type="date" id="date-from" />
+    </div>
+    <div class="flex">
+      <label>To</label>
+      <input type="date" id="date-to" />
+    </div>
+    <button class="btn btn-primary btn-sm" id="btn-load">▶ Load</button>
+    <button class="btn btn-ghost btn-sm" id="btn-refresh" title="Clear cache & reload">↺ Refresh</button>
+  </div>
+  <div class="topbar-right">
+    <span class="status-dot dot-live"></span>
+    <span style="font-size:11px;color:var(--text2)" id="status-txt">Ready</span>
+  </div>
+</div>
+
+<!-- ── TABS ───────────────────────────────────────────────── -->
+<div class="tabs">
+  <div class="tab active" data-tab="overview">Overview</div>
+  <div class="tab" data-tab="logs">Log Explorer</div>
+  <div class="tab" data-tab="payments">Payments</div>
+  <div class="tab" data-tab="alerts">Alerts</div>
+</div>
+
+<!-- ── MAIN ───────────────────────────────────────────────── -->
+<div class="main">
+
+  <!-- ── OVERVIEW TAB ─────────────────────────────────────── -->
+  <div class="tab-pane active" id="tab-overview">
+    <div id="overview-loading" class="loading" style="display:none">
+      <div class="loading-spinner"></div>
+      <div>Fetching logs from S3…</div>
+    </div>
+    <div id="overview-content">
+      <!-- Cards -->
+      <div class="cards" id="cards-row">
+        <div class="card"><div class="card-label">Total Requests</div><div class="card-value" id="c-total">—</div><div class="card-sub" id="c-files">0 files loaded</div><div class="card-icon">📊</div></div>
+        <div class="card card--err"><div class="card-label">Errors</div><div class="card-value text-red" id="c-errors">—</div><div class="card-sub" id="c-err-rate">0% error rate</div><div class="card-icon">🔴</div></div>
+        <div class="card card--warn"><div class="card-label">Warnings</div><div class="card-value" style="color:var(--yellow)" id="c-warnings">—</div><div class="card-sub">log-level WARN</div><div class="card-icon">⚠️</div></div>
+        <div class="card card--ok"><div class="card-label">Orders Created</div><div class="card-value text-green" id="c-created">—</div><div class="card-sub">Razorpay orders</div><div class="card-icon">🧾</div></div>
+        <div class="card card--blue"><div class="card-label">Payments Captured</div><div class="card-value" style="color:var(--blue)" id="c-captured">—</div><div class="card-sub" id="c-failed">0 failed</div><div class="card-icon">💳</div></div>
+        <div class="card card--purple"><div class="card-label">Revenue (INR)</div><div class="card-value" style="color:var(--purple)" id="c-revenue">—</div><div class="card-sub">captured payments</div><div class="card-icon">₹</div></div>
+      </div>
+
+      <!-- Row 1: Timeline + Endpoints + Payment Status -->
+      <div class="charts-row">
+        <div class="chart-box">
+          <div class="chart-title"><span>◆</span> Requests Timeline</div>
+          <div class="chart-canvas-wrap"><canvas id="ch-timeline"></canvas></div>
+        </div>
+        <div class="chart-box">
+          <div class="chart-title"><span>◆</span> Endpoints</div>
+          <div class="chart-canvas-wrap"><canvas id="ch-endpoints"></canvas></div>
+        </div>
+        <div class="chart-box">
+          <div class="chart-title"><span>◆</span> Payment Status</div>
+          <div class="chart-canvas-wrap"><canvas id="ch-status"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Row 2: Error by Endpoint + Flows + Payment Methods -->
+      <div class="charts-row2">
+        <div class="chart-box">
+          <div class="chart-title"><span>◆</span> Errors by Endpoint</div>
+          <div class="chart-canvas-wrap"><canvas id="ch-errendpoint"></canvas></div>
+        </div>
+        <div class="chart-box">
+          <div class="chart-title"><span>◆</span> Flow Distribution</div>
+          <div class="chart-canvas-wrap"><canvas id="ch-flows"></canvas></div>
+        </div>
+        <div class="chart-box">
+          <div class="chart-title"><span>◆</span> Payment Methods</div>
+          <div class="chart-canvas-wrap"><canvas id="ch-methods"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Recent errors -->
+      <div style="margin-top:16px">
+        <div class="section-header">
+          <div class="section-title">Recent Errors &amp; Warnings</div>
+          <span id="recent-err-count" style="font-size:11px;color:var(--text3)"></span>
+        </div>
+        <div class="log-table-wrap">
+          <table>
+            <thead><tr>
+              <th>Level</th><th>Timestamp</th><th>API</th><th>Endpoint</th>
+              <th>Flow</th><th>Error Code</th><th>Message</th>
+            </tr></thead>
+            <tbody id="recent-errors-body">
+              <tr><td colspan="7" class="empty"><div class="empty-icon">✓</div>No errors in selected range</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── LOGS TAB ──────────────────────────────────────────── -->
+  <div class="tab-pane" id="tab-logs">
+    <div class="log-controls">
+      <select id="log-sel-api" style="min-width:200px"><option value="">All APIs</option></select>
+      <select id="log-sel-date"><option value="">All dates</option></select>
+      <select id="log-sel-level">
+        <option value="">All levels</option>
+        <option value="ERROR">ERROR</option>
+        <option value="WARN">WARN</option>
+        <option value="INFO">INFO</option>
+        <option value="DEBUG">DEBUG</option>
+      </select>
+      <select id="log-sel-endpoint">
+        <option value="">All endpoints</option>
+        <option value="/create">POST /create</option>
+        <option value="status">GET /status</option>
+      </select>
+      <input type="text" id="log-search" placeholder="Search loan#, customer, paymentId…" style="min-width:250px" />
+      <button class="btn btn-primary btn-sm" id="btn-search-logs">Search</button>
+      <span class="ml-auto" style="font-size:11px;color:var(--text2)" id="log-total-txt"></span>
+    </div>
+    <div id="logs-loading" class="loading" style="display:none">
+      <div class="loading-spinner"></div><div>Loading logs…</div>
+    </div>
+    <div class="log-table-wrap" id="logs-table-wrap">
+      <table>
+        <thead><tr>
+          <th>Level</th><th>Timestamp</th><th>API</th><th>Method</th>
+          <th>Endpoint</th><th>Flow</th><th>Rz Status</th>
+          <th>Amount ₹</th><th>Error Code</th><th>Loan#</th><th>Message</th>
+        </tr></thead>
+        <tbody id="logs-body">
+          <tr><td colspan="11" class="empty"><div class="empty-icon">🔍</div>Select API and click Search</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="pagination" id="logs-pagination"></div>
+  </div>
+
+  <!-- ── PAYMENTS TAB ──────────────────────────────────────── -->
+  <div class="tab-pane" id="tab-payments">
+    <div id="pay-loading" class="loading" style="display:none">
+      <div class="loading-spinner"></div><div>Loading payment data…</div>
+    </div>
+    <div id="pay-content">
+      <div class="cards" style="margin-bottom:20px">
+        <div class="card card--ok"><div class="card-label">Total Orders Created</div><div class="card-value text-green" id="p-created">—</div><div class="card-sub">Razorpay orders</div></div>
+        <div class="card card--blue"><div class="card-label">Payments Captured</div><div class="card-value" style="color:var(--blue)" id="p-captured">—</div><div class="card-sub">success rate below</div></div>
+        <div class="card card--err"><div class="card-label">Failed Payments</div><div class="card-value text-red" id="p-failed">—</div><div class="card-sub">Razorpay error_code</div></div>
+        <div class="card card--purple"><div class="card-label">Total Revenue</div><div class="card-value" style="color:var(--purple)" id="p-revenue">—</div><div class="card-sub">sum of captured</div></div>
+      </div>
+      <div class="charts-row">
+        <div class="chart-box">
+          <div class="chart-title"><span>◆</span> Daily Revenue (INR)</div>
+          <div class="chart-canvas-wrap"><canvas id="ch-rev"></canvas></div>
+        </div>
+        <div class="chart-box">
+          <div class="chart-title"><span>◆</span> Order vs Capture</div>
+          <div class="chart-canvas-wrap"><canvas id="ch-funnel"></canvas></div>
+        </div>
+        <div class="chart-box">
+          <div class="chart-title"><span>◆</span> UPI Methods</div>
+          <div class="chart-canvas-wrap"><canvas id="ch-pay-methods"></canvas></div>
+        </div>
+      </div>
+
+      <div style="margin-top:16px">
+        <div class="section-header">
+          <div class="section-title">Captured Payments</div>
+        </div>
+        <div class="log-table-wrap">
+          <table>
+            <thead><tr>
+              <th>Timestamp</th><th>Payment ID</th><th>Order ID</th>
+              <th>Amount ₹</th><th>Method</th><th>Customer</th><th>Loan#</th><th>Status</th>
+            </tr></thead>
+            <tbody id="payments-body">
+              <tr><td colspan="8" class="empty">Load data first</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ALERTS TAB ─────────────────────────────────────────── -->
+  <div class="tab-pane" id="tab-alerts">
+    <div class="alerts-grid">
+
+      <!-- Create alert -->
+      <div class="panel">
+        <div class="panel-title">Create Alert Rule</div>
+        <div class="form-group">
+          <label>Alert Name *</label>
+          <input type="text" id="al-name" placeholder="e.g. High Error Rate" />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>API Filter</label>
+            <select id="al-api"><option value="">All APIs</option></select>
+          </div>
+          <div class="form-group">
+            <label>Metric *</label>
+            <select id="al-metric">
+              <option value="errors">Error Count</option>
+              <option value="error_rate">Error Rate (%)</option>
+              <option value="payments_failed">Failed Payments</option>
+              <option value="total_requests">Total Requests</option>
+              <option value="warnings">Warning Count</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Operator</label>
+            <select id="al-op">
+              <option value=">">&gt; greater than</option>
+              <option value=">=">&gt;= at least</option>
+              <option value="<">&lt; less than</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Threshold *</label>
+            <input type="number" id="al-threshold" placeholder="10" min="0" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Webhook URL (Slack / Teams / custom)</label>
+          <input type="url" id="al-webhook" placeholder="https://hooks.slack.com/…" />
+        </div>
+        <div style="display:flex;gap:8px;margin-top:4px">
+          <button class="btn btn-primary" id="btn-create-alert">+ Create Alert</button>
+          <button class="btn btn-ghost" id="btn-test-webhook">Test Webhook</button>
+        </div>
+      </div>
+
+      <!-- Alert list -->
+      <div class="panel">
+        <div class="panel-title">Active Alert Rules</div>
+        <div id="alerts-list">
+          <div class="empty"><div class="empty-icon">🔔</div>No alerts configured</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Alert docs -->
+    <div class="panel" style="margin-top:16px">
+      <div class="panel-title">How Alerts Work</div>
+      <div style="color:var(--text2);font-size:12px;line-height:1.8">
+        The backend checks configured alert rules every <strong style="color:var(--text)">5 minutes</strong> against today's log data pulled from S3.
+        When a threshold is breached, an HTTP POST is sent to your webhook URL with a Slack-compatible JSON payload.
+        You can use Slack Incoming Webhooks, Microsoft Teams Connectors, or any custom endpoint.
+        <br /><br />
+        <strong style="color:var(--accent)">Supported Metrics:</strong><br />
+        <code>errors</code> — total log lines with level=ERROR or Razorpay error_code set<br />
+        <code>error_rate</code> — errors as percentage of total requests<br />
+        <code>payments_failed</code> — count of Razorpay responses with non-null error_code<br />
+        <code>total_requests</code> — total log entries in the file<br />
+        <code>warnings</code> — total log lines with level=WARN
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+</div><!-- /app -->
+
+<div id="toast"></div>
+
+<script>
+// ── Utilities ────────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const fmt  = n => typeof n === 'number' ? n.toLocaleString('en-IN') : '—';
+const fmtR = n => typeof n === 'number' ? '₹' + (n >= 100000 ? (n/100000).toFixed(2)+'L' : n.toLocaleString('en-IN')) : '—';
+
+function toast(msg, type = '') {
+  const t = $('toast');
+  t.textContent = msg;
+  t.className = 'show ' + type;
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.className = '', 3000);
+}
+
+async function api(path) {
+  const r = await fetch(path);
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+}
+
+// ── Charts registry (so we can destroy on reload) ─────────────────────────
+const charts = {};
+function mkChart(id, cfg) {
+  if (charts[id]) charts[id].destroy();
+  charts[id] = new Chart($(id), cfg);
+  return charts[id];
+}
+
+const ACCENT  = '#FF6B35';
+const GREEN   = '#00E5A0';
+const RED     = '#FF3B5C';
+const YELLOW  = '#FFB800';
+const BLUE    = '#4D9EFF';
+const PURPLE  = '#A78BFA';
+const TEAL    = '#22D3EE';
+const GRID    = '#1E2A40';
+const LBLCOL  = '#7A8FAF';
+
+Chart.defaults.color = LBLCOL;
+Chart.defaults.font.family = "'Space Mono', monospace";
+Chart.defaults.font.size   = 11;
+
+const baseOpts = {
+  responsive: true, maintainAspectRatio: false,
+  plugins: { legend: { display: false }, tooltip: { backgroundColor: '#151C2B', borderColor: '#263352', borderWidth: 1 } },
+  scales: {
+    x: { grid: { color: GRID }, ticks: { color: LBLCOL, maxRotation: 45, font: { size: 10 } } },
+    y: { grid: { color: GRID }, ticks: { color: LBLCOL } },
+  },
+};
+
+function shortLabel(s) {
+  return s.replace('POST ', 'POST\n').replace('GET ', 'GET\n').replace('implemtation_', '').replace('_flowSub_Flow', '').replace('-log-flow','').replace('Sub_Flow','').replace('_Flow','');
+}
+
+// ── State ────────────────────────────────────────────────────────────────────
+let gStats = null;
+let logsPage = 1;
+
+// ── Boot ─────────────────────────────────────────────────────────────────────
+(async function boot() {
+  // Default dates: last 7 days
+  const today = new Date();
+  const week  = new Date(today); week.setDate(today.getDate() - 7);
+  $('date-to').value   = today.toISOString().slice(0,10);
+  $('date-from').value = week.toISOString().slice(0,10);
+
+  // Load API list
+  try {
+    const { apis, total_files } = await api('/api/apis');
+    const selects = ['sel-api','log-sel-api','al-api'];
+    selects.forEach(id => {
+      const el = $(id);
+      if (!el) return;
+      apis.forEach(a => {
+        const o = document.createElement('option');
+        o.value = a; o.textContent = a;
+        el.appendChild(o);
+      });
+    });
+    $('status-txt').textContent = `${total_files} log files in S3`;
+
+    // Load alerts
+    loadAlerts();
+  } catch(e) {
+    toast('Cannot connect to backend: ' + e.message, 'error');
+    $('status-txt').textContent = 'Error';
+  }
+})();
+
+// ── Tabs ─────────────────────────────────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    $('tab-' + tab.dataset.tab).classList.add('active');
+  });
+});
+
+// ── Load overview ─────────────────────────────────────────────────────────────
+$('btn-load').addEventListener('click', loadOverview);
+$('btn-refresh').addEventListener('click', async () => {
+  await fetch('/api/cache/clear', { method: 'POST' });
+  toast('Cache cleared', 'success');
+  loadOverview();
+});
+
+async function loadOverview() {
+  const apiVal  = $('sel-api').value;
+  const dfrom   = $('date-from').value;
+  const dto     = $('date-to').value;
+  if (!dfrom || !dto) { toast('Please select a date range', 'error'); return; }
+
+  $('overview-loading').style.display = 'block';
+  $('overview-content').style.opacity = '0.3';
+  $('status-txt').textContent = 'Loading…';
+
+  try {
+    const params = new URLSearchParams({ date_from: dfrom, date_to: dto });
+    if (apiVal) params.set('api', apiVal);
+    gStats = await api('/api/stats?' + params);
+
+    renderCards(gStats);
+    renderCharts(gStats);
+    renderRecentErrors(gStats.recent_errors || []);
+
+    // Also refresh payments tab if open
+    renderPaymentsTab(gStats);
+
+    $('status-txt').textContent = `${gStats.files_loaded || 0} files · ${fmt(gStats.total)} entries`;
+  } catch(e) {
+    toast('Failed to load stats: ' + e.message, 'error');
+    $('status-txt').textContent = 'Error';
+  } finally {
+    $('overview-loading').style.display = 'none';
+    $('overview-content').style.opacity = '1';
+  }
+}
+
+function renderCards(s) {
+  $('c-total').textContent    = fmt(s.total);
+  $('c-errors').textContent   = fmt(s.errors);
+  $('c-err-rate').textContent = s.error_rate + '% error rate';
+  $('c-warnings').textContent = fmt(s.warnings);
+  $('c-created').textContent  = fmt(s.payments_created);
+  $('c-captured').textContent = fmt(s.payments_captured);
+  $('c-failed').textContent   = fmt(s.payments_failed) + ' failed';
+  $('c-revenue').textContent  = fmtR(s.revenue_inr);
+  $('c-files').textContent    = (s.files_loaded || 0) + ' files loaded';
+}
+
+function renderCharts(s) {
+  // Timeline
+  const hours = s.hourly_labels || [];
+  mkChart('ch-timeline', {
+    type: 'line',
+    data: {
+      labels: hours.map(h => h.slice(11)),
+      datasets: [{
+        label: 'Requests', data: s.hourly_values || [],
+        borderColor: ACCENT, backgroundColor: 'rgba(255,107,53,.1)',
+        fill: true, tension: 0.4, pointRadius: 3, pointBackgroundColor: ACCENT,
+      }]
+    },
+    options: { ...baseOpts }
+  });
+
+  // Endpoints
+  const epKeys = Object.keys(s.endpoints || {}).slice(0,8);
+  const epVals = epKeys.map(k => s.endpoints[k]);
+  mkChart('ch-endpoints', {
+    type: 'bar',
+    data: {
+      labels: epKeys.map(shortLabel),
+      datasets: [{ label: 'Count', data: epVals, backgroundColor: [ACCENT, BLUE, GREEN, YELLOW, PURPLE, TEAL] }]
+    },
+    options: { ...baseOpts, indexAxis: 'y' }
+  });
+
+  // Payment status donut
+  const stKeys = Object.keys(s.payment_statuses || {});
+  const stVals = stKeys.map(k => s.payment_statuses[k]);
+  const stColors = stKeys.map(k => k==='captured' ? GREEN : k==='created' ? ACCENT : RED);
+  mkChart('ch-status', {
+    type: 'doughnut',
+    data: { labels: stKeys, datasets: [{ data: stVals, backgroundColor: stColors, borderWidth: 2, borderColor: '#121929' }] },
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: true, position: 'bottom', labels: { color: LBLCOL, padding: 10 } } } }
+  });
+
+  // Error by endpoint
+  const eeKeys = Object.keys(s.err_by_endpoint || {}).slice(0,6);
+  const eeVals = eeKeys.map(k => s.err_by_endpoint[k]);
+  mkChart('ch-errendpoint', {
+    type: 'bar',
+    data: {
+      labels: eeKeys.map(shortLabel),
+      datasets: [{ label: 'Errors', data: eeVals, backgroundColor: RED }]
+    },
+    options: { ...baseOpts, indexAxis: 'y' }
+  });
+
+  // Flows
+  const flKeys = Object.keys(s.flows || {}).slice(0,5);
+  const flVals = flKeys.map(k => s.flows[k]);
+  mkChart('ch-flows', {
+    type: 'bar',
+    data: {
+      labels: flKeys.map(k => k.replace('implemtation_','').replace('_flowSub_Flow','').replace('-log-flow','').replace('Sub_Flow','')),
+      datasets: [{ label: 'Count', data: flVals, backgroundColor: BLUE }]
+    },
+    options: { ...baseOpts }
+  });
+
+  // Payment methods
+  const pmKeys = Object.keys(s.payment_methods || {});
+  const pmVals = pmKeys.map(k => s.payment_methods[k]);
+  mkChart('ch-methods', {
+    type: 'doughnut',
+    data: { labels: pmKeys.map(k => k || 'unknown'), datasets: [{ data: pmVals, backgroundColor: [TEAL, PURPLE, YELLOW, BLUE, GREEN], borderWidth: 2, borderColor: '#121929' }] },
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: true, position: 'bottom', labels: { color: LBLCOL, padding: 10 } } } }
+  });
+}
+
+function renderRecentErrors(errors) {
+  const body = $('recent-errors-body');
+  $('recent-err-count').textContent = errors.length + ' entries';
+  if (!errors.length) {
+    body.innerHTML = '<tr><td colspan="7" class="empty"><div class="empty-icon">✓</div>No errors in selected range</td></tr>';
+    return;
+  }
+  body.innerHTML = errors.slice(-20).reverse().map(e => `
+    <tr>
+      <td><span class="badge badge-${e.level}">${e.level}</span></td>
+      <td class="mono text-dim">${e.timestamp}</td>
+      <td class="text-dim">${e.api}</td>
+      <td><span class="text-orange mono">${e.method} ${e.endpoint}</span></td>
+      <td class="text-dim">${(e.flow||'').replace('implemtation_','').replace('_flowSub_Flow','')}</td>
+      <td>${e.error_code ? `<span class="text-red">${e.error_code}</span>` : '<span class="text-dim">—</span>'}</td>
+      <td class="text-trunc text-dim">${esc(e.message||'')}</td>
+    </tr>
+  `).join('');
+}
+
+// ── Payments tab ─────────────────────────────────────────────────────────────
+function renderPaymentsTab(s) {
+  if (!s) return;
+  $('p-created').textContent  = fmt(s.payments_created);
+  $('p-captured').textContent = fmt(s.payments_captured);
+  $('p-failed').textContent   = fmt(s.payments_failed);
+  $('p-revenue').textContent  = fmtR(s.revenue_inr);
+
+  // Daily revenue chart — daily breakdown if available
+  const days = Object.keys(s.daily || {});
+  const captured = days.map(d => {
+    // approximate: use total amount / days (full breakdown would need per-day query)
+    return s.revenue_inr / Math.max(days.length, 1);
+  });
+
+  mkChart('ch-rev', {
+    type: 'bar',
+    data: {
+      labels: days,
+      datasets: [{ label: 'Revenue ₹', data: captured, backgroundColor: PURPLE }]
+    },
+    options: { ...baseOpts }
+  });
+
+  // Funnel
+  mkChart('ch-funnel', {
+    type: 'bar',
+    data: {
+      labels: ['Orders Created', 'Payments Captured', 'Failed'],
+      datasets: [{
+        data: [s.payments_created, s.payments_captured, s.payments_failed],
+        backgroundColor: [ACCENT, GREEN, RED]
+      }]
+    },
+    options: { ...baseOpts }
+  });
+
+  // UPI methods
+  const pmKeys = Object.keys(s.payment_methods || {});
+  const pmVals = pmKeys.map(k => s.payment_methods[k]);
+  mkChart('ch-pay-methods', {
+    type: 'doughnut',
+    data: { labels: pmKeys.map(k => k||'unknown'), datasets: [{ data: pmVals, backgroundColor: [TEAL, BLUE, YELLOW, PURPLE], borderWidth: 2, borderColor: '#121929' }] },
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: true, position: 'bottom', labels: { color: LBLCOL } } } }
+  });
+
+  // Payment table — from recent_errors we can pull captured payments
+  const allEntries = (s.recent_errors || []);
+  // We only have error entries here; captured payments come from /api/logs
+  $('payments-body').innerHTML = '<tr><td colspan="8" class="empty" style="color:var(--text2)">Use Log Explorer → filter by Rz Status "captured" for full payment list</td></tr>';
+}
+
+// ── Log Explorer ──────────────────────────────────────────────────────────────
+$('btn-search-logs').addEventListener('click', () => { logsPage = 1; loadLogs(); });
+$('log-sel-api').addEventListener('change', async () => {
+  const api = $('log-sel-api').value;
+  const dates = (await fetch('/api/dates' + (api ? '?api='+api : '')).then(r=>r.json())).dates;
+  const sel = $('log-sel-date');
+  sel.innerHTML = '<option value="">All dates</option>';
+  dates.forEach(d => { const o = document.createElement('option'); o.value=d; o.textContent=d; sel.appendChild(o); });
+});
+
+async function loadLogs() {
+  const params = new URLSearchParams({
+    api:      $('log-sel-api').value,
+    date:     $('log-sel-date').value,
+    level:    $('log-sel-level').value,
+    endpoint: $('log-sel-endpoint').value,
+    search:   $('log-search').value,
+    page:     logsPage,
+    per_page: 50,
+  });
+
+  $('logs-loading').style.display = 'block';
+  $('logs-table-wrap').style.opacity = '0.3';
+
+  try {
+    const data = await api('/api/logs?' + params);
+    renderLogsTable(data.logs || []);
+    $('log-total-txt').textContent = `${fmt(data.total)} entries · page ${data.page}/${data.pages}`;
+    renderPagination(data.page, data.pages);
+  } catch(e) {
+    toast('Failed to load logs: ' + e.message, 'error');
+  } finally {
+    $('logs-loading').style.display = 'none';
+    $('logs-table-wrap').style.opacity = '1';
+  }
+}
+
+function renderLogsTable(logs) {
+  const body = $('logs-body');
+  if (!logs.length) {
+    body.innerHTML = '<tr><td colspan="11" class="empty"><div class="empty-icon">🔍</div>No logs match your filters</td></tr>';
+    return;
+  }
+  body.innerHTML = logs.map(e => {
+    const rzBadge = e.rz_status
+      ? `<span class="badge badge-${e.rz_status==='captured'?'ok':e.rz_status==='created'?'created':'fail'}">${e.rz_status}</span>`
+      : '<span class="text-dim">—</span>';
+    return `<tr>
+      <td><span class="badge badge-${e.level}">${e.level}</span></td>
+      <td class="mono text-dim" style="white-space:nowrap">${e.timestamp}</td>
+      <td class="text-dim">${e.api}</td>
+      <td><span class="badge badge-${e.method==='POST'?'created':'INFO'}">${e.method}</span></td>
+      <td class="mono text-orange">${e.endpoint}</td>
+      <td class="text-dim">${(e.flow||'').replace('implemtation_','').replace('_flowSub_Flow','')}</td>
+      <td>${rzBadge}</td>
+      <td class="mono">${e.amount_inr != null ? '₹'+e.amount_inr.toLocaleString('en-IN') : '—'}</td>
+      <td>${e.error_code ? `<span class="text-red">${e.error_code}</span>` : '<span class="text-dim">—</span>'}</td>
+      <td class="mono text-dim" style="font-size:10px">${e.loan_number||'—'}</td>
+      <td class="text-trunc text-dim">${esc(e.message||'')}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderPagination(page, pages) {
+  const el = $('logs-pagination');
+  if (pages <= 1) { el.innerHTML = ''; return; }
+  const maxShow = 7;
+  let btns = `<button class="page-btn" ${page===1?'disabled':''} onclick="goPage(${page-1})">‹ Prev</button>`;
+  let start = Math.max(1, page - 3), end = Math.min(pages, start + maxShow - 1);
+  for (let p = start; p <= end; p++) {
+    btns += `<button class="page-btn ${p===page?'active':''}" onclick="goPage(${p})">${p}</button>`;
+  }
+  btns += `<button class="page-btn" ${page===pages?'disabled':''} onclick="goPage(${page+1})">Next ›</button>`;
+  el.innerHTML = btns;
+}
+
+function goPage(p) { logsPage = p; loadLogs(); }
+
+// ── Alerts ────────────────────────────────────────────────────────────────────
+$('btn-create-alert').addEventListener('click', async () => {
+  const name = $('al-name').value.trim();
+  const threshold = $('al-threshold').value;
+  if (!name || !threshold) { toast('Name and threshold are required', 'error'); return; }
+
+  try {
+    await fetch('/api/alerts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name,
+        api:         $('al-api').value,
+        metric:      $('al-metric').value,
+        operator:    $('al-op').value,
+        threshold:   parseFloat(threshold),
+        webhook_url: $('al-webhook').value.trim(),
+        enabled:     true,
+      })
+    });
+    toast('Alert created ✓', 'success');
+    $('al-name').value = '';
+    $('al-threshold').value = '';
+    loadAlerts();
+  } catch(e) {
+    toast('Failed: ' + e.message, 'error');
+  }
+});
+
+$('btn-test-webhook').addEventListener('click', async () => {
+  const url = $('al-webhook').value.trim();
+  if (!url) { toast('Enter a webhook URL first', 'error'); return; }
+  try {
+    const r = await fetch('/api/alerts/test-webhook', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ webhook_url: url })
+    });
+    const d = await r.json();
+    if (d.success) toast('Test webhook sent ✓ (status '+d.status_code+')', 'success');
+    else toast('Webhook failed: ' + d.error, 'error');
+  } catch(e) {
+    toast('Error: ' + e.message, 'error');
+  }
+});
+
+async function loadAlerts() {
+  try {
+    const { alerts } = await api('/api/alerts');
+    const el = $('alerts-list');
+    if (!alerts.length) {
+      el.innerHTML = '<div class="empty"><div class="empty-icon">🔔</div>No alerts configured</div>';
+      return;
+    }
+    el.innerHTML = alerts.map(a => `
+      <div class="alert-item">
+        <div class="alert-item-info">
+          <div class="alert-name">${esc(a.name)}</div>
+          <div class="alert-meta">
+            ${a.api || 'All APIs'} · <code>${a.metric}</code> ${a.operator} ${a.threshold}
+            ${a.last_fired ? ' · Last fired: ' + a.last_fired.slice(0,16) : ''}
+          </div>
+          ${a.webhook_url ? `<div class="alert-meta text-dim">${a.webhook_url.slice(0,50)}…</div>` : ''}
+        </div>
+        <div class="alert-actions">
+          <label class="toggle">
+            <input type="checkbox" ${a.enabled ? 'checked' : ''} onchange="toggleAlert('${a.id}', this.checked)">
+            <span class="toggle-slider"></span>
+          </label>
+          <button class="btn btn-danger btn-sm" onclick="deleteAlert('${a.id}')">✕</button>
+        </div>
+      </div>
+    `).join('');
+  } catch(e) {
+    toast('Could not load alerts', 'error');
+  }
+}
+
+async function toggleAlert(id, enabled) {
+  await fetch('/api/alerts/' + id, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ enabled })
+  });
+  toast(enabled ? 'Alert enabled' : 'Alert disabled');
+}
+
+async function deleteAlert(id) {
+  if (!confirm('Delete this alert?')) return;
+  await fetch('/api/alerts/' + id, { method: 'DELETE' });
+  toast('Alert deleted');
+  loadAlerts();
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
