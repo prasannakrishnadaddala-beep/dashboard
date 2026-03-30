@@ -1,11 +1,11 @@
 import re, json, os, threading, time
-from flask import Flask, jsonify, request, render_template_string
+from flask import Flask, jsonify, request, render_template_string, Response
 from datetime import datetime, timedelta
 from collections import defaultdict, Counter
 
 try:
     import boto3
-    from botocore.exceptions import ClientError
+    from botocore.exceptions import ClientError, NoCredentialsError
     HAS_BOTO = True
 except ImportError:
     HAS_BOTO = False
@@ -53,11 +53,15 @@ def cache_clear():
 def get_s3():
     if not HAS_BOTO:
         raise RuntimeError("boto3 not installed")
+    key_id  = os.environ.get('AWS_ACCESS_KEY_ID')
+    secret  = os.environ.get('AWS_SECRET_ACCESS_KEY')
+    if not key_id or not secret:
+        raise RuntimeError("AWS credentials not configured. Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in Railway environment variables.")
     return boto3.client(
         's3',
         region_name=AWS_REGION,
-        aws_access_key_id=os.environ.get('AWS_ACCESS_KEY_ID'),
-        aws_secret_access_key=os.environ.get('AWS_SECRET_ACCESS_KEY'),
+        aws_access_key_id=key_id,
+        aws_secret_access_key=secret,
     )
 
 def list_s3_files():
@@ -66,27 +70,48 @@ def list_s3_files():
     if cached is not None:
         return cached
 
-    s3 = get_s3()
-    paginator = s3.get_paginator('list_objects_v2')
-    files = []
+    try:
+        s3 = get_s3()
+        paginator = s3.get_paginator('list_objects_v2')
+        files = []
 
-    for page in paginator.paginate(Bucket=S3_BUCKET, Prefix=S3_PREFIX):
-        for obj in page.get('Contents', []):
-            key = obj['Key']
-            filename = key.split('/')[-1]
-            m = re.match(r'mule-app-(.+)_log\.(\d{4}-\d{2}-\d{2})$', filename)
-            if m:
-                files.append({
-                    'key':  key,
-                    'api':  m.group(1),
-                    'date': m.group(2),
-                    'size': obj['Size'],
-                    'last_modified': obj['LastModified'].isoformat(),
-                })
+        for page in paginator.paginate(Bucket=S3_BUCKET, Prefix=S3_PREFIX):
+            for obj in page.get('Contents', []):
+                key = obj['Key']
+                filename = key.split('/')[-1]
 
-    files.sort(key=lambda x: x['date'], reverse=True)
-    cache_set('s3:filelist', files)
-    return files
+                # FIX: also match files with optional extensions (.gz, .log, .txt)
+                # and be more flexible about the _log. separator
+                m = re.match(
+                    r'mule-app-(.+?)_log[._-](\d{4}-\d{2}-\d{2})(?:\.\w+)?$',
+                    filename
+                )
+                if m:
+                    files.append({
+                        'key':           key,
+                        'api':           m.group(1),
+                        'date':          m.group(2),
+                        'size':          obj['Size'],
+                        'last_modified': obj['LastModified'].isoformat(),
+                    })
+                else:
+                    # Log skipped files for debugging
+                    app.logger.debug(f"Skipped S3 file (no match): {filename}")
+
+        files.sort(key=lambda x: x['date'], reverse=True)
+        cache_set('s3:filelist', files)
+        app.logger.info(f"S3 listed {len(files)} matching log files under {S3_PREFIX}")
+        return files
+
+    except RuntimeError as e:
+        app.logger.error(f"S3 config error: {e}")
+        raise
+    except (ClientError, NoCredentialsError) as e:
+        app.logger.error(f"S3 auth/access error: {e}")
+        raise
+    except Exception as e:
+        app.logger.error(f"S3 list error: {e}")
+        raise
 
 def load_s3_file(key):
     """Fetch and cache a single S3 object."""
@@ -290,47 +315,111 @@ def index():
     with open(html_path) as f:
         return f.read()
 
+@app.route('/favicon.ico')
+def favicon():
+    svg = b'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" rx="3" fill="#FF6B35"/><text x="3" y="13" font-size="12" font-family="sans-serif" fill="white">M</text></svg>'
+    return Response(svg, mimetype='image/svg+xml')
+
 @app.route('/api/health')
 def health():
     return jsonify({'status': 'ok', 'ts': datetime.now().isoformat()})
 
+# ─── FIX: Debug endpoint to diagnose S3 connectivity & file listing ───────────
+@app.route('/api/debug')
+def debug():
+    info = {
+        'boto3_installed':  HAS_BOTO,
+        'S3_BUCKET':        S3_BUCKET,
+        'S3_PREFIX':        S3_PREFIX,
+        'AWS_REGION':       AWS_REGION,
+        'has_access_key':   bool(os.environ.get('AWS_ACCESS_KEY_ID')),
+        'has_secret_key':   bool(os.environ.get('AWS_SECRET_ACCESS_KEY')),
+    }
+    try:
+        files = list_s3_files()
+        info['s3_connected']  = True
+        info['total_files']   = len(files)
+        # Show date range of available files
+        if files:
+            dates = sorted(set(f['date'] for f in files))
+            info['earliest_date'] = dates[0]
+            info['latest_date']   = dates[-1]
+            info['available_apis'] = sorted(set(f['api'] for f in files))
+            info['sample_keys']    = [f['key'] for f in files[:5]]
+        else:
+            info['note'] = (
+                f"S3 connected OK but 0 files matched the naming pattern "
+                f"'mule-app-{{name}}_log.YYYY-MM-DD' under prefix '{S3_PREFIX}'. "
+                f"Check that S3_PREFIX is correct and filename pattern matches."
+            )
+    except Exception as e:
+        info['s3_connected'] = False
+        info['error'] = str(e)
+    return jsonify(info)
+
 @app.route('/api/apis')
 def list_apis():
-    files = list_s3_files()
-    apis  = sorted(set(f['api'] for f in files))
-    return jsonify({'apis': apis, 'total_files': len(files)})
+    try:
+        files = list_s3_files()
+        apis  = sorted(set(f['api'] for f in files))
+        return jsonify({'apis': apis, 'total_files': len(files)})
+    except Exception as e:
+        return jsonify({'error': str(e), 'apis': [], 'total_files': 0}), 500
 
 @app.route('/api/dates')
 def list_dates():
     api   = request.args.get('api', '')
-    files = list_s3_files()
-    dates = sorted(
-        set(f['date'] for f in files if not api or f['api'] == api),
-        reverse=True
-    )
-    return jsonify({'dates': dates})
+    try:
+        files = list_s3_files()
+        dates = sorted(
+            set(f['date'] for f in files if not api or f['api'] == api),
+            reverse=True
+        )
+        return jsonify({'dates': dates})
+    except Exception as e:
+        return jsonify({'error': str(e), 'dates': []}), 500
 
 @app.route('/api/stats')
 def get_stats():
     api       = request.args.get('api', '')
-    date_from = request.args.get('date_from', (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d'))
-    date_to   = request.args.get('date_to',   datetime.now().strftime('%Y-%m-%d'))
 
-    cache_key = f'stats:{api}:{date_from}:{date_to}'
+    # FIX: Default date range is now last 90 days instead of 7 days
+    # so historical logs (e.g. January) are included by default.
+    # Also support 'all' as a special value.
+    date_from = request.args.get('date_from', (datetime.now() - timedelta(days=90)).strftime('%Y-%m-%d'))
+    date_to   = request.args.get('date_to',   datetime.now().strftime('%Y-%m-%d'))
+    show_all  = request.args.get('all', 'false').lower() == 'true'
+
+    cache_key = f'stats:{api}:{date_from}:{date_to}:{show_all}'
     cached = cache_get(cache_key)
     if cached:
         return jsonify(cached)
 
-    files = list_s3_files()
-    matched = [
-        f for f in files
-        if (not api or f['api'] == api)
-        and date_from <= f['date'] <= date_to
-    ]
+    try:
+        files = list_s3_files()
+    except Exception as e:
+        return jsonify({'error': str(e), **empty_stats(), 'files_loaded': 0}), 500
+
+    if show_all:
+        matched = [f for f in files if not api or f['api'] == api]
+    else:
+        matched = [
+            f for f in files
+            if (not api or f['api'] == api)
+            and date_from <= f['date'] <= date_to
+        ]
 
     entries = load_entries_for_files(matched)
     result  = aggregate(entries)
     result['files_loaded'] = len(matched)
+    result['date_from']    = date_from
+    result['date_to']      = date_to
+    # Include the available date range so the frontend can show it
+    if files:
+        all_dates = sorted(set(f['date'] for f in files))
+        result['available_from'] = all_dates[0]
+        result['available_to']   = all_dates[-1]
+
     cache_set(cache_key, result)
     return jsonify(result)
 
@@ -344,12 +433,20 @@ def get_logs():
     page     = max(1, int(request.args.get('page', 1)))
     per_page = min(200, int(request.args.get('per_page', 50)))
 
-    files = list_s3_files()
-    matched = [
-        f for f in files
-        if (not api or f['api'] == api)
-        and (not date or f['date'] == date)
-    ][:10]  # cap at 10 files to prevent memory issues
+    try:
+        files = list_s3_files()
+    except Exception as e:
+        return jsonify({'error': str(e), 'logs': [], 'total': 0}), 500
+
+    # FIX: default to last 90 days when no date filter specified
+    if not date:
+        cutoff = (datetime.now() - timedelta(days=90)).strftime('%Y-%m-%d')
+        matched = [f for f in files
+                   if (not api or f['api'] == api) and f['date'] >= cutoff][:10]
+    else:
+        matched = [f for f in files
+                   if (not api or f['api'] == api)
+                   and f['date'] == date][:10]
 
     entries = load_entries_for_files(matched)
 
@@ -482,7 +579,10 @@ def alert_checker():
                 continue
 
             today = datetime.now().strftime('%Y-%m-%d')
-            files = list_s3_files()
+            try:
+                files = list_s3_files()
+            except Exception:
+                continue
 
             for alert in alerts:
                 if not alert.get('enabled', True):
@@ -509,7 +609,6 @@ def alert_checker():
 
                 if triggered:
                     _fire_alert(alert, value, today)
-                    # Update last_fired
                     saved = load_alerts()
                     for a in saved:
                         if a.get('id') == alert.get('id'):
@@ -521,23 +620,7 @@ def alert_checker():
 
 threading.Thread(target=alert_checker, daemon=True).start()
 
-# ─── Dev mode: load from local uploaded file ──────────────────────────────────
-# If S3 creds are missing, serve demo data from the uploaded log file
-
-DEMO_FILE = os.environ.get('DEMO_LOG_FILE', '')
-
-@app.before_request
-def maybe_use_demo():
-    pass  # hook for future use
-
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     debug = os.environ.get('FLASK_ENV', 'production') == 'development'
     app.run(host='0.0.0.0', port=port, debug=debug)
-
-@app.route('/favicon.ico')
-def favicon():
-    from flask import Response
-    svg = b'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" rx="3" fill="#FF6B35"/><text x="3" y="13" font-size="12" font-family="sans-serif" fill="white">M</text></svg>'
-    return Response(svg, mimetype='image/svg+xml')
-
