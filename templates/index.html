@@ -1,161 +1,264 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>MuleSoft Log Intelligence</title>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>MuleSoft Intelligence</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#080C12;--bg2:#0E1420;--bg3:#151C2B;--card:#121929;
-  --border:#1E2A40;--border2:#263352;--text:#C8D4E8;--text2:#7A8FAF;--text3:#4A5F7A;
-  --accent:#FF6B35;--accent2:#FF9563;--green:#00E5A0;--red:#FF3B5C;
-  --yellow:#FFB800;--blue:#4D9EFF;--purple:#A78BFA;--teal:#22D3EE;
-  --fh:'Syne',sans-serif;--fm:'Space Mono',monospace;--r:10px;
+  --bg:#060A12;--bg2:#0A0F1E;--bg3:#0F162A;--card:#0C1322;
+  --border:#162035;--border2:#1E3054;
+  --text:#D8E6F5;--text2:#5D7494;--text3:#2D4060;
+  --cyan:#00CFFF;--orange:#FF6B35;--orange2:#FF9563;
+  --green:#00E5A0;--red:#FF2D55;--yellow:#FFB800;
+  --blue:#4D9EFF;--purple:#A78BFA;--teal:#22D3EE;
+  --fh:'Outfit',sans-serif;--fm:'JetBrains Mono',monospace;
+  --r:10px;--r2:14px;
 }
-html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--fm);font-size:13px;line-height:1.5}
-.app{display:flex;flex-direction:column;min-height:100vh}
-/* Topbar */
-.topbar{display:flex;align-items:center;gap:14px;padding:0 22px;height:54px;background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
-.logo{font-family:var(--fh);font-size:16px;font-weight:800;color:var(--accent);display:flex;align-items:center;gap:8px;white-space:nowrap}
-.logo::before{content:'◈';font-size:18px}
-.sep{width:1px;height:26px;background:var(--border)}
-.ctrls{display:flex;align-items:center;gap:10px;flex:1;flex-wrap:wrap}
-.tr{display:flex;align-items:center;gap:8px;margin-left:auto}
-/* Inputs */
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--fm);font-size:12px;line-height:1.5;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 800px 400px at 60% -10%,rgba(0,207,255,.04),transparent),radial-gradient(ellipse 600px 300px at 0% 80%,rgba(255,107,53,.03),transparent);pointer-events:none;z-index:0}
+.app{display:flex;flex-direction:column;min-height:100vh;position:relative;z-index:1}
+
+/* ── Top bar ── */
+.topbar{display:flex;align-items:center;gap:12px;padding:0 20px;height:52px;background:rgba(10,15,30,.95);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:200;backdrop-filter:blur(12px)}
+.logo{display:flex;align-items:center;gap:9px;font-family:var(--fh);font-size:15px;font-weight:800;color:#fff;white-space:nowrap;letter-spacing:-.3px}
+.logo-gem{width:24px;height:24px;background:linear-gradient(135deg,var(--cyan),var(--orange));border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.logo-sub{font-size:10px;font-weight:500;color:var(--cyan);letter-spacing:1.5px;text-transform:uppercase;font-family:var(--fm)}
+.vdiv{width:1px;height:28px;background:var(--border);margin:0 4px}
+.ctrls{display:flex;align-items:center;gap:8px;flex:1;flex-wrap:wrap}
+.ctrl-group{display:flex;align-items:center;gap:6px}
+.ctrl-label{font-size:10px;color:var(--text3);letter-spacing:.5px;text-transform:uppercase;font-family:var(--fh)}
 select,input[type=date],input[type=text],input[type=number],input[type=url],textarea{
   background:var(--bg3);border:1px solid var(--border);color:var(--text);
-  font-family:var(--fm);font-size:12px;padding:6px 10px;border-radius:6px;outline:none;transition:border-color .2s}
-select:focus,input:focus,textarea:focus{border-color:var(--accent)}
-label{font-size:11px;color:var(--text2)}
-/* Buttons */
-.btn{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:6px;border:none;
-  font-family:var(--fm);font-size:12px;cursor:pointer;transition:all .2s;white-space:nowrap}
-.btn-p{background:var(--accent);color:#fff}.btn-p:hover{background:var(--accent2)}
-.btn-g{background:transparent;color:var(--text2);border:1px solid var(--border)}.btn-g:hover{border-color:var(--accent);color:var(--accent)}
-.btn-g.tr-active{background:var(--accent);color:#fff;border-color:var(--accent)}
-.btn-d{background:transparent;color:var(--red);border:1px solid var(--red)}.btn-d:hover{background:var(--red);color:#fff}
-.btn-sm{padding:4px 10px;font-size:11px}
-.btn:disabled{opacity:.45;cursor:not-allowed}
-/* Tabs */
-.tabs{display:flex;gap:2px;background:var(--bg2);padding:0 22px;border-bottom:1px solid var(--border)}
-.tab{padding:12px 18px;cursor:pointer;font-size:12px;color:var(--text2);border-bottom:2px solid transparent;transition:all .2s;letter-spacing:.5px}
-.tab:hover{color:var(--text)}.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
-/* Main */
-.main{flex:1;padding:18px 22px;max-width:1600px;margin:0 auto;width:100%}
-.tp{display:none}.tp.active{display:block}
-/* Cards */
-.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:13px;margin-bottom:20px}
-.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:15px 17px;position:relative;overflow:hidden;transition:border-color .2s}
-.card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--ca,var(--accent))}
-.card-lbl{font-size:10px;color:var(--text2);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px}
-.card-val{font-family:var(--fh);font-size:28px;font-weight:800;color:var(--text);line-height:1}
-.card-sub{font-size:10px;color:var(--text3);margin-top:4px}
-.card-icon{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:26px;opacity:.07}
-.c-err{--ca:var(--red)}.c-warn{--ca:var(--yellow)}.c-ok{--ca:var(--green)}.c-blue{--ca:var(--blue)}.c-pur{--ca:var(--purple)}
-/* Charts */
-.cr1{display:grid;grid-template-columns:2fr 1fr 1fr;gap:13px;margin-bottom:13px}
-.cr2{display:grid;grid-template-columns:1fr 1fr 1fr;gap:13px}
-.cbox{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:15px}
-.ctitle{font-family:var(--fh);font-size:11px;font-weight:700;color:var(--text2);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:6px}
-.ctitle span{color:var(--accent)}
-canvas{display:block}
-/* Log table */
-.lc{display:flex;gap:10px;margin-bottom:13px;flex-wrap:wrap;align-items:center}
-.ltw{overflow-x:auto;border:1px solid var(--border);border-radius:var(--r)}
+  font-family:var(--fm);font-size:11px;padding:5px 9px;border-radius:6px;outline:none;
+  transition:border-color .2s,box-shadow .2s}
+select:focus,input:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(0,207,255,.08)}
+select{appearance:none;padding-right:22px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%235D7494'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 7px center}
+.tr{display:flex;align-items:center;gap:8px;margin-left:auto;flex-shrink:0}
+
+/* ── Buttons ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:7px;border:none;font-family:var(--fh);font-size:12px;font-weight:600;cursor:pointer;transition:all .18s;white-space:nowrap;letter-spacing:.2px}
+.btn-primary{background:linear-gradient(135deg,var(--cyan),#0099cc);color:#000}
+.btn-primary:hover{filter:brightness(1.1);transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,207,255,.3)}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border)}
+.btn-ghost:hover{border-color:var(--cyan);color:var(--cyan)}
+.btn-danger{background:transparent;color:var(--red);border:1px solid rgba(255,45,85,.3)}
+.btn-danger:hover{background:var(--red);color:#fff}
+.btn-sm{padding:4px 10px;font-size:11px;border-radius:6px}
+.btn-warn{background:rgba(255,184,0,.12);color:var(--yellow);border:1px solid rgba(255,184,0,.25)}
+.btn-warn:hover{background:rgba(255,184,0,.2)}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none!important}
+
+/* ── Alert banner ── */
+.banner{padding:9px 20px;font-size:11px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);font-family:var(--fh)}
+.banner-warn{background:rgba(255,184,0,.07);border-bottom-color:rgba(255,184,0,.2);color:var(--yellow)}
+.banner-err{background:rgba(255,45,85,.06);border-bottom-color:rgba(255,45,85,.2);color:var(--red)}
+.banner-ok{background:rgba(0,229,160,.05);border-bottom-color:rgba(0,229,160,.15);color:var(--green)}
+.banner-icon{font-size:14px;flex-shrink:0}
+.banner a{color:inherit;text-decoration:underline;cursor:pointer}
+.banner-close{margin-left:auto;cursor:pointer;opacity:.6;font-size:14px}
+.banner-close:hover{opacity:1}
+
+/* ── Tabs ── */
+.tabs{display:flex;gap:0;background:var(--bg2);padding:0 20px;border-bottom:1px solid var(--border);position:sticky;top:52px;z-index:100}
+.tab{padding:11px 18px;cursor:pointer;font-family:var(--fh);font-size:12px;font-weight:500;color:var(--text2);border-bottom:2px solid transparent;transition:all .2s;display:flex;align-items:center;gap:6px}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--cyan);border-bottom-color:var(--cyan)}
+.tab-badge{background:var(--bg3);color:var(--text2);font-size:10px;padding:1px 6px;border-radius:10px;font-family:var(--fm)}
+
+/* ── Status bar ── */
+.statusbar{display:flex;align-items:center;gap:10px;padding:6px 20px;background:var(--bg2);border-bottom:1px solid var(--border);font-size:10px;color:var(--text3);font-family:var(--fh)}
+.sb-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.sb-dot.live{background:var(--green);animation:pulse 2s ease-in-out infinite}
+.sb-dot.syncing{background:var(--cyan);animation:spin2 1.2s linear infinite}
+.sb-dot.error{background:var(--red)}
+@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(0,229,160,.4)}50%{opacity:.7;box-shadow:0 0 0 4px rgba(0,229,160,0)}}
+@keyframes spin2{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+.sb-sep{color:var(--border2)}
+
+/* ── Main ── */
+.main{flex:1;padding:18px 20px;max-width:1640px;margin:0 auto;width:100%}
+.tp{display:none;animation:fadeIn .25s ease}.tp.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── Stat cards ── */
+.cards{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:18px}
+@media(max-width:1200px){.cards{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:700px){.cards{grid-template-columns:repeat(2,1fr)}}
+.scard{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:16px 18px;position:relative;overflow:hidden;transition:border-color .2s,transform .2s;cursor:default}
+.scard:hover{border-color:var(--border2);transform:translateY(-2px)}
+.scard::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--ca,linear-gradient(90deg,var(--cyan),transparent))}
+.scard-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.scard-lbl{font-family:var(--fh);font-size:10px;font-weight:600;color:var(--text2);letter-spacing:.8px;text-transform:uppercase}
+.scard-icon{font-size:20px;opacity:.35}
+.scard-val{font-family:var(--fh);font-size:30px;font-weight:800;color:var(--text);line-height:1;letter-spacing:-1px;transition:color .3s}
+.scard-sub{font-size:10px;color:var(--text3);margin-top:5px;font-family:var(--fh)}
+.scard-glow{position:absolute;bottom:-20px;right:-10px;width:80px;height:80px;border-radius:50%;opacity:.06;filter:blur(20px)}
+.sc-cyan{--ca:linear-gradient(90deg,var(--cyan),transparent)}.sc-cyan .scard-val{color:var(--cyan)}.sc-cyan .scard-glow{background:var(--cyan)}
+.sc-red{--ca:linear-gradient(90deg,var(--red),transparent)}.sc-red .scard-val{color:var(--red)}.sc-red .scard-glow{background:var(--red)}
+.sc-yellow{--ca:linear-gradient(90deg,var(--yellow),transparent)}.sc-yellow .scard-val{color:var(--yellow)}.sc-yellow .scard-glow{background:var(--yellow)}
+.sc-green{--ca:linear-gradient(90deg,var(--green),transparent)}.sc-green .scard-val{color:var(--green)}.sc-green .scard-glow{background:var(--green)}
+.sc-blue{--ca:linear-gradient(90deg,var(--blue),transparent)}.sc-blue .scard-val{color:var(--blue)}.sc-blue .scard-glow{background:var(--blue)}
+.sc-purple{--ca:linear-gradient(90deg,var(--purple),transparent)}.sc-purple .scard-val{color:var(--purple)}.sc-purple .scard-glow{background:var(--purple)}
+
+/* ── Chart grid ── */
+.cgrid1{display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px;margin-bottom:12px}
+.cgrid2{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:18px}
+@media(max-width:1100px){.cgrid1,.cgrid2{grid-template-columns:1fr 1fr}}
+@media(max-width:700px){.cgrid1,.cgrid2{grid-template-columns:1fr}}
+.cbox{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:16px}
+.cbox-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.cbox-title{font-family:var(--fh);font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.8px;text-transform:uppercase;display:flex;align-items:center;gap:6px}
+.cbox-title::before{content:'';width:3px;height:12px;background:var(--cyan);border-radius:2px;flex-shrink:0}
+.cbox-meta{font-size:10px;color:var(--text3);font-family:var(--fh)}
+.chart-wrap{position:relative}
+
+/* ── Log explorer ── */
+.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:12px;background:var(--card);border:1px solid var(--border);border-radius:var(--r2);margin-bottom:12px}
+.filters-title{font-family:var(--fh);font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.8px;text-transform:uppercase;margin-right:4px;white-space:nowrap}
+.f-group{display:flex;align-items:center;gap:5px}
+.f-lbl{font-size:10px;color:var(--text3);white-space:nowrap;font-family:var(--fh)}
+.f-count{margin-left:auto;font-family:var(--fh);font-size:11px;color:var(--text2)}
+.twrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--r2)}
 table{width:100%;border-collapse:collapse;font-size:11px}
-thead{background:var(--bg3)}
-th{padding:9px 11px;text-align:left;color:var(--text2);font-weight:700;letter-spacing:.5px;border-bottom:1px solid var(--border);white-space:nowrap}
-td{padding:8px 11px;border-bottom:1px solid var(--border);vertical-align:top}
+thead{background:var(--bg3);position:sticky;top:96px;z-index:10}
+th{padding:9px 11px;text-align:left;color:var(--text3);font-family:var(--fh);font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:8px 11px;border-bottom:1px solid var(--border);vertical-align:middle;color:var(--text)}
 tr:last-child td{border-bottom:none}
-tr:hover td{background:var(--bg3)}
-.badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.5px}
-.bINFO{background:rgba(77,158,255,.15);color:var(--blue)}
-.bERROR{background:rgba(255,59,92,.18);color:var(--red)}
-.bWARN{background:rgba(255,184,0,.15);color:var(--yellow)}
-.bok{background:rgba(0,229,160,.13);color:var(--green)}
-.bfail{background:rgba(255,59,92,.18);color:var(--red)}
-.bcreated{background:rgba(255,107,53,.13);color:var(--accent)}
-.mono{font-family:var(--fm);font-size:11px}
-.tdim{color:var(--text3)}.tred{color:var(--red)}.tgrn{color:var(--green)}.torn{color:var(--accent)}
-.ttrunc{max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-/* Pagination */
-.pg{display:flex;align-items:center;gap:8px;margin-top:13px;justify-content:center}
-.pb{padding:5px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:5px;
-  color:var(--text2);cursor:pointer;font-family:var(--fm);font-size:12px;transition:all .2s}
-.pb:hover,.pb.active{border-color:var(--accent);color:var(--accent)}
-.pb:disabled{opacity:.4;cursor:not-allowed}
-/* Alerts */
+tr.row:hover td{background:rgba(255,255,255,.015)}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.4px;font-family:var(--fh);white-space:nowrap}
+.bINFO{background:rgba(77,158,255,.12);color:var(--blue)}
+.bERROR{background:rgba(255,45,85,.15);color:var(--red)}
+.bWARN{background:rgba(255,184,0,.12);color:var(--yellow)}
+.bDEBUG{background:rgba(167,139,250,.1);color:var(--purple)}
+.b-ok{background:rgba(0,229,160,.1);color:var(--green)}
+.b-fail{background:rgba(255,45,85,.12);color:var(--red)}
+.b-created{background:rgba(255,107,53,.1);color:var(--orange)}
+.b-POST{background:rgba(0,207,255,.1);color:var(--cyan)}
+.b-GET{background:rgba(0,229,160,.08);color:var(--green)}
+.mono{font-family:var(--fm)}
+.tdim{color:var(--text2)}.tdim2{color:var(--text3)}.tred{color:var(--red)}.tgrn{color:var(--green)}.torn{color:var(--orange)}.tcyan{color:var(--cyan)}
+.ttrunc{max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pg{display:flex;align-items:center;gap:6px;margin-top:12px;justify-content:center}
+.pb{padding:5px 11px;background:var(--bg3);border:1px solid var(--border);border-radius:5px;color:var(--text2);cursor:pointer;font-family:var(--fh);font-size:11px;transition:all .2s}
+.pb:hover,.pb.active{border-color:var(--cyan);color:var(--cyan)}
+.pb:disabled{opacity:.35;cursor:not-allowed}
+
+/* ── Payments ── */
+.pcards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+@media(max-width:800px){.pcards{grid-template-columns:1fr 1fr}}
+
+/* ── Alerts ── */
 .ag{display:grid;grid-template-columns:1fr 1fr;gap:15px}
-.panel{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:19px}
-.ptitle{font-family:var(--fh);font-size:13px;font-weight:700;margin-bottom:15px;color:var(--text)}
-.fg{margin-bottom:11px}.fg label{display:block;margin-bottom:4px}
+@media(max-width:900px){.ag{grid-template-columns:1fr}}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:20px}
+.panel-title{font-family:var(--fh);font-size:13px;font-weight:700;margin-bottom:16px;color:var(--text);display:flex;align-items:center;gap:8px}
+.panel-title::before{content:'';width:3px;height:16px;background:var(--cyan);border-radius:2px}
+.fg{margin-bottom:12px}
+.fg label{display:block;margin-bottom:5px;font-family:var(--fh);font-size:10px;font-weight:600;color:var(--text2);letter-spacing:.5px;text-transform:uppercase}
 .fg input,.fg select,.fg textarea{width:100%}
 .fr{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.ai{border:1px solid var(--border);border-radius:8px;padding:11px 13px;margin-bottom:9px;display:flex;align-items:flex-start;gap:11px;background:var(--bg3)}
-.ai-info{flex:1}.ai-name{font-weight:700;margin-bottom:2px}.ai-meta{font-size:11px;color:var(--text2)}
-.ai-acts{display:flex;gap:6px;align-items:center}
-.tog{position:relative;display:inline-block;width:36px;height:20px}
+.ai{border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:flex-start;gap:12px;background:var(--bg3);transition:border-color .2s}
+.ai:hover{border-color:var(--border2)}
+.ai-dot{width:8px;height:8px;border-radius:50%;margin-top:4px;flex-shrink:0}
+.ai-dot.on{background:var(--green);box-shadow:0 0 6px rgba(0,229,160,.4)}
+.ai-dot.off{background:var(--text3)}
+.ai-body{flex:1;min-width:0}
+.ai-name{font-family:var(--fh);font-weight:600;font-size:12px;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ai-meta{font-size:10px;color:var(--text2);font-family:var(--fh)}
+.ai-acts{display:flex;gap:6px;align-items:center;flex-shrink:0}
+.tog{position:relative;display:inline-block;width:34px;height:18px}
 .tog input{display:none}
 .tsl{position:absolute;inset:0;background:var(--bg);border:1px solid var(--border);border-radius:20px;cursor:pointer;transition:.3s}
-.tsl::before{content:'';position:absolute;left:2px;top:50%;transform:translateY(-50%);width:14px;height:14px;background:var(--text3);border-radius:50%;transition:.3s}
-.tog input:checked+.tsl{background:var(--accent);border-color:var(--accent)}
-.tog input:checked+.tsl::before{left:calc(100% - 16px);background:#fff}
-/* Loading */
-.ld{text-align:center;padding:55px 20px;color:var(--text2)}
-.sp{display:inline-block;width:30px;height:30px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:11px}
+.tsl::before{content:'';position:absolute;left:2px;top:50%;transform:translateY(-50%);width:12px;height:12px;background:var(--text3);border-radius:50%;transition:.3s}
+.tog input:checked+.tsl{background:rgba(0,207,255,.2);border-color:var(--cyan)}
+.tog input:checked+.tsl::before{left:calc(100%-14px);background:var(--cyan)}
+
+/* ── Loading & empty states ── */
+.ld{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:var(--text3);gap:14px}
+.spinner{width:32px;height:32px;border:2px solid var(--border2);border-top-color:var(--cyan);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.emp{text-align:center;padding:35px 20px;color:var(--text3)}
-/* Toast */
-#toast{position:fixed;bottom:22px;right:22px;z-index:9999;padding:11px 18px;border-radius:8px;font-size:12px;
-  background:var(--bg3);border:1px solid var(--border);color:var(--text);
-  transform:translateY(80px);opacity:0;transition:all .3s;max-width:320px}
+.ld-txt{font-family:var(--fh);font-size:12px;color:var(--text3)}
+.emp{text-align:center;padding:40px 20px;color:var(--text3);font-family:var(--fh);font-size:12px}
+
+/* ── Debug panel ── */
+.debug-panel{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:16px;margin-bottom:16px;font-family:var(--fm);font-size:11px;color:var(--text2)}
+.debug-panel pre{overflow-x:auto;padding:10px;background:var(--bg3);border-radius:6px;margin-top:8px;color:var(--text2);font-size:10px;line-height:1.7}
+.debug-panel summary{cursor:pointer;font-family:var(--fh);font-size:11px;font-weight:600;color:var(--text2);list-style:none;display:flex;align-items:center;gap:6px}
+.debug-panel summary::marker{display:none}
+.debug-panel[open] summary{color:var(--cyan)}
+
+/* ── Toast ── */
+#toast{position:fixed;bottom:20px;right:20px;z-index:9999;padding:11px 16px;border-radius:10px;font-size:12px;font-family:var(--fh);font-weight:500;background:var(--bg3);border:1px solid var(--border);color:var(--text);transform:translateY(80px);opacity:0;transition:all .28s cubic-bezier(.34,1.56,.64,1);max-width:300px;backdrop-filter:blur(10px)}
 #toast.show{transform:translateY(0);opacity:1}
 #toast.ok{border-color:var(--green);color:var(--green)}
 #toast.err{border-color:var(--red);color:var(--red)}
-/* Section */
-.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px}
-.st{font-family:var(--fh);font-size:12px;font-weight:700;color:var(--text2);letter-spacing:.8px;text-transform:uppercase}
+
+/* ── Section header ── */
+.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.sh-title{font-family:var(--fh);font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.8px;text-transform:uppercase;display:flex;align-items:center;gap:7px}
+.sh-title::before{content:'';width:3px;height:12px;background:var(--cyan);border-radius:2px}
+.sh-meta{font-size:10px;color:var(--text3);font-family:var(--fh)}
+
+/* ── Misc ── */
 .flex{display:flex;align-items:center;gap:8px}
 .mla{margin-left:auto}
-.sdot{width:7px;height:7px;border-radius:50%;display:inline-block}
-.dlive{background:var(--green);animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-@media(max-width:1100px){.cr1{grid-template-columns:1fr 1fr}.cr2{grid-template-columns:1fr 1fr}}
-@media(max-width:700px){.cr1,.cr2,.ag{grid-template-columns:1fr}.ctrls{display:none}}
+code{font-family:var(--fm);background:var(--bg3);border:1px solid var(--border);padding:1px 5px;border-radius:4px;font-size:10px}
+
+/* ── Scroll ── */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--cyan)}
 </style>
 </head>
 <body>
 <div class="app">
+
 <!-- TOPBAR -->
 <div class="topbar">
-  <div class="logo">MuleSoft Intelligence</div>
-  <div class="sep"></div>
+  <div class="logo">
+    <div class="logo-gem">◈</div>
+    <div>
+      <div>MuleSoft</div>
+      <div class="logo-sub">Intelligence</div>
+    </div>
+  </div>
+  <div class="vdiv"></div>
   <div class="ctrls">
-    <div class="flex"><label>API</label><select id="sel-api" style="min-width:210px"><option value="">All APIs</option></select></div>
-    <div class="flex" id="tr-btns" style="gap:4px">
-      <button class="btn btn-g btn-sm tr-btn" data-h="0.5">30M</button>
-      <button class="btn btn-g btn-sm tr-btn" data-h="1">1H</button>
-      <button class="btn btn-g btn-sm tr-btn" data-h="2">2H</button>
-      <button class="btn btn-g btn-sm tr-btn" data-h="6">6H</button>
-      <button class="btn btn-g btn-sm tr-btn" data-h="12">12H</button>
-      <button class="btn btn-g btn-sm tr-btn" data-h="24">24H</button>
-      <button class="btn btn-g btn-sm tr-btn" data-h="168">7D</button>
-      <button class="btn btn-g btn-sm" id="btn-custom" title="Use date range below">Custom</button>
+    <div class="ctrl-group">
+      <span class="ctrl-label">API</span>
+      <select id="sel-api" style="min-width:200px"><option value="">All APIs</option></select>
     </div>
-    <div class="flex" id="date-range-row">
-      <label>From</label><input type="date" id="df"/>
-      <label>To</label><input type="date" id="dt"/>
+    <div class="ctrl-group">
+      <span class="ctrl-label">From</span>
+      <input type="date" id="df"/>
     </div>
-    <button class="btn btn-p btn-sm" id="btn-load">▶ Load</button>
-    <button class="btn btn-g btn-sm" id="btn-ref">↺ Refresh</button>
+    <div class="ctrl-group">
+      <span class="ctrl-label">To</span>
+      <input type="date" id="dt"/>
+    </div>
+    <button class="btn btn-primary btn-sm" id="btn-load">▶ Load</button>
+    <button class="btn btn-ghost btn-sm" id="btn-ref">↺ Refresh</button>
+    <button class="btn btn-ghost btn-sm" id="btn-fsync" title="Force S3 sync now">⟳ Sync</button>
   </div>
   <div class="tr">
-    <span class="sdot dlive"></span>
-    <span style="font-size:11px;color:var(--text2)" id="stxt">Ready</span>
+    <span class="sb-dot" id="sync-dot"></span>
+    <span style="font-size:11px;color:var(--text2);font-family:var(--fh)" id="stxt">Initializing…</span>
   </div>
 </div>
+
+<!-- BANNER (shown conditionally) -->
+<div id="banner" style="display:none" class="banner">
+  <span class="banner-icon" id="banner-icon"></span>
+  <span id="banner-msg"></span>
+  <a style="margin-left:8px" onclick="checkDebug()">View diagnostics</a>
+  <span class="banner-close" onclick="document.getElementById('banner').style.display='none'">✕</span>
+</div>
+
 <!-- TABS -->
 <div class="tabs">
   <div class="tab active" data-tab="overview">Overview</div>
@@ -163,84 +266,182 @@ tr:hover td{background:var(--bg3)}
   <div class="tab" data-tab="payments">Payments</div>
   <div class="tab" data-tab="alerts">Alerts</div>
 </div>
+
+<!-- STATUS BAR -->
+<div class="statusbar">
+  <span id="sb-files" style="color:var(--text2);font-weight:500">—</span>
+  <span class="sb-sep">·</span>
+  <span id="sb-entries">—</span>
+  <span class="sb-sep">·</span>
+  <span>Last sync: <span id="sb-lastsync" style="color:var(--text2)">—</span></span>
+  <span class="sb-sep">·</span>
+  <span>Next: <span id="sb-nextsync" style="color:var(--text2)">—</span></span>
+  <span class="sb-sep" id="sb-err-sep" style="display:none">·</span>
+  <span id="sb-err" style="color:var(--red);display:none"></span>
+</div>
+
 <!-- MAIN -->
 <div class="main">
 
-<!-- OVERVIEW -->
+<!-- ══ OVERVIEW ══ -->
 <div class="tp active" id="tab-overview">
-  <div id="ov-ld" class="ld" style="display:none"><div class="sp"></div><div>Fetching from S3…</div></div>
-  <div id="cap-warn" style="display:none;margin-bottom:12px;padding:9px 14px;background:rgba(255,184,0,.1);border:1px solid var(--yellow);border-radius:8px;font-size:11px;color:var(--yellow)">
-    ⚠️ <span id="cap-msg"></span> — showing partial data. Set <code>MAX_FILES_PER_REQUEST</code> higher in Railway vars or narrow the API filter.
-  </div>
+  <div id="ov-ld" class="ld" style="display:none"><div class="spinner"></div><div class="ld-txt">Loading from S3…</div></div>
   <div id="ov-ct">
+    <!-- Stat Cards -->
     <div class="cards">
-      <div class="card"><div class="card-lbl">Total Requests</div><div class="card-val" id="c-tot">—</div><div class="card-sub" id="c-files">—</div><div class="card-icon">📊</div></div>
-      <div class="card c-err"><div class="card-lbl">Errors</div><div class="card-val tred" id="c-err">—</div><div class="card-sub" id="c-erate">—</div><div class="card-icon">🔴</div></div>
-      <div class="card c-warn"><div class="card-lbl">Warnings</div><div class="card-val" style="color:var(--yellow)" id="c-warn">—</div><div class="card-sub">WARN level</div><div class="card-icon">⚠️</div></div>
-      <div class="card c-ok"><div class="card-lbl">Orders Created</div><div class="card-val tgrn" id="c-cre">—</div><div class="card-sub">Razorpay orders</div><div class="card-icon">🧾</div></div>
-      <div class="card c-blue"><div class="card-lbl">Captured</div><div class="card-val" style="color:var(--blue)" id="c-cap">—</div><div class="card-sub" id="c-fail">—</div><div class="card-icon">💳</div></div>
-      <div class="card c-pur"><div class="card-lbl">Revenue (INR)</div><div class="card-val" style="color:var(--purple)" id="c-rev">—</div><div class="card-sub">captured sum</div><div class="card-icon">₹</div></div>
+      <div class="scard sc-cyan">
+        <div class="scard-top"><span class="scard-lbl">Total Requests</span><span class="scard-icon">📡</span></div>
+        <div class="scard-val" id="c-tot">—</div>
+        <div class="scard-sub" id="c-files">— files loaded</div>
+        <div class="scard-glow"></div>
+      </div>
+      <div class="scard sc-red">
+        <div class="scard-top"><span class="scard-lbl">Errors</span><span class="scard-icon">⚡</span></div>
+        <div class="scard-val" id="c-err">—</div>
+        <div class="scard-sub" id="c-erate">— error rate</div>
+        <div class="scard-glow"></div>
+      </div>
+      <div class="scard sc-yellow">
+        <div class="scard-top"><span class="scard-lbl">Warnings</span><span class="scard-icon">⚠</span></div>
+        <div class="scard-val" id="c-warn">—</div>
+        <div class="scard-sub">WARN level</div>
+        <div class="scard-glow"></div>
+      </div>
+      <div class="scard sc-green">
+        <div class="scard-top"><span class="scard-lbl">Orders Created</span><span class="scard-icon">🧾</span></div>
+        <div class="scard-val" id="c-cre">—</div>
+        <div class="scard-sub">Razorpay orders</div>
+        <div class="scard-glow"></div>
+      </div>
+      <div class="scard sc-blue">
+        <div class="scard-top"><span class="scard-lbl">Captured</span><span class="scard-icon">💳</span></div>
+        <div class="scard-val" id="c-cap">—</div>
+        <div class="scard-sub" id="c-fail">— failed</div>
+        <div class="scard-glow"></div>
+      </div>
+      <div class="scard sc-purple">
+        <div class="scard-top"><span class="scard-lbl">Revenue</span><span class="scard-icon">₹</span></div>
+        <div class="scard-val" id="c-rev">—</div>
+        <div class="scard-sub">captured sum (INR)</div>
+        <div class="scard-glow"></div>
+      </div>
     </div>
-    <div class="cr1">
-      <div class="cbox"><div class="ctitle"><span>◆</span>Request Timeline</div><canvas id="ch-tl" height="200"></canvas></div>
-      <div class="cbox"><div class="ctitle"><span>◆</span>Endpoints</div><canvas id="ch-ep" height="200"></canvas></div>
-      <div class="cbox"><div class="ctitle"><span>◆</span>Payment Status</div><canvas id="ch-ps" height="200"></canvas></div>
+
+    <!-- Charts Row 1 -->
+    <div class="cgrid1">
+      <div class="cbox">
+        <div class="cbox-hd"><span class="cbox-title">Request Timeline</span><span class="cbox-meta" id="ch-tl-meta"></span></div>
+        <div class="chart-wrap"><canvas id="ch-tl" height="180"></canvas></div>
+        <div class="emp" id="ch-tl-empty" style="display:none;padding:40px 0">No timeline data</div>
+      </div>
+      <div class="cbox">
+        <div class="cbox-hd"><span class="cbox-title">Endpoints</span></div>
+        <div class="chart-wrap"><canvas id="ch-ep" height="180"></canvas></div>
+        <div class="emp" id="ch-ep-empty" style="display:none;padding:40px 0">No endpoint data</div>
+      </div>
+      <div class="cbox">
+        <div class="cbox-hd"><span class="cbox-title">Payment Status</span></div>
+        <div class="chart-wrap"><canvas id="ch-ps" height="180"></canvas></div>
+        <div class="emp" id="ch-ps-empty" style="display:none;padding:40px 0">No payment data</div>
+      </div>
     </div>
-    <div class="cr2">
-      <div class="cbox"><div class="ctitle"><span>◆</span>Errors by Endpoint</div><canvas id="ch-ee" height="200"></canvas></div>
-      <div class="cbox"><div class="ctitle"><span>◆</span>Flow Distribution</div><canvas id="ch-fl" height="200"></canvas></div>
-      <div class="cbox"><div class="ctitle"><span>◆</span>UPI Methods</div><canvas id="ch-pm" height="200"></canvas></div>
+
+    <!-- Charts Row 2 -->
+    <div class="cgrid2">
+      <div class="cbox">
+        <div class="cbox-hd"><span class="cbox-title">Errors by Endpoint</span></div>
+        <div class="chart-wrap"><canvas id="ch-ee" height="180"></canvas></div>
+        <div class="emp" id="ch-ee-empty" style="display:none;padding:40px 0">No errors</div>
+      </div>
+      <div class="cbox">
+        <div class="cbox-hd"><span class="cbox-title">Flow Distribution</span></div>
+        <div class="chart-wrap"><canvas id="ch-fl" height="180"></canvas></div>
+        <div class="emp" id="ch-fl-empty" style="display:none;padding:40px 0">No flow data</div>
+      </div>
+      <div class="cbox">
+        <div class="cbox-hd"><span class="cbox-title">UPI Methods</span></div>
+        <div class="chart-wrap"><canvas id="ch-pm" height="180"></canvas></div>
+        <div class="emp" id="ch-pm-empty" style="display:none;padding:40px 0">No UPI data</div>
+      </div>
     </div>
-    <div style="margin-top:15px">
-      <div class="sh"><div class="st">Recent Errors & Warnings</div><span id="rc-ct" style="font-size:11px;color:var(--text3)"></span></div>
-      <div class="ltw"><table><thead><tr><th>Level</th><th>Timestamp</th><th>API</th><th>Endpoint</th><th>Flow</th><th>Error Code</th><th>Message</th></tr></thead>
-      <tbody id="re-body"><tr><td colspan="7" class="emp">✓ No errors in range</td></tr></tbody></table></div>
+
+    <!-- Recent Errors -->
+    <div class="sh"><div class="sh-title">Recent Errors & Warnings</div><span class="sh-meta" id="rc-ct"></span></div>
+    <div class="twrap">
+      <table><thead><tr><th>Level</th><th>Timestamp</th><th>API</th><th>Endpoint</th><th>Flow</th><th>Error Code</th><th>Message</th></tr></thead>
+      <tbody id="re-body"><tr><td colspan="7" class="emp">No errors in selected range</td></tr></tbody></table>
     </div>
   </div>
 </div>
 
-<!-- LOGS -->
+<!-- ══ LOG EXPLORER ══ -->
 <div class="tp" id="tab-logs">
-  <div class="lc">
-    <select id="l-api" style="min-width:200px"><option value="">All APIs</option></select>
-    <select id="l-date"><option value="">All dates</option></select>
-    <select id="l-lvl"><option value="">All levels</option><option>ERROR</option><option>WARN</option><option>INFO</option><option>DEBUG</option></select>
-    <select id="l-ep"><option value="">All endpoints</option></select>
-    <input type="text" id="l-srch" placeholder="Search loan#, customer, paymentId…" style="min-width:240px"/>
-    <button class="btn btn-p btn-sm" id="btn-srch">Search</button>
-    <span class="mla" style="font-size:11px;color:var(--text2)" id="l-tot"></span>
+  <div class="filters">
+    <span class="filters-title">Filters</span>
+    <div class="f-group"><span class="f-lbl">API</span><select id="l-api" style="min-width:180px"><option value="">All APIs</option></select></div>
+    <div class="f-group"><span class="f-lbl">Date</span><select id="l-date"><option value="">All dates</option></select></div>
+    <div class="f-group"><span class="f-lbl">Level</span><select id="l-lvl"><option value="">All</option><option>ERROR</option><option>WARN</option><option>INFO</option><option>DEBUG</option></select></div>
+    <div class="f-group"><span class="f-lbl">Endpoint</span><select id="l-ep"><option value="">All</option><option value="/create">/create</option><option value="status">/status</option></select></div>
+    <input type="text" id="l-srch" placeholder="Search loan#, customer, paymentId…" style="min-width:220px"/>
+    <button class="btn btn-primary btn-sm" id="btn-srch">Search</button>
+    <span class="f-count" id="l-tot"></span>
   </div>
-  <div id="l-ld" class="ld" style="display:none"><div class="sp"></div><div>Loading…</div></div>
-  <div class="ltw" id="l-tw">
-    <table><thead><tr><th>Level</th><th>Timestamp</th><th>API</th><th>M</th><th>Endpoint</th><th>Flow</th><th>Rz Status</th><th>Amount ₹</th><th>Error Code</th><th>Loan#</th><th>Message</th></tr></thead>
-    <tbody id="l-body"><tr><td colspan="11" class="emp">Select API and click Search</td></tr></tbody></table>
+  <div id="l-ld" class="ld" style="display:none"><div class="spinner"></div><div class="ld-txt">Loading logs…</div></div>
+  <div class="twrap" id="l-tw">
+    <table><thead><tr><th>Level</th><th>Timestamp</th><th>API</th><th>Method</th><th>Endpoint</th><th>Flow</th><th>Rz Status</th><th>Amount ₹</th><th>Error Code</th><th>Loan#</th><th>Message</th></tr></thead>
+    <tbody id="l-body"><tr><td colspan="11" class="emp">Use filters above and click Search</td></tr></tbody></table>
   </div>
   <div class="pg" id="l-pg"></div>
 </div>
 
-<!-- PAYMENTS -->
+<!-- ══ PAYMENTS ══ -->
 <div class="tp" id="tab-payments">
-  <div id="p-ld" class="ld" style="display:none"><div class="sp"></div><div>Loading…</div></div>
+  <div id="p-ld" class="ld" style="display:none"><div class="spinner"></div><div class="ld-txt">Loading…</div></div>
   <div id="p-ct">
-    <div class="cards" style="margin-bottom:18px">
-      <div class="card c-ok"><div class="card-lbl">Orders Created</div><div class="card-val tgrn" id="p-cre">—</div></div>
-      <div class="card c-blue"><div class="card-lbl">Captured</div><div class="card-val" style="color:var(--blue)" id="p-cap">—</div></div>
-      <div class="card c-err"><div class="card-lbl">Failed</div><div class="card-val tred" id="p-fail">—</div></div>
-      <div class="card c-pur"><div class="card-lbl">Total Revenue</div><div class="card-val" style="color:var(--purple)" id="p-rev">—</div></div>
+    <div class="pcards">
+      <div class="scard sc-green">
+        <div class="scard-top"><span class="scard-lbl">Orders Created</span><span class="scard-icon">🧾</span></div>
+        <div class="scard-val" id="p-cre">—</div>
+        <div class="scard-glow"></div>
+      </div>
+      <div class="scard sc-blue">
+        <div class="scard-top"><span class="scard-lbl">Captured</span><span class="scard-icon">✅</span></div>
+        <div class="scard-val" id="p-cap">—</div>
+        <div class="scard-glow"></div>
+      </div>
+      <div class="scard sc-red">
+        <div class="scard-top"><span class="scard-lbl">Failed</span><span class="scard-icon">✕</span></div>
+        <div class="scard-val" id="p-fail">—</div>
+        <div class="scard-glow"></div>
+      </div>
+      <div class="scard sc-purple">
+        <div class="scard-top"><span class="scard-lbl">Revenue</span><span class="scard-icon">₹</span></div>
+        <div class="scard-val" id="p-rev">—</div>
+        <div class="scard-glow"></div>
+      </div>
     </div>
-    <div class="cr1">
-      <div class="cbox"><div class="ctitle"><span>◆</span>Daily Activity</div><canvas id="ch-da" height="200"></canvas></div>
-      <div class="cbox"><div class="ctitle"><span>◆</span>Order → Capture Funnel</div><canvas id="ch-fn" height="200"></canvas></div>
-      <div class="cbox"><div class="ctitle"><span>◆</span>UPI Methods</div><canvas id="ch-um" height="200"></canvas></div>
+    <div class="cgrid1">
+      <div class="cbox">
+        <div class="cbox-hd"><span class="cbox-title">Daily Activity</span></div>
+        <div class="chart-wrap"><canvas id="ch-da" height="200"></canvas></div>
+      </div>
+      <div class="cbox">
+        <div class="cbox-hd"><span class="cbox-title">Order → Capture Funnel</span></div>
+        <div class="chart-wrap"><canvas id="ch-fn" height="200"></canvas></div>
+      </div>
+      <div class="cbox">
+        <div class="cbox-hd"><span class="cbox-title">UPI Methods</span></div>
+        <div class="chart-wrap"><canvas id="ch-um" height="200"></canvas></div>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- ALERTS -->
+<!-- ══ ALERTS ══ -->
 <div class="tp" id="tab-alerts">
   <div class="ag">
     <div class="panel">
-      <div class="ptitle">Create Alert Rule</div>
+      <div class="panel-title">Create Alert Rule</div>
       <div class="fg"><label>Alert Name *</label><input type="text" id="al-nm" placeholder="e.g. High Error Rate"/></div>
       <div class="fr">
         <div class="fg"><label>API Filter</label><select id="al-api"><option value="">All APIs</option></select></div>
@@ -253,25 +454,26 @@ tr:hover td{background:var(--bg3)}
         </select></div>
       </div>
       <div class="fr">
-        <div class="fg"><label>Operator</label><select id="al-op"><option value=">">&#62; greater than</option><option value=">=">&#62;= at least</option><option value="<">&#60; less than</option></select></div>
+        <div class="fg"><label>Operator</label><select id="al-op"><option value=">">&gt; greater than</option><option value=">=">&gt;= at least</option><option value="<">&lt; less than</option></select></div>
         <div class="fg"><label>Threshold *</label><input type="number" id="al-th" placeholder="10" min="0"/></div>
       </div>
       <div class="fg"><label>Webhook URL (Slack / Teams)</label><input type="url" id="al-wh" placeholder="https://hooks.slack.com/…"/></div>
-      <div style="display:flex;gap:8px;margin-top:4px">
-        <button class="btn btn-p" id="btn-cal">+ Create Alert</button>
-        <button class="btn btn-g" id="btn-twh">Test Webhook</button>
+      <div style="display:flex;gap:8px;margin-top:6px">
+        <button class="btn btn-primary btn-sm" id="btn-cal">+ Create Alert</button>
+        <button class="btn btn-ghost btn-sm" id="btn-twh">Test Webhook</button>
       </div>
     </div>
     <div class="panel">
-      <div class="ptitle">Active Alert Rules</div>
-      <div id="al-list"><div class="emp">🔔 No alerts configured</div></div>
+      <div class="panel-title">Active Rules</div>
+      <div id="al-list"><div class="emp" style="padding:30px 0">🔔 No alerts configured</div></div>
     </div>
   </div>
-  <div class="panel" style="margin-top:15px">
-    <div class="ptitle">How Alerts Work</div>
-    <div style="color:var(--text2);font-size:12px;line-height:1.9">
-      Checks every <strong style="color:var(--text)">5 minutes</strong> against today's S3 logs. Fires an HTTP POST to your webhook when threshold is breached.<br/>
-      <strong style="color:var(--accent)">Metrics:</strong>
+
+  <div class="panel" style="margin-top:14px">
+    <div class="panel-title">How Alerts Work</div>
+    <div style="color:var(--text2);font-size:12px;line-height:2;font-family:var(--fh)">
+      Checks every <strong style="color:var(--text)">5 minutes</strong> against today's S3 logs. Fires an HTTP POST to your webhook when the threshold is breached.<br/>
+      <strong style="color:var(--cyan)">Metrics:</strong>
       <code>errors</code> error log count ·
       <code>error_rate</code> % of total ·
       <code>payments_failed</code> Razorpay error_code count ·
@@ -279,6 +481,12 @@ tr:hover td{background:var(--bg3)}
       <code>warnings</code> WARN count
     </div>
   </div>
+
+  <!-- Diagnostics panel (hidden by default, shown on demand) -->
+  <details class="debug-panel" id="diag-panel" style="margin-top:14px;display:none">
+    <summary>🔧 Diagnostics &amp; Debug Info</summary>
+    <pre id="diag-out">Loading…</pre>
+  </details>
 </div>
 
 </div><!-- /main -->
@@ -286,554 +494,580 @@ tr:hover td{background:var(--bg3)}
 <div id="toast"></div>
 
 <script>
-// ─── Tiny Canvas Chart Library (no CDN needed) ────────────────────────────
-const CHR = (() => {
-  const C = (id) => document.getElementById(id);
-  const _instances = {};
+// ─── Chart.js Global Defaults ─────────────────────────────────────────────────
+Chart.defaults.color = '#5D7494';
+Chart.defaults.borderColor = '#162035';
+Chart.defaults.font.family = "'Outfit', sans-serif";
+Chart.defaults.font.size = 11;
+Chart.defaults.plugins.legend.display = false;
+Chart.defaults.plugins.tooltip.backgroundColor = '#0C1322';
+Chart.defaults.plugins.tooltip.borderColor = '#1E3054';
+Chart.defaults.plugins.tooltip.borderWidth = 1;
+Chart.defaults.plugins.tooltip.titleColor = '#D8E6F5';
+Chart.defaults.plugins.tooltip.bodyColor = '#5D7494';
+Chart.defaults.plugins.tooltip.padding = 10;
+Chart.defaults.plugins.tooltip.displayColors = true;
+Chart.defaults.plugins.tooltip.cornerRadius = 8;
 
-  function clear(id) {
-    if (_instances[id]) { _instances[id] = null; }
-    const el = C(id); if (!el) return;
-    const ctx = el.getContext('2d');
-    ctx.clearRect(0, 0, el.width, el.height);
-  }
+// ─── Chart Registry ──────────────────────────────────────────────────────────
+const _charts = {};
+function destroyChart(id) { if (_charts[id]) { _charts[id].destroy(); delete _charts[id]; } }
+function getCanvas(id) { return document.getElementById(id); }
+function showEmpty(baseId, show) {
+  const emp = document.getElementById(baseId+'-empty');
+  const canvas = document.getElementById(baseId);
+  if (emp) emp.style.display = show ? 'block' : 'none';
+  if (canvas) canvas.style.display = show ? 'none' : 'block';
+}
 
-  function resize(canvas, h) {
-    const w = canvas.parentElement.clientWidth - 30;
-    canvas.width  = w * devicePixelRatio;
-    canvas.height = h * devicePixelRatio;
-    canvas.style.width  = w  + 'px';
-    canvas.style.height = h + 'px';
-    const ctx = canvas.getContext('2d');
-    ctx.scale(devicePixelRatio, devicePixelRatio);
-    return [w, h, ctx];
-  }
+const C = {
+  cyan:'#00CFFF', orange:'#FF6B35', green:'#00E5A0',
+  red:'#FF2D55', yellow:'#FFB800', blue:'#4D9EFF',
+  purple:'#A78BFA', teal:'#22D3EE', text2:'#5D7494', grid:'#162035'
+};
+const PALETTE = [C.cyan, C.orange, C.green, C.blue, C.purple, C.yellow, C.teal, C.red];
 
-  const COLS = ['#FF6B35','#4D9EFF','#00E5A0','#FFB800','#A78BFA','#22D3EE','#FF3B5C','#F472B6'];
-  const GRID = '#1E2A40'; const LBL = '#7A8FAF'; const TXT = '#C8D4E8';
+function makeGrad(ctx, color, alpha1=0.3, alpha2=0.01) {
+  const grad = ctx.createLinearGradient(0, 0, 0, ctx.canvas.offsetHeight || 180);
+  grad.addColorStop(0, color + Math.round(alpha1*255).toString(16).padStart(2,'0'));
+  grad.addColorStop(1, color + Math.round(alpha2*255).toString(16).padStart(2,'0'));
+  return grad;
+}
 
-  function textFit(ctx, text, maxW) {
-    let sz = 11;
-    ctx.font = sz + 'px "Space Mono",monospace';
-    while (ctx.measureText(text).width > maxW && sz > 7) { sz--; ctx.font = sz + 'px "Space Mono",monospace'; }
-    return text;
-  }
-
-  /* ── Bar chart ── */
-  function bar(id, labels, values, colors, opts = {}) {
-    clear(id);
-    const canvas = C(id); if (!canvas) return;
-    const h = opts.h || 200;
-    const [W, H, ctx] = resize(canvas, h);
-    const horiz = opts.horiz || false;
-
-    const pad = { t:10, r:14, b: horiz ? 30 : 50, l: horiz ? 120 : 40 };
-    const cw = W - pad.l - pad.r;
-    const ch = H - pad.t - pad.b;
-    const n  = values.length;
-    if (!n) return;
-
-    const max = Math.max(...values, 1);
-    const cols = Array.isArray(colors) ? colors : COLS;
-
-    ctx.font = '10px "Space Mono",monospace';
-    ctx.fillStyle = LBL;
-
-    if (!horiz) {
-      // vertical bars
-      const bw = Math.max(4, (cw / n) * 0.6);
-      const gap = cw / n;
-      // grid lines
-      for (let i=0;i<=4;i++) {
-        const y = pad.t + ch - (ch * i / 4);
-        ctx.strokeStyle = GRID; ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l+cw, y); ctx.stroke();
-        const v = Math.round(max * i / 4);
-        ctx.fillStyle = LBL; ctx.textAlign = 'right';
-        ctx.fillText(v > 999 ? (v/1000).toFixed(1)+'k' : v, pad.l - 4, y + 4);
-      }
-      labels.forEach((lbl, i) => {
-        const x = pad.l + gap * i + gap/2;
-        const bh = ch * (values[i] / max);
-        const y  = pad.t + ch - bh;
-        ctx.fillStyle = (cols[i % cols.length]) + 'CC';
-        ctx.beginPath();
-        ctx.roundRect(x - bw/2, y, bw, bh, [3,3,0,0]);
-        ctx.fill();
-        // value on top
-        ctx.fillStyle = TXT; ctx.textAlign='center';
-        if (bh > 16) ctx.fillText(values[i], x, y - 4);
-        // x label
-        ctx.fillStyle = LBL; ctx.textAlign='center';
-        const sl = String(lbl).length > 12 ? String(lbl).slice(0,12)+'…' : String(lbl);
-        ctx.save(); ctx.translate(x, pad.t+ch+12); ctx.rotate(-0.5); ctx.fillText(sl, 0, 0); ctx.restore();
-      });
-    } else {
-      // horizontal bars
-      const bh2 = Math.max(3, (ch / n) * 0.55);
-      const gap2 = ch / n;
-      for (let i=0;i<=4;i++) {
-        const x = pad.l + cw * i / 4;
-        ctx.strokeStyle = GRID; ctx.lineWidth=1;
-        ctx.beginPath(); ctx.moveTo(x,pad.t); ctx.lineTo(x,pad.t+ch); ctx.stroke();
-        const v = Math.round(max * i / 4);
-        ctx.fillStyle=LBL; ctx.textAlign='center';
-        ctx.fillText(v>999?(v/1000).toFixed(1)+'k':v, x, pad.t+ch+14);
-      }
-      labels.forEach((lbl,i) => {
-        const y = pad.t + gap2 * i + gap2/2;
-        const bw2 = cw * (values[i] / max);
-        ctx.fillStyle = (cols[i % cols.length]) + 'CC';
-        ctx.beginPath();
-        ctx.roundRect(pad.l, y - bh2/2, bw2, bh2, [0,3,3,0]);
-        ctx.fill();
-        // label left
-        ctx.fillStyle = LBL; ctx.textAlign='right';
-        const sl = String(lbl).length > 18 ? String(lbl).slice(0,18)+'…' : String(lbl);
-        ctx.fillText(sl, pad.l - 6, y + 4);
-        // value inside/right
-        ctx.fillStyle = TXT; ctx.textAlign='left';
-        ctx.fillText(values[i], pad.l + bw2 + 4, y + 4);
-      });
+// ─── Chart Builders ───────────────────────────────────────────────────────────
+function buildLine(id, labels, data, color, label='Requests') {
+  destroyChart(id);
+  const canvas = getCanvas(id); if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const grad = makeGrad(ctx, color, 0.25, 0.01);
+  _charts[id] = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets:[{
+        label, data, borderColor: color, backgroundColor: grad,
+        fill: true, tension: 0.35, pointRadius: data.length < 30 ? 3 : 0,
+        pointHoverRadius: 5, pointBackgroundColor: color, borderWidth: 2,
+      }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:true,
+      interaction:{mode:'index',intersect:false},
+      scales:{
+        x:{grid:{color:C.grid},ticks:{maxTicksLimit:8,maxRotation:30}},
+        y:{grid:{color:C.grid},ticks:{maxTicksLimit:5}}
+      },
+      plugins:{tooltip:{callbacks:{title:t=>t[0].label}}}
     }
-    _instances[id] = true;
-  }
+  });
+}
 
-  /* ── Line chart ── */
-  function line(id, labels, datasets, opts = {}) {
-    clear(id);
-    const canvas = C(id); if (!canvas) return;
-    const h = opts.h || 200;
-    const [W, H, ctx] = resize(canvas, h);
-    const pad = { t:10, r:14, b:48, l:42 };
-    const cw = W - pad.l - pad.r;
-    const ch = H - pad.t - pad.b;
-    const n  = labels.length;
-    if (!n) return;
-
-    const allVals = datasets.flatMap(d => d.data);
-    const max = Math.max(...allVals, 1);
-
-    ctx.font = '10px "Space Mono",monospace';
-
-    // grid
-    for (let i=0;i<=4;i++) {
-      const y = pad.t + ch - (ch * i / 4);
-      ctx.strokeStyle = GRID; ctx.lineWidth=1;
-      ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(pad.l+cw,y); ctx.stroke();
-      const v = Math.round(max * i / 4);
-      ctx.fillStyle = LBL; ctx.textAlign='right';
-      ctx.fillText(v>999?(v/1000).toFixed(1)+'k':v, pad.l-4, y+4);
+function buildHBar(id, labels, data, colors) {
+  destroyChart(id);
+  const canvas = getCanvas(id); if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  _charts[id] = new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels: labels.map(l=>l.length>22?l.slice(0,22)+'…':l),
+      datasets:[{data, backgroundColor: colors || PALETTE, borderRadius:4, borderSkipped:false}]
+    },
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:true,
+      scales:{
+        x:{grid:{color:C.grid},ticks:{maxTicksLimit:5}},
+        y:{grid:{display:false},ticks:{font:{family:"'JetBrains Mono',monospace",size:10}}}
+      },
+      plugins:{legend:{display:false}}
     }
+  });
+}
 
-    datasets.forEach((ds, di) => {
-      const col = ds.color || COLS[di];
-      const pts = ds.data.map((v,i) => [pad.l + cw * i / Math.max(n-1,1), pad.t + ch - ch * v / max]);
+function buildVBar(id, labels, data, colors) {
+  destroyChart(id);
+  const canvas = getCanvas(id); if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  _charts[id] = new Chart(ctx, {
+    type:'bar',
+    data:{labels, datasets:[{data, backgroundColor: colors || PALETTE, borderRadius:5, borderSkipped:false}]},
+    options:{
+      responsive:true, maintainAspectRatio:true,
+      scales:{
+        x:{grid:{display:false}},
+        y:{grid:{color:C.grid},ticks:{maxTicksLimit:5}}
+      }
+    }
+  });
+}
 
-      // fill
-      ctx.beginPath();
-      ctx.moveTo(pts[0][0], pad.t+ch);
-      pts.forEach(([x,y]) => ctx.lineTo(x,y));
-      ctx.lineTo(pts[pts.length-1][0], pad.t+ch);
-      ctx.closePath();
-      ctx.fillStyle = col + '22';
-      ctx.fill();
+function buildDonut(id, labels, data, colors) {
+  destroyChart(id);
+  const canvas = getCanvas(id); if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const total = data.reduce((a,b)=>a+b,0);
+  _charts[id] = new Chart(ctx, {
+    type:'doughnut',
+    data:{labels, datasets:[{data, backgroundColor: colors || PALETTE, borderWidth:2, borderColor:'#0C1322', hoverOffset:6}]},
+    options:{
+      responsive:true, maintainAspectRatio:true, cutout:'62%',
+      plugins:{
+        legend:{display:true, position:'bottom', labels:{padding:12,boxWidth:10,usePointStyle:true,pointStyle:'circle'}},
+        tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${ctx.parsed} (${Math.round(ctx.parsed/total*100)}%)`}}
+      }
+    }
+  });
+}
 
-      // line
-      ctx.beginPath();
-      ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.lineJoin='round';
-      pts.forEach(([x,y],i) => i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y));
-      ctx.stroke();
-
-      // dots
-      pts.forEach(([x,y]) => {
-        ctx.beginPath(); ctx.arc(x,y,3,0,Math.PI*2);
-        ctx.fillStyle=col; ctx.fill();
-      });
-    });
-
-    // x labels
-    ctx.fillStyle = LBL; ctx.textAlign='center';
-    const step = Math.max(1, Math.floor(n / 10));
-    labels.forEach((lbl,i) => {
-      if (i % step !== 0) return;
-      const x = pad.l + cw * i / Math.max(n-1,1);
-      const sl = String(lbl).slice(-5);
-      ctx.save(); ctx.translate(x, pad.t+ch+12); ctx.rotate(-0.6); ctx.fillText(sl,0,0); ctx.restore();
-    });
-    _instances[id] = true;
-  }
-
-  /* ── Doughnut ── */
-  function donut(id, labels, values, colors, opts = {}) {
-    clear(id);
-    const canvas = C(id); if (!canvas) return;
-    const h = opts.h || 200;
-    const [W, H, ctx] = resize(canvas, h);
-    const total = values.reduce((a,b)=>a+b,0);
-    if (!total) return;
-    const cols = colors || COLS;
-
-    const lh = 18; const lpad = 12;
-    const legendH = Math.ceil(labels.length / 2) * lh + lpad;
-    const cx = W/2, cy = (H-legendH)/2;
-    const r  = Math.min(cx, cy) - 10;
-    const ir = r * 0.55;
-
-    let angle = -Math.PI/2;
-    values.forEach((v,i) => {
-      const sweep = (v/total) * Math.PI*2;
-      ctx.beginPath();
-      ctx.moveTo(cx,cy); ctx.arc(cx,cy,r,angle,angle+sweep);
-      ctx.closePath();
-      ctx.fillStyle = cols[i%cols.length];
-      ctx.fill();
-      angle += sweep;
-    });
-
-    // hole
-    ctx.beginPath(); ctx.arc(cx,cy,ir,0,Math.PI*2);
-    ctx.fillStyle = '#121929'; ctx.fill();
-
-    // center text
-    ctx.fillStyle = TXT; ctx.textAlign='center';
-    ctx.font = 'bold 16px "Syne",sans-serif';
-    ctx.fillText(total, cx, cy+2);
-    ctx.font = '9px "Space Mono",monospace';
-    ctx.fillStyle = LBL;
-    ctx.fillText('total', cx, cy+15);
-
-    // legend
-    const lx0 = 8; let lx = lx0, ly = H - legendH + lpad;
-    const colW = W/2;
-    labels.forEach((lbl,i) => {
-      ctx.fillStyle = cols[i%cols.length];
-      ctx.fillRect(lx, ly-8, 10, 10);
-      ctx.fillStyle = LBL; ctx.textAlign='left'; ctx.font='10px "Space Mono",monospace';
-      const pct = Math.round(values[i]/total*100);
-      ctx.fillText(String(lbl).slice(0,14)+' '+pct+'%', lx+13, ly);
-      if ((i+1)%2===0) { lx=lx0; ly+=lh; } else { lx=colW; }
-    });
-    _instances[id] = true;
-  }
-
-  return { bar, line, donut, clear };
-})();
-
-// ─── App State & Helpers ─────────────────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
 const fmt  = n => typeof n==='number' ? n.toLocaleString('en-IN') : '—';
 const fmtR = n => typeof n==='number' ? '₹'+(n>=100000?(n/100000).toFixed(2)+'L':n.toLocaleString('en-IN')) : '—';
+const esc  = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const timeAgo = iso => {
+  if (!iso) return '—';
+  const diff = Math.floor((Date.now() - new Date(iso)) / 1000);
+  if (diff < 60) return diff + 's ago';
+  if (diff < 3600) return Math.floor(diff/60) + 'm ago';
+  return Math.floor(diff/3600) + 'h ago';
+};
+const timeIn = iso => {
+  if (!iso) return '—';
+  const diff = Math.floor((new Date(iso) - Date.now()) / 1000);
+  if (diff <= 0) return 'now';
+  if (diff < 60) return 'in ' + diff + 's';
+  if (diff < 3600) return 'in ' + Math.floor(diff/60) + 'm';
+  return 'in ' + Math.floor(diff/3600) + 'h';
+};
+
 function toast(msg, type='') {
-  const t=$('toast'); t.textContent=msg; t.className='show '+(type==='success'?'ok':type==='error'?'err':'');
-  clearTimeout(t._t); t._t=setTimeout(()=>t.className='',3200);
+  const t=$('toast'); t.textContent=msg;
+  t.className='show '+(type==='success'?'ok':type==='error'?'err':'');
+  clearTimeout(t._t); t._t=setTimeout(()=>t.className='',3500);
 }
+
+function showBanner(msg, type='warn', icon='⚠️') {
+  const b=$('banner');
+  b.className='banner banner-'+(type==='error'?'err':type==='ok'?'ok':'warn');
+  $('banner-icon').textContent=icon;
+  $('banner-msg').textContent=msg;
+  b.style.display='flex';
+}
+
 async function apiFetch(path) {
   const r = await fetch(path);
   if (!r.ok) throw new Error('HTTP '+r.status);
   return r.json();
 }
-function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 
-let gStats=null, logsPage=1, activeHoursBack=null;
-
-const ACCENT='#FF6B35',GREEN='#00E5A0',RED='#FF3B5C',YELLOW='#FFB800',
-      BLUE='#4D9EFF',PURPLE='#A78BFA',TEAL='#22D3EE';
-
-// ─── Boot ────────────────────────────────────────────────────────────────────
-(async function boot(){
-  const today=new Date(), week=new Date(today);
-  week.setDate(today.getDate()-7);
-  $('dt').value=today.toISOString().slice(0,10);
-  $('df').value=week.toISOString().slice(0,10);
-  // Hide custom date range by default; show only when Custom is chosen
-  $('date-range-row').style.display='none';
-  try {
-    const {apis,total_files}=await apiFetch('/api/apis');
-    ['sel-api','l-api','al-api'].forEach(id=>{
-      const el=$(id); if(!el) return;
-      apis.forEach(a=>{ const o=document.createElement('option'); o.value=a; o.textContent=a; el.appendChild(o); });
-    });
-    $('stxt').textContent=total_files+' log files in S3';
-    loadAlerts();
-    // Auto-load with 1H by default
-    setActiveTimeBtn('1', true);
-  } catch(e){ toast('Backend error: '+e.message,'error'); $('stxt').textContent='Error'; }
-})();
-
-// ─── Time-range buttons ───────────────────────────────────────────────────────
-function setActiveTimeBtn(h, autoLoad) {
-  document.querySelectorAll('.tr-btn').forEach(b => b.classList.remove('tr-active'));
-  $('btn-custom').classList.remove('tr-active');
-  if (h === 'custom') {
-    $('btn-custom').classList.add('tr-active');
-    $('date-range-row').style.display='flex';
-    activeHoursBack = null;
-  } else {
-    const btn = document.querySelector(`.tr-btn[data-h="${h}"]`);
-    if (btn) btn.classList.add('tr-active');
-    $('date-range-row').style.display='none';
-    activeHoursBack = parseInt(h, 10);
+// ─── Animated counter ────────────────────────────────────────────────────────
+function animateCount(el, targetStr) {
+  if (!el) return;
+  const num = parseInt(targetStr.replace(/[₹,L]/g,''));
+  if (isNaN(num) || num === 0) { el.textContent = targetStr; return; }
+  const start = performance.now();
+  const duration = Math.min(800, num * 2);
+  const startVal = 0;
+  function step(now) {
+    const p = Math.min((now - start) / duration, 1);
+    const ease = 1 - Math.pow(1-p, 3);
+    const curr = Math.floor(startVal + ease * num);
+    el.textContent = targetStr.includes('₹')
+      ? fmtR(curr / (targetStr.includes('L') ? 1 : 1))
+      : curr.toLocaleString('en-IN');
+    if (p < 1) requestAnimationFrame(step); else el.textContent = targetStr;
   }
-  if (autoLoad) loadOverview();
+  requestAnimationFrame(step);
 }
 
-document.querySelectorAll('.tr-btn').forEach(btn => {
-  btn.addEventListener('click', () => setActiveTimeBtn(btn.dataset.h, true));
-});
-$('btn-custom').addEventListener('click', () => setActiveTimeBtn('custom', false));
+// ─── State ────────────────────────────────────────────────────────────────────
+let gStats = null, logsPage = 1;
 
-// Tabs
-document.querySelectorAll('.tab').forEach(tab=>{
-  tab.addEventListener('click',()=>{
+// ─── Boot ─────────────────────────────────────────────────────────────────────
+(async function boot() {
+  // Set default date range (last 7 days)
+  const today = new Date();
+  const week  = new Date(today); week.setDate(today.getDate()-7);
+  $('dt').value = today.toISOString().slice(0,10);
+  $('df').value = week.toISOString().slice(0,10);
+
+  // Check sync status + debug simultaneously
+  updateSyncStatus();
+  setInterval(updateSyncStatus, 30000);
+
+  try {
+    const { apis, total_files } = await apiFetch('/api/apis');
+    ['sel-api','l-api','al-api'].forEach(selId => {
+      const el = $(selId); if (!el) return;
+      apis.forEach(a => {
+        const o = document.createElement('option');
+        o.value = a; o.textContent = a; el.appendChild(o);
+      });
+    });
+    if (total_files === 0) {
+      // Possibly AWS creds not set or no data yet
+      await checkAwsSetup();
+    } else {
+      $('stxt').textContent = total_files + ' log files';
+    }
+    loadAlerts();
+    loadOverview();
+  } catch(e) {
+    toast('Backend error: '+e.message, 'error');
+    $('stxt').textContent = 'Error';
+    showBanner('Backend unreachable: '+e.message, 'error', '🔴');
+  }
+})();
+
+// ─── AWS credential check ─────────────────────────────────────────────────────
+async function checkAwsSetup() {
+  try {
+    const d = await apiFetch('/api/debug');
+    if (!d.has_access_key || !d.has_secret_key) {
+      showBanner(
+        'AWS credentials not configured. Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in Railway environment variables.',
+        'error','🔑'
+      );
+      $('stxt').textContent = 'No AWS credentials';
+      setSyncDot('error');
+    } else if (d.sync_error) {
+      showBanner('Sync error: '+d.sync_error, 'error', '⚠️');
+      $('stxt').textContent = 'Sync failed';
+      setSyncDot('error');
+    } else if (d.entry_count === 0 && d.last_sync) {
+      showBanner(
+        `Sync completed but found 0 entries. Check S3_BUCKET="${d.S3_BUCKET}" and S3_PREFIX="${d.S3_PREFIX}" in Railway env vars.`,
+        'warn','🪣'
+      );
+    } else if (!d.last_sync) {
+      showBanner('Initial S3 sync in progress — data will appear shortly.', 'ok', '⏳');
+    }
+  } catch(e) { /* ignore */ }
+}
+
+async function checkDebug() {
+  const panel = $('diag-panel');
+  panel.style.display = 'block';
+  panel.open = true;
+  // Switch to alerts tab to show panel
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tp').forEach(p=>p.classList.remove('active'));
+  $('tab-alerts').classList.add('active');
+  document.querySelector('[data-tab="alerts"]').classList.add('active');
+  try {
+    const d = await apiFetch('/api/debug');
+    $('diag-out').textContent = JSON.stringify(d, null, 2);
+  } catch(e) {
+    $('diag-out').textContent = 'Error: '+e.message;
+  }
+}
+
+function setSyncDot(state) {
+  const dot = $('sync-dot');
+  dot.className = 'sb-dot ' + (state==='live'?'live':state==='syncing'?'syncing':'error');
+}
+
+async function updateSyncStatus() {
+  try {
+    const s = await apiFetch('/api/sync/status');
+    setSyncDot(s.syncing ? 'syncing' : s.sync_error ? 'error' : 'live');
+    $('sb-files').textContent = s.file_count + ' files';
+    $('sb-entries').textContent = fmt(s.entry_count) + ' entries';
+    $('sb-lastsync').textContent = timeAgo(s.last_sync);
+    $('sb-nextsync').textContent = timeIn(s.next_sync);
+    if (s.sync_error) {
+      $('sb-err').textContent = 'Sync error: '+s.sync_error.slice(0,60);
+      $('sb-err').style.display = 'inline';
+      $('sb-err-sep').style.display = 'inline';
+    } else {
+      $('sb-err').style.display = 'none';
+      $('sb-err-sep').style.display = 'none';
+    }
+    if (s.syncing) $('stxt').textContent = 'Syncing S3…';
+  } catch(e) { /* ignore */ }
+}
+
+// ─── Tabs ─────────────────────────────────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
     document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
     document.querySelectorAll('.tp').forEach(p=>p.classList.remove('active'));
     tab.classList.add('active');
     $('tab-'+tab.dataset.tab).classList.add('active');
-    if(tab.dataset.tab==='payments' && gStats) renderPayTab(gStats);
+    if (tab.dataset.tab === 'payments' && gStats) renderPayTab(gStats);
   });
 });
 
-// ─── Overview ────────────────────────────────────────────────────────────────
+// ─── Overview ─────────────────────────────────────────────────────────────────
 $('btn-load').addEventListener('click', loadOverview);
-$('btn-ref').addEventListener('click', async()=>{
+$('btn-ref').addEventListener('click', async () => {
   await fetch('/api/cache/clear',{method:'POST'});
   toast('Cache cleared','success'); loadOverview();
 });
-
-async function loadOverview(){
-  const apiV=$('sel-api').value;
-  let params;
-  if (activeHoursBack) {
-    // Quick time-range mode: send hours_back, backend uses local IST time
-    params = new URLSearchParams({hours_back: activeHoursBack});
-  } else {
-    const dfrom=$('df').value, dto=$('dt').value;
-    if(!dfrom||!dto){ toast('Select a date range','error'); return; }
-    params = new URLSearchParams({date_from:dfrom, date_to:dto});
-  }
-  if(apiV) params.set('api',apiV);
-
-  $('ov-ld').style.display='block'; $('ov-ct').style.opacity='0.3';
-  $('cap-warn').style.display='none';
-  const rangeLabel = activeHoursBack
-    ? (activeHoursBack < 1 ? `Last ${activeHoursBack*60|0}min` : `Last ${activeHoursBack}H`)
-    : 'Custom range';
-  $('stxt').textContent=`Loading ${rangeLabel}…`;
+$('btn-fsync').addEventListener('click', async () => {
+  $('btn-fsync').disabled = true;
   try {
-    gStats = await apiFetch('/api/stats?'+params);
-    renderCards(gStats); renderCharts(gStats); renderRecentErrors(gStats.recent_errors||[]);
-    populateEndpointDropdown(gStats);
-    // Show cap warning inline (not a disruptive popup)
-    if (gStats.files_capped) {
-      $('cap-msg').textContent =
-        `Capped at ${gStats.files_loaded} of ${gStats.files_available} files`;
-      $('cap-warn').style.display='block';
-    }
-    const cutoffLabel = gStats.cutoff_ts ? gStats.cutoff_ts.slice(11,16)+' IST → now' : '';
-    const label = activeHoursBack ? `${rangeLabel} · ${cutoffLabel}` : `${gStats.date_from} → ${gStats.date_to}`;
-    $('stxt').textContent=`${gStats.files_loaded||0} files · ${fmt(gStats.total)} entries · ${label}`;
-  } catch(e){ toast('Failed: '+e.message,'error'); $('stxt').textContent='Error'; }
-  finally { $('ov-ld').style.display='none'; $('ov-ct').style.opacity='1'; }
+    const r = await fetch('/api/sync/force',{method:'POST'});
+    const d = await r.json();
+    toast(d.message || 'Sync triggered', d.success?'success':'error');
+    setSyncDot('syncing');
+    setTimeout(updateSyncStatus, 3000);
+  } catch(e) { toast('Error: '+e.message,'error'); }
+  finally { setTimeout(()=>{ $('btn-fsync').disabled=false; },5000); }
+});
+
+async function loadOverview() {
+  const apiV  = $('sel-api').value;
+  const dfrom = $('df').value;
+  const dto   = $('dt').value;
+  if (!dfrom || !dto) { toast('Select a date range','error'); return; }
+
+  $('ov-ld').style.display = 'flex';
+  $('ov-ct').style.opacity = '0.4';
+  $('stxt').textContent = 'Loading…';
+  try {
+    const p = new URLSearchParams({date_from:dfrom, date_to:dto});
+    if (apiV) p.set('api', apiV);
+    gStats = await apiFetch('/api/stats?'+p);
+    renderCards(gStats);
+    renderCharts(gStats);
+    renderRecentErrors(gStats.recent_errors||[]);
+    $('stxt').textContent = (gStats.files_loaded||0)+' files · '+fmt(gStats.total)+' entries';
+  } catch(e) {
+    toast('Failed: '+e.message, 'error');
+    $('stxt').textContent = 'Error';
+  } finally {
+    $('ov-ld').style.display = 'none';
+    $('ov-ct').style.opacity = '1';
+  }
 }
 
-// ─── Dynamic endpoint dropdown ────────────────────────────────────────────────
-function populateEndpointDropdown(s) {
-  const epSel = $('l-ep');
-  const prev = epSel.value;
-  epSel.innerHTML = '<option value="">All endpoints</option>';
-  Object.keys(s.endpoints || {}).forEach(ep => {
-    const o = document.createElement('option');
-    // ep is like "POST /documentCompareAPI" — store full string as value for flexible matching
-    o.value = ep.split(' ').slice(1).join(' ');  // "/documentCompareAPI"
-    o.textContent = ep;
-    epSel.appendChild(o);
-  });
-  // Restore previous selection if still valid
-  if ([...epSel.options].some(o => o.value === prev)) epSel.value = prev;
+function renderCards(s) {
+  const pairs = [
+    ['c-tot', fmt(s.total)],
+    ['c-err', fmt(s.errors)],
+    ['c-warn', fmt(s.warnings)],
+    ['c-cre', fmt(s.payments_created)],
+    ['c-cap', fmt(s.payments_captured)],
+    ['c-rev', fmtR(s.revenue_inr)],
+  ];
+  pairs.forEach(([id, val]) => animateCount($(id), val));
+  $('c-files').textContent  = (s.files_loaded||0) + ' files loaded';
+  $('c-erate').textContent  = s.error_rate + '% error rate';
+  $('c-fail').textContent   = fmt(s.payments_failed) + ' failed';
 }
 
-function renderCards(s){
-  $('c-tot').textContent=fmt(s.total); $('c-files').textContent=(s.files_loaded||0)+' files';
-  $('c-err').textContent=fmt(s.errors); $('c-erate').textContent=s.error_rate+'% error rate';
-  $('c-warn').textContent=fmt(s.warnings);
-  $('c-cre').textContent=fmt(s.payments_created);
-  $('c-cap').textContent=fmt(s.payments_captured);
-  $('c-fail').textContent=fmt(s.payments_failed)+' failed';
-  $('c-rev').textContent=fmtR(s.revenue_inr);
-}
+function renderCharts(s) {
+  // Timeline
+  const hours = s.hourly_labels || [];
+  const hvals = s.hourly_values || [];
+  if (hours.length) {
+    showEmpty('ch-tl', false);
+    buildLine('ch-tl', hours.map(h=>h.slice(11)), hvals, C.cyan);
+    $('ch-tl-meta').textContent = hours.length + ' hours';
+  } else { showEmpty('ch-tl', true); }
 
-function renderCharts(s){
-  // Timeline line chart
-  const hours=s.hourly_labels||[];
-  CHR.line('ch-tl', hours.map(h=>h.slice(11)), [{data:s.hourly_values||[],color:ACCENT}]);
-
-  // Endpoints bar
-  const epK=Object.keys(s.endpoints||{}).slice(0,6);
-  CHR.bar('ch-ep',epK.map(k=>k.replace('POST ','POST\n').replace('GET ','')),epK.map(k=>s.endpoints[k]),[ACCENT,BLUE],{horiz:true});
+  // Endpoints (horiz bar)
+  const epK = Object.keys(s.endpoints||{}).slice(0,8);
+  if (epK.length) {
+    showEmpty('ch-ep', false);
+    buildHBar('ch-ep', epK, epK.map(k=>s.endpoints[k]), PALETTE);
+  } else { showEmpty('ch-ep', true); }
 
   // Payment status donut
-  const psK=Object.keys(s.payment_statuses||{});
-  CHR.donut('ch-ps',psK,psK.map(k=>s.payment_statuses[k]),psK.map(k=>k==='captured'?GREEN:k==='created'?ACCENT:RED));
+  const psK = Object.keys(s.payment_statuses||{});
+  if (psK.length) {
+    showEmpty('ch-ps', false);
+    const psColors = psK.map(k=>k==='captured'?C.green:k==='created'?C.orange:C.red);
+    buildDonut('ch-ps', psK, psK.map(k=>s.payment_statuses[k]), psColors);
+  } else { showEmpty('ch-ps', true); }
 
-  // Errors by endpoint bar
-  const eeK=Object.keys(s.err_by_endpoint||{}).slice(0,5);
-  if(eeK.length) CHR.bar('ch-ee',eeK.map(k=>k.replace('POST ','').replace('GET ','')),eeK.map(k=>s.err_by_endpoint[k]),[RED],{horiz:true});
+  // Errors by endpoint
+  const eeK = Object.keys(s.err_by_endpoint||{}).slice(0,6);
+  if (eeK.length) {
+    showEmpty('ch-ee', false);
+    buildHBar('ch-ee', eeK, eeK.map(k=>s.err_by_endpoint[k]), eeK.map(()=>C.red+'AA'));
+  } else { showEmpty('ch-ee', true); }
 
-  // Flows bar
-  const flK=Object.keys(s.flows||{}).slice(0,4);
-  CHR.bar('ch-fl',flK.map(k=>k.replace('implemtation_','').replace('_flowSub_Flow','').replace('-log-flow','')),
-    flK.map(k=>s.flows[k]),[BLUE,TEAL,PURPLE,GREEN]);
+  // Flows
+  const flK = Object.keys(s.flows||{}).slice(0,6);
+  if (flK.length) {
+    showEmpty('ch-fl', false);
+    buildHBar('ch-fl', flK.map(k=>k.replace('implemtation_','').replace('_flowSub_Flow','').replace('-log-flow','')),
+      flK.map(k=>s.flows[k]), [C.blue,C.teal,C.purple,C.green,C.cyan,C.yellow]);
+  } else { showEmpty('ch-fl', true); }
 
   // UPI methods donut
-  const pmK=Object.keys(s.payment_methods||{});
-  if(pmK.length) CHR.donut('ch-pm',pmK,pmK.map(k=>s.payment_methods[k]),[TEAL,PURPLE,YELLOW,BLUE]);
+  const pmK = Object.keys(s.payment_methods||{});
+  if (pmK.length) {
+    showEmpty('ch-pm', false);
+    buildDonut('ch-pm', pmK, pmK.map(k=>s.payment_methods[k]), [C.teal,C.purple,C.yellow,C.blue,C.green]);
+  } else { showEmpty('ch-pm', true); }
 }
 
-function renderRecentErrors(errors){
-  const body=$('re-body');
-  $('rc-ct').textContent=errors.length+' entries';
-  if(!errors.length){ body.innerHTML='<tr><td colspan="7" class="emp">✓ No errors in selected range</td></tr>'; return; }
-  body.innerHTML=errors.slice(-20).reverse().map(e=>`<tr>
+function renderRecentErrors(errors) {
+  const body = $('re-body');
+  $('rc-ct').textContent = errors.length + ' entries';
+  if (!errors.length) {
+    body.innerHTML = '<tr><td colspan="7" class="emp">✓ No errors in selected range</td></tr>';
+    return;
+  }
+  body.innerHTML = errors.slice(-25).reverse().map(e => `<tr class="row">
     <td><span class="badge b${e.level}">${e.level}</span></td>
-    <td class="mono tdim" style="white-space:nowrap;font-size:10px">${e.timestamp}</td>
-    <td class="tdim">${e.api}</td>
-    <td><span class="torn mono">${e.method} ${e.endpoint}</span></td>
-    <td class="tdim" style="font-size:10px">${(e.flow||'').replace('implemtation_','').replace('_flowSub_Flow','')}</td>
-    <td>${e.error_code?`<span class="tred">${e.error_code}</span>`:'<span class="tdim">—</span>'}</td>
-    <td class="ttrunc tdim">${esc(e.message||'')}</td>
+    <td class="mono tdim2" style="font-size:10px;white-space:nowrap">${e.timestamp}</td>
+    <td class="tdim">${esc(e.api)}</td>
+    <td><span class="torn mono" style="font-size:10px">${e.method} ${e.endpoint}</span></td>
+    <td class="tdim2" style="font-size:10px">${esc((e.flow||'').replace('implemtation_','').replace('_flowSub_Flow',''))}</td>
+    <td>${e.error_code ? `<span class="tred mono">${esc(e.error_code)}</span>` : '<span class="tdim2">—</span>'}</td>
+    <td class="ttrunc tdim" style="font-size:10px">${esc(e.message||'')}</td>
   </tr>`).join('');
 }
 
-// ─── Payments tab ─────────────────────────────────────────────────────────────
-function renderPayTab(s){
-  if(!s) return;
-  $('p-cre').textContent=fmt(s.payments_created);
-  $('p-cap').textContent=fmt(s.payments_captured);
-  $('p-fail').textContent=fmt(s.payments_failed);
-  $('p-rev').textContent=fmtR(s.revenue_inr);
+// ─── Payments Tab ─────────────────────────────────────────────────────────────
+function renderPayTab(s) {
+  if (!s) return;
+  animateCount($('p-cre'), fmt(s.payments_created));
+  animateCount($('p-cap'), fmt(s.payments_captured));
+  animateCount($('p-fail'), fmt(s.payments_failed));
+  animateCount($('p-rev'), fmtR(s.revenue_inr));
 
-  const dK=Object.keys(s.daily||{});
-  CHR.line('ch-da',dK,[{data:dK.map(k=>s.daily[k]),color:PURPLE}]);
-  CHR.bar('ch-fn',['Created','Captured','Failed'],[s.payments_created,s.payments_captured,s.payments_failed],[ACCENT,GREEN,RED]);
-
-  const pmK=Object.keys(s.payment_methods||{});
-  if(pmK.length) CHR.donut('ch-um',pmK,pmK.map(k=>s.payment_methods[k]),[TEAL,BLUE,YELLOW,GREEN]);
+  const dK = Object.keys(s.daily||{});
+  if (dK.length) buildLine('ch-da', dK, dK.map(k=>s.daily[k]), C.purple, 'Requests');
+  buildVBar('ch-fn',
+    ['Created','Captured','Failed'],
+    [s.payments_created, s.payments_captured, s.payments_failed],
+    [C.orange, C.green, C.red]
+  );
+  const pmK = Object.keys(s.payment_methods||{});
+  if (pmK.length) buildDonut('ch-um', pmK, pmK.map(k=>s.payment_methods[k]),
+    [C.teal,C.blue,C.yellow,C.green]);
 }
 
-// ─── Log Explorer ──────────────────────────────────────────────────────────────
-$('btn-srch').addEventListener('click',()=>{logsPage=1;loadLogs();});
-$('l-api').addEventListener('change', async()=>{
-  const a=$('l-api').value;
-  const {dates}=await apiFetch('/api/dates'+(a?'?api='+a:''));
-  const sel=$('l-date');
-  sel.innerHTML='<option value="">All dates</option>';
-  dates.forEach(d=>{ const o=document.createElement('option'); o.value=d; o.textContent=d; sel.appendChild(o); });
+// ─── Log Explorer ─────────────────────────────────────────────────────────────
+$('btn-srch').addEventListener('click', () => { logsPage=1; loadLogs(); });
+$('l-api').addEventListener('change', async () => {
+  const a = $('l-api').value;
+  const { dates } = await apiFetch('/api/dates'+(a?'?api='+a:''));
+  const sel = $('l-date');
+  sel.innerHTML = '<option value="">All dates</option>';
+  dates.forEach(d => {
+    const o = document.createElement('option');
+    o.value=d; o.textContent=d; sel.appendChild(o);
+  });
 });
 
-async function loadLogs(){
-  const p=new URLSearchParams({
+async function loadLogs() {
+  const p = new URLSearchParams({
     api:$('l-api').value, date:$('l-date').value,
     level:$('l-lvl').value, endpoint:$('l-ep').value,
     search:$('l-srch').value, page:logsPage, per_page:50
   });
-  // If a quick time-range is active and no specific date is chosen, pass hours_back
-  if (activeHoursBack && !$('l-date').value) {
-    p.set('hours_back', activeHoursBack);
-    p.delete('date');
-  }
-  $('l-ld').style.display='block'; $('l-tw').style.opacity='0.3';
+  $('l-ld').style.display = 'flex';
+  $('l-tw').style.opacity = '0.4';
   try {
-    const d=await apiFetch('/api/logs?'+p);
+    const d = await apiFetch('/api/logs?'+p);
     renderLogsTable(d.logs||[]);
-    $('l-tot').textContent=fmt(d.total)+' entries · pg '+d.page+'/'+d.pages;
-    renderPagination(d.page,d.pages);
-  } catch(e){ toast('Failed: '+e.message,'error'); }
-  finally{ $('l-ld').style.display='none'; $('l-tw').style.opacity='1'; }
+    $('l-tot').textContent = fmt(d.total)+' entries · pg '+d.page+'/'+d.pages;
+    renderPagination(d.page, d.pages);
+  } catch(e) { toast('Failed: '+e.message,'error'); }
+  finally { $('l-ld').style.display='none'; $('l-tw').style.opacity='1'; }
 }
 
-function renderLogsTable(logs){
-  const body=$('l-body');
-  if(!logs.length){ body.innerHTML='<tr><td colspan="11" class="emp">No logs match filters</td></tr>'; return; }
-  body.innerHTML=logs.map(e=>{
-    const rzB=e.rz_status?`<span class="badge b${e.rz_status==='captured'?'ok':e.rz_status==='created'?'created':'fail'}">${e.rz_status}</span>`:'<span class="tdim">—</span>';
-    return `<tr>
+function renderLogsTable(logs) {
+  const body = $('l-body');
+  if (!logs.length) {
+    body.innerHTML = '<tr><td colspan="11" class="emp">No logs match filters</td></tr>';
+    return;
+  }
+  body.innerHTML = logs.map(e => {
+    const rzClass = e.rz_status==='captured'?'b-ok':e.rz_status==='created'?'b-created':'b-fail';
+    const rz = e.rz_status ? `<span class="badge ${rzClass}">${esc(e.rz_status)}</span>` : '<span class="tdim2">—</span>';
+    return `<tr class="row">
       <td><span class="badge b${e.level}">${e.level}</span></td>
-      <td class="mono tdim" style="font-size:10px;white-space:nowrap">${e.timestamp}</td>
-      <td class="tdim">${e.api}</td>
-      <td><span class="badge b${e.method==='POST'?'created':'INFO'}">${e.method}</span></td>
-      <td class="mono torn">${e.endpoint}</td>
-      <td class="tdim" style="font-size:10px">${(e.flow||'').replace('implemtation_','').replace('_flowSub_Flow','')}</td>
-      <td>${rzB}</td>
-      <td class="mono">${e.amount_inr!=null?'₹'+e.amount_inr.toLocaleString('en-IN'):'—'}</td>
-      <td>${e.error_code?`<span class="tred">${e.error_code}</span>`:'<span class="tdim">—</span>'}</td>
-      <td class="mono tdim" style="font-size:10px">${e.loan_number||'—'}</td>
-      <td class="ttrunc tdim">${esc(e.message||'')}</td>
+      <td class="mono tdim2" style="font-size:10px;white-space:nowrap">${e.timestamp}</td>
+      <td class="tdim" style="font-size:10px">${esc(e.api)}</td>
+      <td><span class="badge b-${e.method}">${e.method}</span></td>
+      <td class="mono tcyan" style="font-size:10px">${esc(e.endpoint)}</td>
+      <td class="tdim2" style="font-size:10px">${esc((e.flow||'').replace('implemtation_','').replace('_flowSub_Flow',''))}</td>
+      <td>${rz}</td>
+      <td class="mono">${e.amount_inr!=null?'<span class="tgrn">₹'+e.amount_inr.toLocaleString('en-IN')+'</span>':'<span class="tdim2">—</span>'}</td>
+      <td>${e.error_code?`<span class="tred mono" style="font-size:10px">${esc(e.error_code)}</span>`:'<span class="tdim2">—</span>'}</td>
+      <td class="mono tdim2" style="font-size:10px">${esc(e.loan_number||'—')}</td>
+      <td class="ttrunc tdim" style="font-size:10px">${esc(e.message||'')}</td>
     </tr>`;
   }).join('');
 }
 
-function renderPagination(page,pages){
-  const el=$('l-pg'); if(pages<=1){el.innerHTML='';return;}
-  let h=`<button class="pb" ${page===1?'disabled':''} onclick="goPage(${page-1})">‹ Prev</button>`;
+function renderPagination(page, pages) {
+  const el = $('l-pg'); if (pages <= 1) { el.innerHTML=''; return; }
+  let h = `<button class="pb" ${page===1?'disabled':''} onclick="goPage(${page-1})">‹ Prev</button>`;
   const s=Math.max(1,page-3), e2=Math.min(pages,s+6);
-  for(let p=s;p<=e2;p++) h+=`<button class="pb ${p===page?'active':''}" onclick="goPage(${p})">${p}</button>`;
+  for (let p=s;p<=e2;p++) h+=`<button class="pb ${p===page?'active':''}" onclick="goPage(${p})">${p}</button>`;
   h+=`<button class="pb" ${page===pages?'disabled':''} onclick="goPage(${page+1})">Next ›</button>`;
   el.innerHTML=h;
 }
-function goPage(p){logsPage=p;loadLogs();}
+function goPage(p) { logsPage=p; loadLogs(); }
 
 // ─── Alerts ───────────────────────────────────────────────────────────────────
-$('btn-cal').addEventListener('click', async()=>{
+$('btn-cal').addEventListener('click', async () => {
   const nm=$('al-nm').value.trim(), th=$('al-th').value;
-  if(!nm||!th){toast('Name and threshold required','error');return;}
+  if (!nm||!th) { toast('Name and threshold required','error'); return; }
   try {
     await fetch('/api/alerts',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({name:nm,api:$('al-api').value,metric:$('al-mt').value,
         operator:$('al-op').value,threshold:parseFloat(th),webhook_url:$('al-wh').value.trim(),enabled:true})});
-    toast('Alert created ✓','success'); $('al-nm').value=''; $('al-th').value=''; loadAlerts();
-  } catch(e){toast('Failed: '+e.message,'error');}
+    toast('Alert created ✓','success');
+    $('al-nm').value=''; $('al-th').value='';
+    loadAlerts();
+  } catch(e) { toast('Failed: '+e.message,'error'); }
 });
 
-$('btn-twh').addEventListener('click', async()=>{
+$('btn-twh').addEventListener('click', async () => {
   const url=$('al-wh').value.trim();
-  if(!url){toast('Enter a webhook URL','error');return;}
+  if (!url) { toast('Enter a webhook URL','error'); return; }
   try {
     const r=await fetch('/api/alerts/test-webhook',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({webhook_url:url})});
     const d=await r.json();
-    if(d.success) toast('Sent ✓ status '+d.status_code,'success'); else toast('Failed: '+d.error,'error');
-  } catch(e){toast('Error: '+e.message,'error');}
+    if(d.success) toast('Webhook OK · status '+d.status_code,'success');
+    else toast('Failed: '+d.error,'error');
+  } catch(e) { toast('Error: '+e.message,'error'); }
 });
 
-async function loadAlerts(){
-  try{
-    const {alerts}=await apiFetch('/api/alerts');
-    const el=$('al-list');
-    if(!alerts.length){el.innerHTML='<div class="emp">🔔 No alerts configured</div>';return;}
-    el.innerHTML=alerts.map(a=>`<div class="ai">
-      <div class="ai-info">
+async function loadAlerts() {
+  try {
+    const { alerts } = await apiFetch('/api/alerts');
+    const el = $('al-list');
+    if (!alerts.length) { el.innerHTML='<div class="emp" style="padding:30px 0">🔔 No alerts configured</div>'; return; }
+    el.innerHTML = alerts.map(a => `<div class="ai">
+      <div class="ai-dot ${a.enabled?'on':'off'}"></div>
+      <div class="ai-body">
         <div class="ai-name">${esc(a.name)}</div>
         <div class="ai-meta">${a.api||'All APIs'} · <code>${a.metric}</code> ${a.operator} ${a.threshold}${a.last_fired?' · Last: '+a.last_fired.slice(0,16):''}</div>
-        ${a.webhook_url?`<div class="ai-meta tdim">${a.webhook_url.slice(0,48)}…</div>`:''}
+        ${a.webhook_url?`<div class="ai-meta" style="color:var(--text3);margin-top:2px;font-size:10px">${a.webhook_url.slice(0,52)}…</div>`:''}
       </div>
       <div class="ai-acts">
         <label class="tog"><input type="checkbox" ${a.enabled?'checked':''} onchange="togAlert('${a.id}',this.checked)"><span class="tsl"></span></label>
-        <button class="btn btn-d btn-sm" onclick="delAlert('${a.id}')">✕</button>
+        <button class="btn btn-danger btn-sm" onclick="delAlert('${a.id}')">✕</button>
       </div>
     </div>`).join('');
-  }catch(e){toast('Could not load alerts','error');}
-}
-async function togAlert(id,e){
-  await fetch('/api/alerts/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:e})});
-  toast(e?'Enabled':'Disabled');
-}
-async function delAlert(id){
-  if(!confirm('Delete this alert?')) return;
-  await fetch('/api/alerts/'+id,{method:'DELETE'}); toast('Deleted'); loadAlerts();
+  } catch(e) { toast('Could not load alerts','error'); }
 }
 
-// Re-draw charts on window resize
-let _rt; window.addEventListener('resize',()=>{ clearTimeout(_rt); _rt=setTimeout(()=>{ if(gStats){renderCharts(gStats); renderPayTab(gStats);} },300); });
+async function togAlert(id, e) {
+  await fetch('/api/alerts/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:e})});
+  toast(e?'Alert enabled':'Alert disabled'); loadAlerts();
+}
+async function delAlert(id) {
+  if (!confirm('Delete this alert?')) return;
+  await fetch('/api/alerts/'+id,{method:'DELETE'});
+  toast('Alert deleted'); loadAlerts();
+}
+
+// ─── Resize charts on window resize ─────────────────────────────────────────
+let _rt;
+window.addEventListener('resize', () => {
+  clearTimeout(_rt);
+  _rt = setTimeout(() => { if (gStats) { renderCharts(gStats); renderPayTab(gStats); } }, 300);
+});
 </script>
 </body>
 </html>
