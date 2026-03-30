@@ -46,6 +46,34 @@ _bg_store = {
     'stats_cache': {},   # aggregation cache, invalidated on each sync
 }
 
+# Fine-grained sync progress — read by /api/sync/progress every 2s from the frontend
+_sync_progress = {
+    'phase':          'idle',      # idle | listing | parsing | done | error
+    'phase_label':    '',          # human-readable current step
+    'prefixes':       [],          # [{prefix, files_found, files_parsed, files_cached, bytes_read}]
+    'current_file':   '',          # filename being parsed right now
+    'total_files':    0,
+    'files_done':     0,
+    'entries_parsed': 0,
+    'elapsed_secs':   0,
+    'started_at':     None,
+    'finished_at':    None,
+    'log':            [],          # last 30 progress messages
+}
+_sp_lock = threading.Lock()
+
+def _sp(update: dict, msg: str = None):
+    """Thread-safe progress update. Optionally append a log message."""
+    with _sp_lock:
+        _sync_progress.update(update)
+        if _sync_progress['started_at']:
+            _sync_progress['elapsed_secs'] = round(
+                (datetime.now() - datetime.fromisoformat(_sync_progress['started_at'])).total_seconds(), 1)
+        if msg:
+            _sync_progress['log'].append({'ts': datetime.now().strftime('%H:%M:%S'), 'msg': msg})
+            if len(_sync_progress['log']) > 40:
+                _sync_progress['log'] = _sync_progress['log'][-40:]
+
 # Per-file parse cache: (s3_key, last_modified_iso) → list[entry]
 # Historical files that haven't changed are NEVER re-fetched from S3.
 _file_entry_cache = {}
@@ -228,21 +256,51 @@ def _do_sync():
         _bg_store['syncing']    = True
         _bg_store['sync_error'] = None
 
+    now_iso = datetime.now().isoformat()
+    _sp({'phase': 'listing', 'phase_label': 'Listing S3 files…',
+         'started_at': now_iso, 'finished_at': None,
+         'total_files': 0, 'files_done': 0, 'entries_parsed': 0,
+         'current_file': '', 'prefixes': [], 'log': []},
+        msg='▶ Sync started')
     app.logger.info("▶ Background sync started")
     try:
-        files = _list_s3_files_raw()
+        files = _list_s3_files_raw()   # progress updated inside _list_s3_files_raw
+
+        # Build per-prefix summary
+        prefix_map = {}
+        for f in files:
+            p = f.get('prefix', S3_PREFIXES_LIST[0])
+            if p not in prefix_map:
+                prefix_map[p] = {'prefix': p, 'files_found': 0, 'files_parsed': 0,
+                                 'files_cached': 0, 'bytes_read': 0}
+            prefix_map[p]['files_found'] += 1
+
+        _sp({'phase': 'parsing', 'phase_label': f'Parsing {len(files)} files…',
+             'total_files': len(files),
+             'prefixes': list(prefix_map.values())},
+            msg=f'Found {len(files)} files across {len(S3_PREFIXES_LIST)} prefix(es)')
+
         all_entries = []
         fetched_count = 0
 
-        for f in files:
+        for idx, f in enumerate(files):
             cache_key = (f['key'], f['last_modified'])
             is_today  = f['is_today']
+            pfx       = f.get('prefix', S3_PREFIXES_LIST[0])
 
             with _fec_lock:
                 cached = None if is_today else _file_entry_cache.get(cache_key)
 
+            _sp({'current_file': f['filename'], 'files_done': idx,
+                 'phase_label': f'[{idx+1}/{len(files)}] {f["filename"]}'},
+                msg=f'  {"↩ cached" if cached is not None else "↓ fetch"} {f["filename"]} ({f["size"]//1024} KB)')
+
             if cached is not None:
                 all_entries.extend(cached)
+                with _sp_lock:
+                    for pr in _sync_progress['prefixes']:
+                        if pr['prefix'] == pfx:
+                            pr['files_cached'] += 1
                 continue
 
             # Fetch + parse from S3
@@ -250,14 +308,19 @@ def _do_sync():
             fetched_count += 1
             app.logger.info(f"  {f['filename']}: {len(entries)} entries ({f['size']//1024} KB)")
 
-            # Cache historical files (today's file is volatile — don't cache)
+            with _sp_lock:
+                for pr in _sync_progress['prefixes']:
+                    if pr['prefix'] == pfx:
+                        pr['files_parsed'] += 1
+                        pr['bytes_read']   += f['size']
+
             if not is_today:
                 with _fec_lock:
                     _file_entry_cache[cache_key] = entries
 
             all_entries.extend(entries)
+            _sp({'entries_parsed': len(all_entries)})
 
-        # Sort by timestamp ascending so slice/filter stays deterministic
         all_entries.sort(key=lambda e: e['timestamp'])
 
         with _bg_lock:
@@ -266,8 +329,12 @@ def _do_sync():
             _bg_store['last_sync']   = datetime.now().isoformat()
             _bg_store['next_sync']   = (datetime.now() + timedelta(seconds=SYNC_INTERVAL)).isoformat()
             _bg_store['syncing']     = False
-            _bg_store['stats_cache'] = {}   # force re-aggregation on next request
+            _bg_store['stats_cache'] = {}
 
+        _sp({'phase': 'done', 'phase_label': 'Sync complete',
+             'files_done': len(files), 'entries_parsed': len(all_entries),
+             'current_file': '', 'finished_at': datetime.now().isoformat()},
+            msg=f'✓ Done — {len(all_entries)} entries | {len(files)} files | {fetched_count} fetched from S3')
         app.logger.info(
             f"✓ Sync done: {len(all_entries)} entries | "
             f"{len(files)} files total | {fetched_count} fetched from S3"
@@ -278,6 +345,9 @@ def _do_sync():
         with _bg_lock:
             _bg_store['syncing']    = False
             _bg_store['sync_error'] = str(e)
+        _sp({'phase': 'error', 'phase_label': f'Error: {e}',
+             'finished_at': datetime.now().isoformat()},
+            msg=f'✗ Error: {e}')
 
 
 def _sync_loop():
@@ -377,7 +447,22 @@ def sync_status():
             'sync_interval_secs': SYNC_INTERVAL,
         })
 
-@app.route('/api/sync/force', methods=['POST'])
+@app.route('/api/sync/progress')
+def sync_progress():
+    """Detailed per-file progress, polled every 2s by the frontend sync drawer."""
+    with _sp_lock:
+        progress = dict(_sync_progress)
+        progress['prefixes'] = list(progress['prefixes'])  # shallow copy list
+    with _bg_lock:
+        progress['syncing']    = _bg_store['syncing']
+        progress['sync_error'] = _bg_store['sync_error']
+        progress['last_sync']  = _bg_store['last_sync']
+        progress['next_sync']  = _bg_store['next_sync']
+        progress['entry_count'] = len(_bg_store['entries'])
+        progress['file_count']  = len(_bg_store['file_list'])
+    return jsonify(progress)
+
+
 def force_sync():
     """Trigger an immediate out-of-cycle sync."""
     with _bg_lock:
