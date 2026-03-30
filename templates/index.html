@@ -1,300 +1,378 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>MuleSoft Intelligence</title>
+<meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>MuleSoft Log Intelligence</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#060A12;--bg2:#0A0F1E;--bg3:#0F162A;--card:#0C1322;
-  --border:#162035;--border2:#1E3054;
-  --text:#D8E6F5;--text2:#5D7494;--text3:#2D4060;
-  --cyan:#00CFFF;--orange:#FF6B35;--green:#00E5A0;
-  --red:#FF2D55;--yellow:#FFB800;--blue:#4D9EFF;--purple:#A78BFA;--teal:#22D3EE;
-  --fh:'Outfit',sans-serif;--fm:'JetBrains Mono',monospace;--r2:14px;
+  --bg:#080C12;--bg2:#0E1420;--bg3:#151C2B;--card:#121929;
+  --border:#1E2A40;--border2:#263352;--text:#C8D4E8;--text2:#7A8FAF;--text3:#4A5F7A;
+  --accent:#FF6B35;--accent2:#FF9563;--green:#00E5A0;--red:#FF3B5C;
+  --yellow:#FFB800;--blue:#4D9EFF;--purple:#A78BFA;--teal:#22D3EE;
+  --fh:'Syne',sans-serif;--fm:'Space Mono',monospace;--r:10px;
 }
-html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--fm);font-size:12px;line-height:1.5;overflow-x:hidden}
-body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 800px 400px at 60% -10%,rgba(0,207,255,.04),transparent),radial-gradient(ellipse 600px 300px at 0% 80%,rgba(255,107,53,.03),transparent);pointer-events:none;z-index:0}
-.app{display:flex;flex-direction:column;min-height:100vh;position:relative;z-index:1}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--fm);font-size:13px;line-height:1.5}
+.app{display:flex;flex-direction:column;min-height:100vh}
 /* Topbar */
-.topbar{display:flex;align-items:center;gap:12px;padding:0 20px;height:52px;background:rgba(10,15,30,.97);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:200}
-.logo{display:flex;align-items:center;gap:9px;white-space:nowrap}
-.logo-gem{width:28px;height:28px;background:linear-gradient(135deg,var(--cyan),#006699);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 0 14px rgba(0,207,255,.2)}
-.logo-name{font-family:var(--fh);font-size:15px;font-weight:800;color:#fff}
-.logo-tag{font-family:var(--fm);font-size:9px;color:var(--cyan);letter-spacing:1.5px;text-transform:uppercase}
-.vdiv{width:1px;height:26px;background:var(--border);flex-shrink:0;margin:0 2px}
-.ctrls{display:flex;align-items:center;gap:8px;flex:1;flex-wrap:wrap}
-.cg{display:flex;align-items:center;gap:5px}
-.clbl{font-size:10px;color:var(--text3);font-family:var(--fh);white-space:nowrap;letter-spacing:.4px;text-transform:uppercase}
-select,input[type=date],input[type=text],input[type=number],input[type=url]{background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:var(--fm);font-size:11px;padding:5px 9px;border-radius:6px;outline:none;transition:border-color .2s}
-select:focus,input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(0,207,255,.07)}
-select{appearance:none;padding-right:22px;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%235D7494'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 7px center}
-.tr{display:flex;align-items:center;gap:7px;margin-left:auto;flex-shrink:0}
+.topbar{display:flex;align-items:center;gap:14px;padding:0 22px;height:54px;background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+.logo{font-family:var(--fh);font-size:16px;font-weight:800;color:var(--accent);display:flex;align-items:center;gap:8px;white-space:nowrap}
+.logo::before{content:'◈';font-size:18px}
+.sep{width:1px;height:26px;background:var(--border)}
+.ctrls{display:flex;align-items:center;gap:10px;flex:1;flex-wrap:wrap}
+.tr{display:flex;align-items:center;gap:8px;margin-left:auto}
+/* Inputs */
+select,input[type=date],input[type=text],input[type=number],input[type=url],textarea{
+  background:var(--bg3);border:1px solid var(--border);color:var(--text);
+  font-family:var(--fm);font-size:12px;padding:6px 10px;border-radius:6px;outline:none;transition:border-color .2s}
+select:focus,input:focus,textarea:focus{border-color:var(--accent)}
+label{font-size:11px;color:var(--text2)}
 /* Buttons */
-.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 13px;border-radius:7px;border:none;font-family:var(--fh);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap}
-.btn-p{background:linear-gradient(135deg,var(--cyan),#0099cc);color:#000}
-.btn-p:hover{filter:brightness(1.1);transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,207,255,.3)}
-.btn-g{background:transparent;color:var(--text2);border:1px solid var(--border)}
-.btn-g:hover{border-color:var(--cyan);color:var(--cyan)}
-.btn-d{background:transparent;color:var(--red);border:1px solid rgba(255,45,85,.3)}
-.btn-d:hover{background:rgba(255,45,85,.1)}
-.btn-sm{padding:4px 10px;font-size:11px;border-radius:6px}
-.btn:disabled{opacity:.4;cursor:not-allowed;filter:none!important;transform:none!important}
-/* Banner */
-.banner{padding:9px 20px;font-size:11px;align-items:center;gap:10px;border-bottom:1px solid transparent;font-family:var(--fh);display:none}
-.banner.show{display:flex}
-.bw{background:rgba(255,184,0,.06);border-bottom-color:rgba(255,184,0,.2);color:var(--yellow)}
-.be{background:rgba(255,45,85,.06);border-bottom-color:rgba(255,45,85,.2);color:var(--red)}
-.bo{background:rgba(0,229,160,.05);border-bottom-color:rgba(0,229,160,.15);color:var(--green)}
-.banner a{color:inherit;text-decoration:underline;cursor:pointer;margin-left:6px}
-.bx{margin-left:auto;cursor:pointer;opacity:.5;font-size:15px}.bx:hover{opacity:1}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:6px;border:none;
+  font-family:var(--fm);font-size:12px;cursor:pointer;transition:all .2s;white-space:nowrap}
+.btn-p{background:var(--accent);color:#fff}.btn-p:hover{background:var(--accent2)}
+.btn-g{background:transparent;color:var(--text2);border:1px solid var(--border)}.btn-g:hover{border-color:var(--accent);color:var(--accent)}
+.btn-d{background:transparent;color:var(--red);border:1px solid var(--red)}.btn-d:hover{background:var(--red);color:#fff}
+.btn-sm{padding:4px 10px;font-size:11px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
 /* Tabs */
-.tabs{display:flex;background:var(--bg2);padding:0 20px;border-bottom:1px solid var(--border);position:sticky;top:52px;z-index:100}
-.tab{padding:11px 17px;cursor:pointer;font-family:var(--fh);font-size:12px;font-weight:500;color:var(--text2);border-bottom:2px solid transparent;transition:all .2s}
-.tab:hover{color:var(--text)}.tab.active{color:var(--cyan);border-bottom-color:var(--cyan)}
-/* Status bar */
-.sbar{display:flex;align-items:center;gap:8px;padding:5px 20px;background:var(--bg2);border-bottom:1px solid var(--border);font-size:10px;color:var(--text3);font-family:var(--fh)}
-.sdot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
-.s-live{background:var(--green);animation:pulse 2s ease-in-out infinite}
-.s-sync{background:var(--cyan);animation:blink .8s linear infinite}
-.s-err{background:var(--red)}
-@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(0,229,160,.4)}50%{opacity:.7;box-shadow:0 0 0 4px rgba(0,229,160,0)}}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
-.sep{color:var(--border2)}
+.tabs{display:flex;gap:2px;background:var(--bg2);padding:0 22px;border-bottom:1px solid var(--border)}
+.tab{padding:12px 18px;cursor:pointer;font-size:12px;color:var(--text2);border-bottom:2px solid transparent;transition:all .2s;letter-spacing:.5px}
+.tab:hover{color:var(--text)}.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
 /* Main */
-.main{flex:1;padding:18px 20px;max-width:1640px;margin:0 auto;width:100%}
-.tp{display:none;animation:fadeIn .2s ease}.tp.active{display:block}
-@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
-/* Stat cards */
-.cards{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:18px}
-@media(max-width:1200px){.cards{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:600px){.cards{grid-template-columns:1fr 1fr}}
-.scard{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:16px 17px;position:relative;overflow:hidden;transition:border-color .2s,transform .2s}
-.scard:hover{border-color:var(--border2);transform:translateY(-2px)}
-.scard::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--ca,var(--cyan))}
-.sctop{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
-.sclbl{font-family:var(--fh);font-size:10px;font-weight:600;color:var(--text2);letter-spacing:.7px;text-transform:uppercase}
-.scico{font-size:19px;opacity:.25}
-.scval{font-family:var(--fh);font-size:28px;font-weight:800;line-height:1;letter-spacing:-1px}
-.scsub{font-size:10px;color:var(--text3);margin-top:5px;font-family:var(--fh)}
-.scgl{position:absolute;bottom:-20px;right:-10px;width:80px;height:80px;border-radius:50%;opacity:.08;filter:blur(22px)}
-.cy{--ca:var(--cyan)}.cy .scval{color:var(--cyan)}.cy .scgl{background:var(--cyan)}
-.re{--ca:var(--red)}.re .scval{color:var(--red)}.re .scgl{background:var(--red)}
-.ye{--ca:var(--yellow)}.ye .scval{color:var(--yellow)}.ye .scgl{background:var(--yellow)}
-.gr{--ca:var(--green)}.gr .scval{color:var(--green)}.gr .scgl{background:var(--green)}
-.bl{--ca:var(--blue)}.bl .scval{color:var(--blue)}.bl .scgl{background:var(--blue)}
-.pu{--ca:var(--purple)}.pu .scval{color:var(--purple)}.pu .scgl{background:var(--purple)}
-/* Chart grids */
-.cg1{display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px;margin-bottom:12px}
-.cg2{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:18px}
-@media(max-width:1100px){.cg1,.cg2{grid-template-columns:1fr 1fr}}
-@media(max-width:700px){.cg1,.cg2{grid-template-columns:1fr}}
-.cbox{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:16px;overflow:hidden}
-.chd{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-.cttl{font-family:var(--fh);font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.7px;text-transform:uppercase;display:flex;align-items:center;gap:7px}
-.cttl::before{content:'';width:3px;height:11px;background:var(--cyan);border-radius:2px;flex-shrink:0}
-.cmeta{font-size:10px;color:var(--text3);font-family:var(--fh)}
-canvas{display:block;max-width:100%}
-/* Payments cards */
-.pcards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
-@media(max-width:800px){.pcards{grid-template-columns:1fr 1fr}}
-/* Section header */
-.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px}
-.sht{font-family:var(--fh);font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.7px;text-transform:uppercase;display:flex;align-items:center;gap:7px}
-.sht::before{content:'';width:3px;height:11px;background:var(--cyan);border-radius:2px}
-.shm{font-size:10px;color:var(--text3);font-family:var(--fh)}
-/* Filters */
-.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:12px;background:var(--card);border:1px solid var(--border);border-radius:var(--r2);margin-bottom:12px}
-.flbl{font-size:10px;color:var(--text3);white-space:nowrap;font-family:var(--fh)}
-.fgrp{display:flex;align-items:center;gap:5px}
-.fcnt{margin-left:auto;font-family:var(--fh);font-size:11px;color:var(--text2)}
-/* Table */
-.twrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--r2)}
+.main{flex:1;padding:18px 22px;max-width:1600px;margin:0 auto;width:100%}
+.tp{display:none}.tp.active{display:block}
+/* Cards */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:13px;margin-bottom:20px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:15px 17px;position:relative;overflow:hidden;transition:border-color .2s}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--ca,var(--accent))}
+.card-lbl{font-size:10px;color:var(--text2);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px}
+.card-val{font-family:var(--fh);font-size:28px;font-weight:800;color:var(--text);line-height:1}
+.card-sub{font-size:10px;color:var(--text3);margin-top:4px}
+.card-icon{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:26px;opacity:.07}
+.c-err{--ca:var(--red)}.c-warn{--ca:var(--yellow)}.c-ok{--ca:var(--green)}.c-blue{--ca:var(--blue)}.c-pur{--ca:var(--purple)}
+/* Charts */
+.cr1{display:grid;grid-template-columns:2fr 1fr 1fr;gap:13px;margin-bottom:13px}
+.cr2{display:grid;grid-template-columns:1fr 1fr 1fr;gap:13px}
+.cbox{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:15px}
+.ctitle{font-family:var(--fh);font-size:11px;font-weight:700;color:var(--text2);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.ctitle span{color:var(--accent)}
+canvas{display:block}
+/* Log table */
+.lc{display:flex;gap:10px;margin-bottom:13px;flex-wrap:wrap;align-items:center}
+.ltw{overflow-x:auto;border:1px solid var(--border);border-radius:var(--r)}
 table{width:100%;border-collapse:collapse;font-size:11px}
 thead{background:var(--bg3)}
-th{padding:9px 11px;text-align:left;color:var(--text3);font-family:var(--fh);font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;border-bottom:1px solid var(--border);white-space:nowrap}
-td{padding:8px 11px;border-bottom:1px solid var(--border);vertical-align:middle}
+th{padding:9px 11px;text-align:left;color:var(--text2);font-weight:700;letter-spacing:.5px;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:8px 11px;border-bottom:1px solid var(--border);vertical-align:top}
 tr:last-child td{border-bottom:none}
-tr.row:hover td{background:rgba(255,255,255,.012)}
-.badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.3px;font-family:var(--fh);white-space:nowrap}
-.bINFO{background:rgba(77,158,255,.12);color:var(--blue)}
-.bERROR{background:rgba(255,45,85,.14);color:var(--red)}
-.bWARN{background:rgba(255,184,0,.12);color:var(--yellow)}
-.bDEBUG{background:rgba(167,139,250,.1);color:var(--purple)}
-.bok{background:rgba(0,229,160,.1);color:var(--green)}
-.bfail{background:rgba(255,45,85,.1);color:var(--red)}
-.bcreated{background:rgba(255,107,53,.1);color:var(--orange)}
-.bPOST{background:rgba(0,207,255,.09);color:var(--cyan)}
-.bGET{background:rgba(0,229,160,.08);color:var(--green)}
-.mono{font-family:var(--fm)}
-.td2{color:var(--text2)}.td3{color:var(--text3)}.tred{color:var(--red)}.tgrn{color:var(--green)}.torn{color:var(--orange)}.tcy{color:var(--cyan)}
-.ttr{max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.pg{display:flex;align-items:center;gap:5px;margin-top:12px;justify-content:center}
-.pb{padding:5px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:5px;color:var(--text2);cursor:pointer;font-family:var(--fh);font-size:11px;transition:all .15s}
-.pb:hover,.pb.active{border-color:var(--cyan);color:var(--cyan)}
-.pb:disabled{opacity:.35;cursor:not-allowed}
+tr:hover td{background:var(--bg3)}
+.badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.5px}
+.bINFO{background:rgba(77,158,255,.15);color:var(--blue)}
+.bERROR{background:rgba(255,59,92,.18);color:var(--red)}
+.bWARN{background:rgba(255,184,0,.15);color:var(--yellow)}
+.bok{background:rgba(0,229,160,.13);color:var(--green)}
+.bfail{background:rgba(255,59,92,.18);color:var(--red)}
+.bcreated{background:rgba(255,107,53,.13);color:var(--accent)}
+.mono{font-family:var(--fm);font-size:11px}
+.tdim{color:var(--text3)}.tred{color:var(--red)}.tgrn{color:var(--green)}.torn{color:var(--accent)}
+.ttrunc{max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Pagination */
+.pg{display:flex;align-items:center;gap:8px;margin-top:13px;justify-content:center}
+.pb{padding:5px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:5px;
+  color:var(--text2);cursor:pointer;font-family:var(--fm);font-size:12px;transition:all .2s}
+.pb:hover,.pb.active{border-color:var(--accent);color:var(--accent)}
+.pb:disabled{opacity:.4;cursor:not-allowed}
 /* Alerts */
-.ag{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-@media(max-width:900px){.ag{grid-template-columns:1fr}}
-.panel{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:20px}
-.pt{font-family:var(--fh);font-size:13px;font-weight:700;margin-bottom:15px;color:var(--text);display:flex;align-items:center;gap:8px}
-.pt::before{content:'';width:3px;height:15px;background:var(--cyan);border-radius:2px}
-.fg{margin-bottom:11px}.fg label{display:block;margin-bottom:4px;font-family:var(--fh);font-size:10px;font-weight:600;color:var(--text2);letter-spacing:.5px;text-transform:uppercase}
-.fg input,.fg select{width:100%}
-.fr{display:grid;grid-template-columns:1fr 1fr;gap:9px}
-.ai{border:1px solid var(--border);border-radius:8px;padding:11px 13px;margin-bottom:8px;display:flex;align-items:flex-start;gap:11px;background:var(--bg3);transition:border-color .2s}
-.ai:hover{border-color:var(--border2)}
-.aidot{width:8px;height:8px;border-radius:50%;margin-top:4px;flex-shrink:0}
-.aidot.on{background:var(--green);box-shadow:0 0 5px rgba(0,229,160,.4)}
-.aidot.off{background:var(--text3)}
-.aibody{flex:1;min-width:0}
-.ainame{font-family:var(--fh);font-weight:600;font-size:12px;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.aimeta{font-size:10px;color:var(--text2);font-family:var(--fh)}
-.aiacts{display:flex;gap:5px;align-items:center;flex-shrink:0}
-.tog{position:relative;display:inline-block;width:34px;height:18px}
+.ag{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:19px}
+.ptitle{font-family:var(--fh);font-size:13px;font-weight:700;margin-bottom:15px;color:var(--text)}
+.fg{margin-bottom:11px}.fg label{display:block;margin-bottom:4px}
+.fg input,.fg select,.fg textarea{width:100%}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ai{border:1px solid var(--border);border-radius:8px;padding:11px 13px;margin-bottom:9px;display:flex;align-items:flex-start;gap:11px;background:var(--bg3)}
+.ai-info{flex:1}.ai-name{font-weight:700;margin-bottom:2px}.ai-meta{font-size:11px;color:var(--text2)}
+.ai-acts{display:flex;gap:6px;align-items:center}
+.tog{position:relative;display:inline-block;width:36px;height:20px}
 .tog input{display:none}
-.tsl{position:absolute;inset:0;background:var(--bg);border:1px solid var(--border);border-radius:20px;cursor:pointer;transition:.25s}
-.tsl::before{content:'';position:absolute;left:2px;top:50%;transform:translateY(-50%);width:12px;height:12px;background:var(--text3);border-radius:50%;transition:.25s}
-.tog input:checked+.tsl{background:rgba(0,207,255,.18);border-color:var(--cyan)}
-.tog input:checked+.tsl::before{left:calc(100% - 14px);background:var(--cyan)}
-/* Loading/empty */
-.ld{display:none;flex-direction:column;align-items:center;justify-content:center;padding:55px 20px;gap:13px}
-.ld.on{display:flex}
-.sp{width:30px;height:30px;border:2px solid var(--border2);border-top-color:var(--cyan);border-radius:50%;animation:spin .7s linear infinite}
+.tsl{position:absolute;inset:0;background:var(--bg);border:1px solid var(--border);border-radius:20px;cursor:pointer;transition:.3s}
+.tsl::before{content:'';position:absolute;left:2px;top:50%;transform:translateY(-50%);width:14px;height:14px;background:var(--text3);border-radius:50%;transition:.3s}
+.tog input:checked+.tsl{background:var(--accent);border-color:var(--accent)}
+.tog input:checked+.tsl::before{left:calc(100% - 16px);background:#fff}
+/* Loading */
+.ld{text-align:center;padding:55px 20px;color:var(--text2)}
+.sp{display:inline-block;width:30px;height:30px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:11px}
 @keyframes spin{to{transform:rotate(360deg)}}
-.ldt{font-family:var(--fh);font-size:12px;color:var(--text3)}
-.emp{text-align:center;padding:36px 20px;color:var(--text3);font-family:var(--fh);font-size:12px}
-/* Debug */
-.dbg{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:16px;margin-top:14px}
-.dbg summary{cursor:pointer;font-family:var(--fh);font-size:11px;font-weight:600;color:var(--text2);display:flex;align-items:center;gap:6px;list-style:none;user-select:none}
-.dbg[open] summary{color:var(--cyan)}
-.dbg pre{overflow-x:auto;padding:10px;background:var(--bg3);border-radius:6px;margin-top:10px;color:var(--text2);font-size:10px;line-height:1.7;font-family:var(--fm)}
+.emp{text-align:center;padding:35px 20px;color:var(--text3)}
 /* Toast */
-#toast{position:fixed;bottom:20px;right:20px;z-index:9999;padding:11px 16px;border-radius:10px;font-size:12px;font-family:var(--fh);font-weight:500;background:var(--bg3);border:1px solid var(--border);color:var(--text);transform:translateY(80px);opacity:0;transition:all .28s cubic-bezier(.34,1.56,.64,1);max-width:300px}
+#toast{position:fixed;bottom:22px;right:22px;z-index:9999;padding:11px 18px;border-radius:8px;font-size:12px;
+  background:var(--bg3);border:1px solid var(--border);color:var(--text);
+  transform:translateY(80px);opacity:0;transition:all .3s;max-width:320px}
 #toast.show{transform:translateY(0);opacity:1}
 #toast.ok{border-color:var(--green);color:var(--green)}
 #toast.err{border-color:var(--red);color:var(--red)}
-code{font-family:var(--fm);background:var(--bg3);border:1px solid var(--border);padding:1px 5px;border-radius:4px;font-size:10px}
-::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}::-webkit-scrollbar-thumb:hover{background:var(--cyan)}
+/* Section */
+.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px}
+.st{font-family:var(--fh);font-size:12px;font-weight:700;color:var(--text2);letter-spacing:.8px;text-transform:uppercase}
+.flex{display:flex;align-items:center;gap:8px}
+.mla{margin-left:auto}
+.sdot{width:7px;height:7px;border-radius:50%;display:inline-block}
+.dlive{background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+/* ── Sync Drawer ── */
+#sync-drawer{
+  position:fixed;right:0;top:0;bottom:0;width:400px;
+  background:var(--bg2);border-left:1px solid var(--border);
+  z-index:500;display:flex;flex-direction:column;
+  transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);
+  box-shadow:-8px 0 32px rgba(0,0,0,.5)
+}
+#sync-drawer.open{transform:translateX(0)}
+.sd-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 20px;border-bottom:1px solid var(--border);
+  background:var(--bg3)
+}
+.sd-title{font-family:var(--fh);font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px}
+.sd-close{background:none;border:none;color:var(--text2);cursor:pointer;font-size:18px;line-height:1;padding:2px 6px;border-radius:4px}
+.sd-close:hover{color:var(--text);background:var(--border)}
+.sd-body{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:14px}
+/* Phase badge */
+.ph-row{display:flex;align-items:center;gap:10px}
+.ph-badge{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.5px
+}
+.ph-idle{background:rgba(122,143,175,.12);color:var(--text2)}
+.ph-listing,.ph-parsing{background:rgba(77,158,255,.15);color:var(--blue)}
+.ph-done{background:rgba(0,229,160,.13);color:var(--green)}
+.ph-error{background:rgba(255,59,92,.18);color:var(--red)}
+/* Progress bar */
+.prog-wrap{background:var(--bg3);border:1px solid var(--border);border-radius:6px;overflow:hidden;height:8px}
+.prog-fill{height:100%;border-radius:6px;transition:width .4s ease;background:linear-gradient(90deg,var(--blue),var(--teal))}
+.prog-fill.done{background:linear-gradient(90deg,var(--green),var(--teal))}
+.prog-fill.err{background:var(--red)}
+/* Prefix cards */
+.pfx-card{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:11px 14px}
+.pfx-name{font-size:11px;color:var(--teal);font-weight:700;margin-bottom:7px;font-family:var(--fm)}
+.pfx-stats{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px}
+.pfx-stat{font-size:11px;color:var(--text2)}.pfx-stat span{color:var(--text);font-weight:700}
+/* Log terminal */
+.log-term{
+  background:var(--bg);border:1px solid var(--border);border-radius:8px;
+  padding:10px 12px;font-family:var(--fm);font-size:10px;
+  max-height:200px;overflow-y:auto;color:var(--text2)
+}
+.log-line{padding:1px 0;line-height:1.6}
+.log-line .ts{color:var(--text3);margin-right:6px}
+.log-line.ok{color:var(--green)}.log-line.err{color:var(--red)}.log-line.inf{color:var(--blue)}
+/* Sync stats row */
+.sd-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.sd-stat{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;text-align:center}
+.sd-stat-val{font-family:var(--fh);font-size:18px;font-weight:700;color:var(--text)}
+.sd-stat-lbl{font-size:10px;color:var(--text3);margin-top:2px;text-transform:uppercase;letter-spacing:.5px}
+/* Status bar (below tabs) */
+#status-bar{
+  display:flex;align-items:center;gap:12px;padding:6px 22px;
+  background:var(--bg2);border-bottom:1px solid var(--border);
+  font-size:11px;color:var(--text2);flex-wrap:wrap
+}
+#status-bar .sb-item{display:flex;align-items:center;gap:5px;white-space:nowrap}
+#status-bar .sb-sep{color:var(--border2);margin:0 2px}
+#status-bar .sb-sync-btn{
+  margin-left:auto;background:none;border:1px solid var(--border);
+  color:var(--text2);font-size:10px;padding:3px 10px;border-radius:5px;
+  cursor:pointer;font-family:var(--fm);transition:all .2s
+}
+#status-bar .sb-sync-btn:hover{border-color:var(--accent);color:var(--accent)}
+#status-bar .sb-view-btn{
+  background:none;border:none;color:var(--blue);font-size:10px;
+  padding:2px 6px;border-radius:4px;cursor:pointer;font-family:var(--fm)
+}
+#status-bar .sb-view-btn:hover{text-decoration:underline}
+.sb-pulse{display:inline-block;width:6px;height:6px;border-radius:50%;
+  background:var(--green);animation:pulse 2s infinite}
+.sb-spin{display:inline-block;width:10px;height:10px;
+  border:2px solid var(--border);border-top-color:var(--blue);
+  border-radius:50%;animation:spin .7s linear infinite}
+/* Diag panel */
+.diag-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px}
+.diag-row{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 11px}
+.diag-key{color:var(--text2);margin-bottom:2px;font-size:10px;text-transform:uppercase;letter-spacing:.5px}
+.diag-val{color:var(--text);font-family:var(--fm);word-break:break-all}
+.diag-ok{color:var(--green)}.diag-err{color:var(--red)}
+@media(max-width:1100px){.cr1{grid-template-columns:1fr 1fr}.cr2{grid-template-columns:1fr 1fr}}
+@media(max-width:700px){.cr1,.cr2,.ag{grid-template-columns:1fr}.ctrls{display:none}}
+@media(max-width:700px){#sync-drawer{width:100%}}
 </style>
 </head>
 <body>
 <div class="app">
-
 <!-- TOPBAR -->
 <div class="topbar">
-  <div class="logo">
-    <div class="logo-gem">◈</div>
-    <div><div class="logo-name">MuleSoft</div><div class="logo-tag">Intelligence</div></div>
-  </div>
-  <div class="vdiv"></div>
+  <div class="logo">MuleSoft Intelligence</div>
+  <div class="sep"></div>
   <div class="ctrls">
-    <div class="cg"><span class="clbl">API</span><select id="sel-api" style="min-width:200px"><option value="">All APIs</option></select></div>
-    <div class="cg"><span class="clbl">From</span><input type="date" id="df"/></div>
-    <div class="cg"><span class="clbl">To</span><input type="date" id="dt"/></div>
+    <div class="flex"><label>API</label><select id="sel-api" style="min-width:210px"><option value="">All APIs</option></select></div>
+    <div class="flex"><label>From</label><input type="date" id="df"/></div>
+    <div class="flex"><label>To</label><input type="date" id="dt"/></div>
     <button class="btn btn-p btn-sm" id="btn-load">▶ Load</button>
     <button class="btn btn-g btn-sm" id="btn-ref">↺ Refresh</button>
-    <button class="btn btn-g btn-sm" id="btn-fs" title="Force S3 sync">⟳ Sync</button>
   </div>
   <div class="tr">
-    <span class="sdot" id="sync-dot"></span>
-    <span style="font-size:11px;color:var(--text2);font-family:var(--fh)" id="stxt">Initializing…</span>
+    <span class="sdot dlive"></span>
+    <span style="font-size:11px;color:var(--text2)" id="stxt">Ready</span>
   </div>
 </div>
-
-<!-- BANNER -->
-<div class="banner" id="banner">
-  <span id="b-ico"></span><span id="b-msg"></span>
-  <a onclick="openDiag()">View diagnostics</a>
-  <span class="bx" onclick="this.parentElement.classList.remove('show','bw','be','bo')">✕</span>
-</div>
-
 <!-- TABS -->
 <div class="tabs">
   <div class="tab active" data-tab="overview">Overview</div>
   <div class="tab" data-tab="logs">Log Explorer</div>
   <div class="tab" data-tab="payments">Payments</div>
   <div class="tab" data-tab="alerts">Alerts</div>
+  <div class="tab" data-tab="diagnostics">Diagnostics</div>
+</div>
+<!-- STATUS BAR -->
+<div id="status-bar">
+  <div class="sb-item"><span id="sb-sync-dot" class="sb-pulse"></span><span id="sb-sync-label">Ready</span></div>
+  <span class="sb-sep">·</span>
+  <div class="sb-item">📁 <span id="sb-files">—</span> files</div>
+  <span class="sb-sep">·</span>
+  <div class="sb-item">📋 <span id="sb-entries">—</span> entries</div>
+  <span class="sb-sep">·</span>
+  <div class="sb-item">Last sync: <span id="sb-last">—</span></div>
+  <span class="sb-sep">·</span>
+  <div class="sb-item">Next: <span id="sb-next">—</span></div>
+  <button class="sb-view-btn" onclick="openSyncDrawer()">⟳ View progress</button>
+  <button class="sb-sync-btn" onclick="forceSyncAndOpen()">↺ Force Sync</button>
 </div>
 
-<!-- STATUS BAR -->
-<div class="sbar">
-  <span class="sdot s-live" style="width:5px;height:5px"></span>
-  <span id="sb-f" style="color:var(--text2);font-weight:500">—</span>
-  <span class="sep">·</span><span id="sb-e">—</span>
-  <span class="sep">·</span><span>Last sync: <span id="sb-l" style="color:var(--text2)">—</span></span>
-  <span class="sep">·</span><span>Next: <span id="sb-n" style="color:var(--text2)">—</span></span>
-  <span id="sb-es" class="sep" style="display:none">·</span>
-  <span id="sb-er" style="color:var(--red);display:none;font-family:var(--fh)"></span>
+<!-- SYNC DRAWER -->
+<div id="sync-drawer">
+  <div class="sd-head">
+    <div class="sd-title">
+      <span id="sd-phase-badge" class="ph-badge ph-idle">● Idle</span>
+      S3 Sync Progress
+    </div>
+    <button class="sd-close" onclick="closeSyncDrawer()">✕</button>
+  </div>
+  <div class="sd-body">
+
+    <!-- timing stats -->
+    <div class="sd-stats">
+      <div class="sd-stat"><div class="sd-stat-val" id="sd-elapsed">—</div><div class="sd-stat-lbl">Elapsed</div></div>
+      <div class="sd-stat"><div class="sd-stat-val" id="sd-files-done">—</div><div class="sd-stat-lbl">Files</div></div>
+      <div class="sd-stat"><div class="sd-stat-val" id="sd-entries">—</div><div class="sd-stat-lbl">Entries</div></div>
+    </div>
+
+    <!-- overall progress bar -->
+    <div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+        <span style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Overall</span>
+        <span id="sd-pct" style="font-size:10px;color:var(--text2)">0%</span>
+      </div>
+      <div class="prog-wrap"><div id="sd-prog-fill" class="prog-fill" style="width:0%"></div></div>
+    </div>
+
+    <!-- current file -->
+    <div id="sd-cur-file" style="font-size:11px;color:var(--text2);font-family:var(--fm);
+      background:var(--bg3);border:1px solid var(--border);border-radius:6px;
+      padding:7px 11px;min-height:32px;word-break:break-all">
+      Waiting for sync…
+    </div>
+
+    <!-- per-prefix breakdown -->
+    <div>
+      <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px">Per Server Prefix</div>
+      <div id="sd-prefixes">
+        <div style="font-size:11px;color:var(--text3);padding:8px">No data yet — trigger a sync to begin</div>
+      </div>
+    </div>
+
+    <!-- activity log -->
+    <div>
+      <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px">Activity Log</div>
+      <div class="log-term" id="sd-log"><div style="color:var(--text3)">Log will appear when sync starts…</div></div>
+    </div>
+
+    <!-- actions -->
+    <div style="display:flex;gap:8px;padding-top:4px">
+      <button class="btn btn-p btn-sm" onclick="forceSyncAndOpen()">↺ Force Sync Now</button>
+      <button class="btn btn-g btn-sm" onclick="closeSyncDrawer()">Close</button>
+    </div>
+  </div>
 </div>
+<div id="sync-overlay" onclick="closeSyncDrawer()"
+  style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:499"></div>
 
 <!-- MAIN -->
 <div class="main">
 
 <!-- OVERVIEW -->
 <div class="tp active" id="tab-overview">
-  <div class="ld" id="ov-ld"><div class="sp"></div><div class="ldt">Fetching from S3…</div></div>
+  <div id="ov-ld" class="ld" style="display:none"><div class="sp"></div><div>Fetching from S3…</div></div>
   <div id="ov-ct">
     <div class="cards">
-      <div class="scard cy"><div class="sctop"><span class="sclbl">Total Requests</span><span class="scico">📡</span></div><div class="scval" id="c-tot">—</div><div class="scsub" id="c-fi">—</div><div class="scgl"></div></div>
-      <div class="scard re"><div class="sctop"><span class="sclbl">Errors</span><span class="scico">⚡</span></div><div class="scval" id="c-err">—</div><div class="scsub" id="c-er">—</div><div class="scgl"></div></div>
-      <div class="scard ye"><div class="sctop"><span class="sclbl">Warnings</span><span class="scico">⚠</span></div><div class="scval" id="c-wrn">—</div><div class="scsub">WARN level</div><div class="scgl"></div></div>
-      <div class="scard gr"><div class="sctop"><span class="sclbl">Orders Created</span><span class="scico">🧾</span></div><div class="scval" id="c-cre">—</div><div class="scsub">Razorpay orders</div><div class="scgl"></div></div>
-      <div class="scard bl"><div class="sctop"><span class="sclbl">Captured</span><span class="scico">💳</span></div><div class="scval" id="c-cap">—</div><div class="scsub" id="c-fa">—</div><div class="scgl"></div></div>
-      <div class="scard pu"><div class="sctop"><span class="sclbl">Revenue (INR)</span><span class="scico">₹</span></div><div class="scval" id="c-rev">—</div><div class="scsub">captured sum</div><div class="scgl"></div></div>
+      <div class="card"><div class="card-lbl">Total Requests</div><div class="card-val" id="c-tot">—</div><div class="card-sub" id="c-files">—</div><div class="card-icon">📊</div></div>
+      <div class="card c-err"><div class="card-lbl">Errors</div><div class="card-val tred" id="c-err">—</div><div class="card-sub" id="c-erate">—</div><div class="card-icon">🔴</div></div>
+      <div class="card c-warn"><div class="card-lbl">Warnings</div><div class="card-val" style="color:var(--yellow)" id="c-warn">—</div><div class="card-sub">WARN level</div><div class="card-icon">⚠️</div></div>
+      <div class="card c-ok"><div class="card-lbl">Orders Created</div><div class="card-val tgrn" id="c-cre">—</div><div class="card-sub">Razorpay orders</div><div class="card-icon">🧾</div></div>
+      <div class="card c-blue"><div class="card-lbl">Captured</div><div class="card-val" style="color:var(--blue)" id="c-cap">—</div><div class="card-sub" id="c-fail">—</div><div class="card-icon">💳</div></div>
+      <div class="card c-pur"><div class="card-lbl">Revenue (INR)</div><div class="card-val" style="color:var(--purple)" id="c-rev">—</div><div class="card-sub">captured sum</div><div class="card-icon">₹</div></div>
     </div>
-    <div class="cg1">
-      <div class="cbox"><div class="chd"><span class="cttl">Request Timeline</span><span class="cmeta" id="tl-m"></span></div><canvas id="ch-tl" height="190"></canvas><div class="emp" id="ch-tl-e" style="display:none">No timeline data</div></div>
-      <div class="cbox"><div class="chd"><span class="cttl">Endpoints</span></div><canvas id="ch-ep" height="190"></canvas><div class="emp" id="ch-ep-e" style="display:none">No data</div></div>
-      <div class="cbox"><div class="chd"><span class="cttl">Payment Status</span></div><canvas id="ch-ps" height="190"></canvas><div class="emp" id="ch-ps-e" style="display:none">No data</div></div>
+    <div class="cr1">
+      <div class="cbox"><div class="ctitle"><span>◆</span>Request Timeline</div><canvas id="ch-tl" height="200"></canvas></div>
+      <div class="cbox"><div class="ctitle"><span>◆</span>Endpoints</div><canvas id="ch-ep" height="200"></canvas></div>
+      <div class="cbox"><div class="ctitle"><span>◆</span>Payment Status</div><canvas id="ch-ps" height="200"></canvas></div>
     </div>
-    <div class="cg2">
-      <div class="cbox"><div class="chd"><span class="cttl">Errors by Endpoint</span></div><canvas id="ch-ee" height="190"></canvas><div class="emp" id="ch-ee-e" style="display:none">No errors</div></div>
-      <div class="cbox"><div class="chd"><span class="cttl">Flow Distribution</span></div><canvas id="ch-fl" height="190"></canvas><div class="emp" id="ch-fl-e" style="display:none">No data</div></div>
-      <div class="cbox"><div class="chd"><span class="cttl">UPI Methods</span></div><canvas id="ch-pm" height="190"></canvas><div class="emp" id="ch-pm-e" style="display:none">No data</div></div>
+    <div class="cr2">
+      <div class="cbox"><div class="ctitle"><span>◆</span>Errors by Endpoint</div><canvas id="ch-ee" height="200"></canvas></div>
+      <div class="cbox"><div class="ctitle"><span>◆</span>Flow Distribution</div><canvas id="ch-fl" height="200"></canvas></div>
+      <div class="cbox"><div class="ctitle"><span>◆</span>UPI Methods</div><canvas id="ch-pm" height="200"></canvas></div>
     </div>
-    <div class="sh"><div class="sht">Recent Errors &amp; Warnings</div><span class="shm" id="rc-ct"></span></div>
-    <div class="twrap"><table><thead><tr><th>Level</th><th>Timestamp</th><th>API</th><th>Endpoint</th><th>Flow</th><th>Error Code</th><th>Message</th></tr></thead>
-    <tbody id="re-body"><tr><td colspan="7" class="emp">No errors in selected range</td></tr></tbody></table></div>
+    <div style="margin-top:15px">
+      <div class="sh"><div class="st">Recent Errors & Warnings</div><span id="rc-ct" style="font-size:11px;color:var(--text3)"></span></div>
+      <div class="ltw"><table><thead><tr><th>Level</th><th>Timestamp</th><th>API</th><th>Endpoint</th><th>Flow</th><th>Error Code</th><th>Message</th></tr></thead>
+      <tbody id="re-body"><tr><td colspan="7" class="emp">✓ No errors in range</td></tr></tbody></table></div>
+    </div>
   </div>
 </div>
 
 <!-- LOGS -->
 <div class="tp" id="tab-logs">
-  <div class="filters">
-    <span style="font-family:var(--fh);font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.7px;text-transform:uppercase;white-space:nowrap">Filters</span>
-    <div class="fgrp"><span class="flbl">API</span><select id="l-api" style="min-width:175px"><option value="">All APIs</option></select></div>
-    <div class="fgrp"><span class="flbl">Date</span><select id="l-date"><option value="">All dates</option></select></div>
-    <div class="fgrp"><span class="flbl">Level</span><select id="l-lvl"><option value="">All</option><option>ERROR</option><option>WARN</option><option>INFO</option><option>DEBUG</option></select></div>
-    <div class="fgrp"><span class="flbl">Endpoint</span><select id="l-ep"><option value="">All</option><option value="/create">/create</option><option value="status">/status</option></select></div>
-    <input type="text" id="l-srch" placeholder="Search loan#, customer, paymentId…" style="min-width:200px"/>
+  <div class="lc">
+    <select id="l-api" style="min-width:200px"><option value="">All APIs</option></select>
+    <select id="l-date"><option value="">All dates</option></select>
+    <select id="l-lvl"><option value="">All levels</option><option>ERROR</option><option>WARN</option><option>INFO</option><option>DEBUG</option></select>
+    <select id="l-ep"><option value="">All endpoints</option><option value="/create">POST /create</option><option value="status">GET /status</option></select>
+    <input type="text" id="l-srch" placeholder="Search loan#, customer, paymentId…" style="min-width:240px"/>
     <button class="btn btn-p btn-sm" id="btn-srch">Search</button>
-    <span class="fcnt" id="l-tot"></span>
+    <span class="mla" style="font-size:11px;color:var(--text2)" id="l-tot"></span>
   </div>
-  <div class="ld" id="l-ld"><div class="sp"></div><div class="ldt">Loading logs…</div></div>
-  <div class="twrap" id="l-tw">
-    <table><thead><tr><th>Level</th><th>Timestamp</th><th>API</th><th>Method</th><th>Endpoint</th><th>Flow</th><th>Rz Status</th><th>Amount ₹</th><th>Error Code</th><th>Loan#</th><th>Message</th></tr></thead>
-    <tbody id="l-body"><tr><td colspan="11" class="emp">Use filters above and click Search</td></tr></tbody></table>
+  <div id="l-ld" class="ld" style="display:none"><div class="sp"></div><div>Loading…</div></div>
+  <div class="ltw" id="l-tw">
+    <table><thead><tr><th>Level</th><th>Timestamp</th><th>API</th><th>M</th><th>Endpoint</th><th>Flow</th><th>Rz Status</th><th>Amount ₹</th><th>Error Code</th><th>Loan#</th><th>Message</th></tr></thead>
+    <tbody id="l-body"><tr><td colspan="11" class="emp">Select API and click Search</td></tr></tbody></table>
   </div>
   <div class="pg" id="l-pg"></div>
 </div>
 
 <!-- PAYMENTS -->
 <div class="tp" id="tab-payments">
-  <div class="ld" id="p-ld"><div class="sp"></div><div class="ldt">Loading…</div></div>
+  <div id="p-ld" class="ld" style="display:none"><div class="sp"></div><div>Loading…</div></div>
   <div id="p-ct">
-    <div class="pcards">
-      <div class="scard gr"><div class="sctop"><span class="sclbl">Orders Created</span><span class="scico">🧾</span></div><div class="scval" id="p-cre">—</div><div class="scgl"></div></div>
-      <div class="scard bl"><div class="sctop"><span class="sclbl">Captured</span><span class="scico">✅</span></div><div class="scval" id="p-cap">—</div><div class="scgl"></div></div>
-      <div class="scard re"><div class="sctop"><span class="sclbl">Failed</span><span class="scico">✕</span></div><div class="scval" id="p-fail">—</div><div class="scgl"></div></div>
-      <div class="scard pu"><div class="sctop"><span class="sclbl">Revenue</span><span class="scico">₹</span></div><div class="scval" id="p-rev">—</div><div class="scgl"></div></div>
+    <div class="cards" style="margin-bottom:18px">
+      <div class="card c-ok"><div class="card-lbl">Orders Created</div><div class="card-val tgrn" id="p-cre">—</div></div>
+      <div class="card c-blue"><div class="card-lbl">Captured</div><div class="card-val" style="color:var(--blue)" id="p-cap">—</div></div>
+      <div class="card c-err"><div class="card-lbl">Failed</div><div class="card-val tred" id="p-fail">—</div></div>
+      <div class="card c-pur"><div class="card-lbl">Total Revenue</div><div class="card-val" style="color:var(--purple)" id="p-rev">—</div></div>
     </div>
-    <div class="cg1">
-      <div class="cbox"><div class="chd"><span class="cttl">Daily Activity</span></div><canvas id="ch-da" height="200"></canvas></div>
-      <div class="cbox"><div class="chd"><span class="cttl">Order → Capture Funnel</span></div><canvas id="ch-fn" height="200"></canvas></div>
-      <div class="cbox"><div class="chd"><span class="cttl">UPI Methods</span></div><canvas id="ch-um" height="200"></canvas></div>
+    <div class="cr1">
+      <div class="cbox"><div class="ctitle"><span>◆</span>Daily Activity</div><canvas id="ch-da" height="200"></canvas></div>
+      <div class="cbox"><div class="ctitle"><span>◆</span>Order → Capture Funnel</div><canvas id="ch-fn" height="200"></canvas></div>
+      <div class="cbox"><div class="ctitle"><span>◆</span>UPI Methods</div><canvas id="ch-um" height="200"></canvas></div>
     </div>
   </div>
 </div>
@@ -303,39 +381,72 @@ code{font-family:var(--fm);background:var(--bg3);border:1px solid var(--border);
 <div class="tp" id="tab-alerts">
   <div class="ag">
     <div class="panel">
-      <div class="pt">Create Alert Rule</div>
+      <div class="ptitle">Create Alert Rule</div>
       <div class="fg"><label>Alert Name *</label><input type="text" id="al-nm" placeholder="e.g. High Error Rate"/></div>
       <div class="fr">
         <div class="fg"><label>API Filter</label><select id="al-api"><option value="">All APIs</option></select></div>
-        <div class="fg"><label>Metric *</label><select id="al-mt"><option value="errors">Error Count</option><option value="error_rate">Error Rate (%)</option><option value="payments_failed">Failed Payments</option><option value="total_requests">Total Requests</option><option value="warnings">Warning Count</option></select></div>
+        <div class="fg"><label>Metric *</label><select id="al-mt">
+          <option value="errors">Error Count</option>
+          <option value="error_rate">Error Rate (%)</option>
+          <option value="payments_failed">Failed Payments</option>
+          <option value="total_requests">Total Requests</option>
+          <option value="warnings">Warning Count</option>
+        </select></div>
       </div>
       <div class="fr">
-        <div class="fg"><label>Operator</label><select id="al-op"><option value=">">&gt; greater than</option><option value=">=">&gt;= at least</option><option value="<">&lt; less than</option></select></div>
+        <div class="fg"><label>Operator</label><select id="al-op"><option value=">">&#62; greater than</option><option value=">=">&#62;= at least</option><option value="<">&#60; less than</option></select></div>
         <div class="fg"><label>Threshold *</label><input type="number" id="al-th" placeholder="10" min="0"/></div>
       </div>
       <div class="fg"><label>Webhook URL (Slack / Teams)</label><input type="url" id="al-wh" placeholder="https://hooks.slack.com/…"/></div>
       <div style="display:flex;gap:8px;margin-top:4px">
-        <button class="btn btn-p btn-sm" id="btn-cal">+ Create Alert</button>
-        <button class="btn btn-g btn-sm" id="btn-twh">Test Webhook</button>
+        <button class="btn btn-p" id="btn-cal">+ Create Alert</button>
+        <button class="btn btn-g" id="btn-twh">Test Webhook</button>
       </div>
     </div>
     <div class="panel">
-      <div class="pt">Active Rules</div>
-      <div id="al-list"><div class="emp" style="padding:28px 0">🔔 No alerts configured</div></div>
+      <div class="ptitle">Active Alert Rules</div>
+      <div id="al-list"><div class="emp">🔔 No alerts configured</div></div>
     </div>
   </div>
-  <div class="panel" style="margin-top:14px">
-    <div class="pt">How Alerts Work</div>
-    <div style="color:var(--text2);font-size:12px;line-height:2;font-family:var(--fh)">
-      Checks every <strong style="color:var(--text)">5 minutes</strong> against today's logs. Fires an HTTP POST to your webhook when threshold is breached.<br/>
-      <strong style="color:var(--cyan)">Metrics:</strong>
-      <code>errors</code> error count · <code>error_rate</code> % · <code>payments_failed</code> Razorpay errors · <code>total_requests</code> all entries · <code>warnings</code> WARN count
+  <div class="panel" style="margin-top:15px">
+    <div class="ptitle">How Alerts Work</div>
+    <div style="color:var(--text2);font-size:12px;line-height:1.9">
+      Checks every <strong style="color:var(--text)">5 minutes</strong> against today's S3 logs. Fires an HTTP POST to your webhook when threshold is breached.<br/>
+      <strong style="color:var(--accent)">Metrics:</strong>
+      <code>errors</code> error log count ·
+      <code>error_rate</code> % of total ·
+      <code>payments_failed</code> Razorpay error_code count ·
+      <code>total_requests</code> total entries ·
+      <code>warnings</code> WARN count
     </div>
   </div>
-  <details class="dbg" id="diag-box" style="display:none">
-    <summary>🔧 Diagnostics</summary>
-    <pre id="diag-out">Loading…</pre>
-  </details>
+</div>
+<!-- DIAGNOSTICS -->
+<div class="tp" id="tab-diagnostics">
+  <div class="sh">
+    <div class="st">System Diagnostics</div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-g btn-sm" onclick="loadDiag()">↺ Refresh</button>
+      <button class="btn btn-p btn-sm" onclick="forceSyncAndOpen()">↺ Force Sync</button>
+    </div>
+  </div>
+  <div id="diag-ld" class="ld" style="display:none"><div class="sp"></div><div>Loading diagnostics…</div></div>
+  <div id="diag-ct">
+    <div class="diag-grid" id="diag-grid" style="margin-bottom:16px">
+      <div style="grid-column:1/-1;color:var(--text3);font-size:12px;padding:20px;text-align:center">Click Refresh to load diagnostics</div>
+    </div>
+    <div id="diag-files-wrap" style="display:none">
+      <div class="st" style="margin-bottom:10px">Sample Files from S3</div>
+      <div class="ltw"><table>
+        <thead><tr><th>Key</th><th>API</th><th>Date</th><th>Size</th><th>Prefix</th></tr></thead>
+        <tbody id="diag-files-body"></tbody>
+      </table></div>
+    </div>
+    <div id="diag-apis-wrap" style="display:none;margin-top:16px">
+      <div class="st" style="margin-bottom:10px">Detected APIs</div>
+      <div id="diag-apis-list" style="display:flex;flex-wrap:wrap;gap:7px"></div>
+    </div>
+  </div>
 </div>
 
 </div><!-- /main -->
@@ -343,395 +454,704 @@ code{font-family:var(--fm);background:var(--bg3);border:1px solid var(--border);
 <div id="toast"></div>
 
 <script>
-// ═══════════════════════════════════════════════════════
-//  SELF-CONTAINED CANVAS CHART ENGINE — zero dependencies
-// ═══════════════════════════════════════════════════════
-const CHART = (() => {
-  const DPR = window.devicePixelRatio || 1;
-  const COLS = ['#00CFFF','#FF6B35','#00E5A0','#4D9EFF','#A78BFA','#FFB800','#22D3EE','#FF2D55'];
-  const GRID = '#162035', LBL = '#5D7494', TXT = '#D8E6F5', BG = '#0C1322';
-  const Fm = (sz=10) => `${sz}px 'JetBrains Mono',monospace`;
-  const Fo = (sz=11,w=500) => `${w} ${sz}px 'Outfit',sans-serif`;
+// ─── Tiny Canvas Chart Library (no CDN needed) ────────────────────────────
+const CHR = (() => {
+  const C = (id) => document.getElementById(id);
+  const _instances = {};
 
-  function hexA(hex, a) {
-    const r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
-    return `rgba(${r},${g},${b},${a})`;
+  function clear(id) {
+    if (_instances[id]) { _instances[id] = null; }
+    const el = C(id); if (!el) return;
+    const ctx = el.getContext('2d');
+    ctx.clearRect(0, 0, el.width, el.height);
   }
 
-  function setup(id, h) {
-    const el = document.getElementById(id); if (!el) return null;
-    const W = el.parentElement.clientWidth - 32;
-    el.width=W*DPR; el.height=h*DPR; el.style.width=W+'px'; el.style.height=h+'px';
-    const ctx = el.getContext('2d'); ctx.scale(DPR,DPR); ctx.clearRect(0,0,W,h);
-    return {ctx,W,H:h};
+  function resize(canvas, h) {
+    const w = canvas.parentElement.clientWidth - 30;
+    canvas.width  = w * devicePixelRatio;
+    canvas.height = h * devicePixelRatio;
+    canvas.style.width  = w  + 'px';
+    canvas.style.height = h + 'px';
+    const ctx = canvas.getContext('2d');
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+    return [w, h, ctx];
   }
 
-  const numFmt = v => v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?(v/1e3).toFixed(1)+'k':String(Math.round(v));
-  const clip   = (s,n) => { s=String(s); return s.length>n?s.slice(0,n)+'…':s; };
+  const COLS = ['#FF6B35','#4D9EFF','#00E5A0','#FFB800','#A78BFA','#22D3EE','#FF3B5C','#F472B6'];
+  const GRID = '#1E2A40'; const LBL = '#7A8FAF'; const TXT = '#C8D4E8';
 
-  function smoothPts(ctx, pts) {
-    if (!pts.length) return;
-    ctx.moveTo(pts[0][0],pts[0][1]);
-    for (let i=1;i<pts.length;i++) {
-      const p=pts[i-1], c=pts[i], mx=(p[0]+c[0])/2;
-      ctx.bezierCurveTo(mx,p[1],mx,c[1],c[0],c[1]);
+  function textFit(ctx, text, maxW) {
+    let sz = 11;
+    ctx.font = sz + 'px "Space Mono",monospace';
+    while (ctx.measureText(text).width > maxW && sz > 7) { sz--; ctx.font = sz + 'px "Space Mono",monospace'; }
+    return text;
+  }
+
+  /* ── Bar chart ── */
+  function bar(id, labels, values, colors, opts = {}) {
+    clear(id);
+    const canvas = C(id); if (!canvas) return;
+    const h = opts.h || 200;
+    const [W, H, ctx] = resize(canvas, h);
+    const horiz = opts.horiz || false;
+
+    const pad = { t:10, r:14, b: horiz ? 30 : 50, l: horiz ? 120 : 40 };
+    const cw = W - pad.l - pad.r;
+    const ch = H - pad.t - pad.b;
+    const n  = values.length;
+    if (!n) return;
+
+    const max = Math.max(...values, 1);
+    const cols = Array.isArray(colors) ? colors : COLS;
+
+    ctx.font = '10px "Space Mono",monospace';
+    ctx.fillStyle = LBL;
+
+    if (!horiz) {
+      // vertical bars
+      const bw = Math.max(4, (cw / n) * 0.6);
+      const gap = cw / n;
+      // grid lines
+      for (let i=0;i<=4;i++) {
+        const y = pad.t + ch - (ch * i / 4);
+        ctx.strokeStyle = GRID; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l+cw, y); ctx.stroke();
+        const v = Math.round(max * i / 4);
+        ctx.fillStyle = LBL; ctx.textAlign = 'right';
+        ctx.fillText(v > 999 ? (v/1000).toFixed(1)+'k' : v, pad.l - 4, y + 4);
+      }
+      labels.forEach((lbl, i) => {
+        const x = pad.l + gap * i + gap/2;
+        const bh = ch * (values[i] / max);
+        const y  = pad.t + ch - bh;
+        ctx.fillStyle = (cols[i % cols.length]) + 'CC';
+        ctx.beginPath();
+        ctx.roundRect(x - bw/2, y, bw, bh, [3,3,0,0]);
+        ctx.fill();
+        // value on top
+        ctx.fillStyle = TXT; ctx.textAlign='center';
+        if (bh > 16) ctx.fillText(values[i], x, y - 4);
+        // x label
+        ctx.fillStyle = LBL; ctx.textAlign='center';
+        const sl = String(lbl).length > 12 ? String(lbl).slice(0,12)+'…' : String(lbl);
+        ctx.save(); ctx.translate(x, pad.t+ch+12); ctx.rotate(-0.5); ctx.fillText(sl, 0, 0); ctx.restore();
+      });
+    } else {
+      // horizontal bars
+      const bh2 = Math.max(3, (ch / n) * 0.55);
+      const gap2 = ch / n;
+      for (let i=0;i<=4;i++) {
+        const x = pad.l + cw * i / 4;
+        ctx.strokeStyle = GRID; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(x,pad.t); ctx.lineTo(x,pad.t+ch); ctx.stroke();
+        const v = Math.round(max * i / 4);
+        ctx.fillStyle=LBL; ctx.textAlign='center';
+        ctx.fillText(v>999?(v/1000).toFixed(1)+'k':v, x, pad.t+ch+14);
+      }
+      labels.forEach((lbl,i) => {
+        const y = pad.t + gap2 * i + gap2/2;
+        const bw2 = cw * (values[i] / max);
+        ctx.fillStyle = (cols[i % cols.length]) + 'CC';
+        ctx.beginPath();
+        ctx.roundRect(pad.l, y - bh2/2, bw2, bh2, [0,3,3,0]);
+        ctx.fill();
+        // label left
+        ctx.fillStyle = LBL; ctx.textAlign='right';
+        const sl = String(lbl).length > 18 ? String(lbl).slice(0,18)+'…' : String(lbl);
+        ctx.fillText(sl, pad.l - 6, y + 4);
+        // value inside/right
+        ctx.fillStyle = TXT; ctx.textAlign='left';
+        ctx.fillText(values[i], pad.l + bw2 + 4, y + 4);
+      });
     }
+    _instances[id] = true;
   }
 
-  // ─ LINE ─
-  function line(id, labels, datasets, h=190) {
-    const s=setup(id,h); if(!s)return;
-    const {ctx,W,H}=s, n=labels.length; if(!n)return;
-    const PAD={t:14,r:16,b:50,l:46}, CW=W-PAD.l-PAD.r, CH=H-PAD.t-PAD.b;
-    const allV=datasets.flatMap(d=>d.data), maxV=Math.max(...allV,1);
+  /* ── Line chart ── */
+  function line(id, labels, datasets, opts = {}) {
+    clear(id);
+    const canvas = C(id); if (!canvas) return;
+    const h = opts.h || 200;
+    const [W, H, ctx] = resize(canvas, h);
+    const pad = { t:10, r:14, b:48, l:42 };
+    const cw = W - pad.l - pad.r;
+    const ch = H - pad.t - pad.b;
+    const n  = labels.length;
+    if (!n) return;
+
+    const allVals = datasets.flatMap(d => d.data);
+    const max = Math.max(...allVals, 1);
+
+    ctx.font = '10px "Space Mono",monospace';
 
     // grid
     for (let i=0;i<=4;i++) {
-      const y=PAD.t+CH*(1-i/4);
-      ctx.strokeStyle=GRID; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(PAD.l,y); ctx.lineTo(PAD.l+CW,y); ctx.stroke();
-      ctx.font=Fm(9); ctx.fillStyle=LBL; ctx.textAlign='right'; ctx.fillText(numFmt(maxV*i/4),PAD.l-6,y+3.5);
+      const y = pad.t + ch - (ch * i / 4);
+      ctx.strokeStyle = GRID; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(pad.l+cw,y); ctx.stroke();
+      const v = Math.round(max * i / 4);
+      ctx.fillStyle = LBL; ctx.textAlign='right';
+      ctx.fillText(v>999?(v/1000).toFixed(1)+'k':v, pad.l-4, y+4);
     }
-    datasets.forEach((ds,di) => {
-      const col=ds.color||COLS[di%COLS.length];
-      const pts=ds.data.map((v,i)=>[PAD.l+CW*(n<2?.5:i/(n-1)), PAD.t+CH*(1-v/maxV)]);
-      const grad=ctx.createLinearGradient(0,PAD.t,0,PAD.t+CH);
-      grad.addColorStop(0,hexA(col,.22)); grad.addColorStop(1,hexA(col,.01));
-      ctx.beginPath(); ctx.moveTo(pts[0][0],PAD.t+CH); smoothPts(ctx,pts); ctx.lineTo(pts[pts.length-1][0],PAD.t+CH); ctx.closePath(); ctx.fillStyle=grad; ctx.fill();
-      ctx.beginPath(); smoothPts(ctx,pts); ctx.strokeStyle=col; ctx.lineWidth=2; ctx.lineJoin='round'; ctx.setLineDash([]); ctx.stroke();
-      if (n<=24) pts.forEach(([x,y])=>{ ctx.beginPath(); ctx.arc(x,y,3,0,Math.PI*2); ctx.fillStyle=col; ctx.fill(); ctx.strokeStyle=BG; ctx.lineWidth=1.5; ctx.stroke(); });
+
+    datasets.forEach((ds, di) => {
+      const col = ds.color || COLS[di];
+      const pts = ds.data.map((v,i) => [pad.l + cw * i / Math.max(n-1,1), pad.t + ch - ch * v / max]);
+
+      // fill
+      ctx.beginPath();
+      ctx.moveTo(pts[0][0], pad.t+ch);
+      pts.forEach(([x,y]) => ctx.lineTo(x,y));
+      ctx.lineTo(pts[pts.length-1][0], pad.t+ch);
+      ctx.closePath();
+      ctx.fillStyle = col + '22';
+      ctx.fill();
+
+      // line
+      ctx.beginPath();
+      ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.lineJoin='round';
+      pts.forEach(([x,y],i) => i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y));
+      ctx.stroke();
+
+      // dots
+      pts.forEach(([x,y]) => {
+        ctx.beginPath(); ctx.arc(x,y,3,0,Math.PI*2);
+        ctx.fillStyle=col; ctx.fill();
+      });
     });
-    ctx.font=Fm(9); ctx.fillStyle=LBL; ctx.textAlign='center';
-    const step=Math.max(1,Math.floor(n/10));
-    labels.forEach((lbl,i)=>{ if(i%step!==0&&i!==n-1)return; const x=PAD.l+CW*(n<2?.5:i/(n-1)); ctx.save(); ctx.translate(x,PAD.t+CH+12); ctx.rotate(-0.45); ctx.fillText(String(lbl).slice(-5),0,0); ctx.restore(); });
+
+    // x labels
+    ctx.fillStyle = LBL; ctx.textAlign='center';
+    const step = Math.max(1, Math.floor(n / 10));
+    labels.forEach((lbl,i) => {
+      if (i % step !== 0) return;
+      const x = pad.l + cw * i / Math.max(n-1,1);
+      const sl = String(lbl).slice(-5);
+      ctx.save(); ctx.translate(x, pad.t+ch+12); ctx.rotate(-0.6); ctx.fillText(sl,0,0); ctx.restore();
+    });
+    _instances[id] = true;
   }
 
-  // ─ HORIZONTAL BAR ─
-  function hbar(id, labels, values, colors, h=190) {
-    const s=setup(id,h); if(!s)return;
-    const {ctx,W,H}=s, n=labels.length; if(!n)return;
-    const maxV=Math.max(...values,1);
-    const lblPx=Math.min(Math.max(...labels.map(l=>l.length))*6.2+6, 155);
-    const PAD={t:8,r:52,b:14,l:lblPx}, CW=W-PAD.l-PAD.r, CH=H-PAD.t-PAD.b;
-    const gap=CH/n, bH=Math.max(4, gap*0.58);
+  /* ── Doughnut ── */
+  function donut(id, labels, values, colors, opts = {}) {
+    clear(id);
+    const canvas = C(id); if (!canvas) return;
+    const h = opts.h || 200;
+    const [W, H, ctx] = resize(canvas, h);
+    const total = values.reduce((a,b)=>a+b,0);
+    if (!total) return;
+    const cols = colors || COLS;
 
-    for (let i=1;i<=4;i++) {
-      const x=PAD.l+CW*i/4;
-      ctx.strokeStyle=GRID; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(x,PAD.t); ctx.lineTo(x,PAD.t+CH); ctx.stroke();
-    }
-    labels.forEach((lbl,i)=>{
-      const y=PAD.t+gap*i+gap/2;
-      const col=(Array.isArray(colors)?colors[i%colors.length]:null)||COLS[i%COLS.length];
-      const bW=CW*(values[i]/maxV);
-      ctx.fillStyle=hexA(col,.07); ctx.beginPath(); ctx.roundRect(PAD.l,y-bH/2,CW,bH,3); ctx.fill();
-      const g=ctx.createLinearGradient(PAD.l,0,PAD.l+bW,0); g.addColorStop(0,hexA(col,.9)); g.addColorStop(1,hexA(col,.6));
-      ctx.fillStyle=g; ctx.beginPath(); ctx.roundRect(PAD.l,y-bH/2,bW,bH,3); ctx.fill();
-      ctx.font=Fo(10,400); ctx.fillStyle=LBL; ctx.textAlign='right'; ctx.fillText(clip(lbl,Math.floor(PAD.l/6.5)),PAD.l-7,y+3.5);
-      ctx.font=Fm(9); ctx.fillStyle=TXT; ctx.textAlign='left'; ctx.fillText(numFmt(values[i]),PAD.l+bW+5,y+3.5);
+    const lh = 18; const lpad = 12;
+    const legendH = Math.ceil(labels.length / 2) * lh + lpad;
+    const cx = W/2, cy = (H-legendH)/2;
+    const r  = Math.min(cx, cy) - 10;
+    const ir = r * 0.55;
+
+    let angle = -Math.PI/2;
+    values.forEach((v,i) => {
+      const sweep = (v/total) * Math.PI*2;
+      ctx.beginPath();
+      ctx.moveTo(cx,cy); ctx.arc(cx,cy,r,angle,angle+sweep);
+      ctx.closePath();
+      ctx.fillStyle = cols[i%cols.length];
+      ctx.fill();
+      angle += sweep;
     });
+
+    // hole
+    ctx.beginPath(); ctx.arc(cx,cy,ir,0,Math.PI*2);
+    ctx.fillStyle = '#121929'; ctx.fill();
+
+    // center text
+    ctx.fillStyle = TXT; ctx.textAlign='center';
+    ctx.font = 'bold 16px "Syne",sans-serif';
+    ctx.fillText(total, cx, cy+2);
+    ctx.font = '9px "Space Mono",monospace';
+    ctx.fillStyle = LBL;
+    ctx.fillText('total', cx, cy+15);
+
+    // legend
+    const lx0 = 8; let lx = lx0, ly = H - legendH + lpad;
+    const colW = W/2;
+    labels.forEach((lbl,i) => {
+      ctx.fillStyle = cols[i%cols.length];
+      ctx.fillRect(lx, ly-8, 10, 10);
+      ctx.fillStyle = LBL; ctx.textAlign='left'; ctx.font='10px "Space Mono",monospace';
+      const pct = Math.round(values[i]/total*100);
+      ctx.fillText(String(lbl).slice(0,14)+' '+pct+'%', lx+13, ly);
+      if ((i+1)%2===0) { lx=lx0; ly+=lh; } else { lx=colW; }
+    });
+    _instances[id] = true;
   }
 
-  // ─ VERTICAL BAR ─
-  function vbar(id, labels, values, colors, h=190) {
-    const s=setup(id,h); if(!s)return;
-    const {ctx,W,H}=s, n=labels.length; if(!n)return;
-    const maxV=Math.max(...values,1), PAD={t:20,r:14,b:40,l:40}, CW=W-PAD.l-PAD.r, CH=H-PAD.t-PAD.b;
-    const gap=CW/n, bW=Math.max(14,gap*0.56);
-    for (let i=0;i<=4;i++) {
-      const y=PAD.t+CH*(1-i/4);
-      ctx.strokeStyle=GRID; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(PAD.l,y); ctx.lineTo(PAD.l+CW,y); ctx.stroke();
-      ctx.font=Fm(9); ctx.fillStyle=LBL; ctx.textAlign='right'; ctx.fillText(numFmt(maxV*i/4),PAD.l-5,y+3.5);
-    }
-    labels.forEach((lbl,i)=>{
-      const x=PAD.l+gap*i+gap/2, col=(Array.isArray(colors)?colors[i%colors.length]:null)||COLS[i%COLS.length];
-      const bH2=CH*(values[i]/maxV), y=PAD.t+CH-bH2;
-      const g=ctx.createLinearGradient(0,y,0,PAD.t+CH); g.addColorStop(0,hexA(col,.95)); g.addColorStop(1,hexA(col,.45));
-      ctx.fillStyle=g; ctx.beginPath(); ctx.roundRect(x-bW/2,y,bW,bH2,[4,4,0,0]); ctx.fill();
-      if(bH2>18){ctx.font=Fm(9);ctx.fillStyle=TXT;ctx.textAlign='center';ctx.fillText(numFmt(values[i]),x,y-5);}
-      ctx.font=Fo(10,400); ctx.fillStyle=LBL; ctx.textAlign='center';
-      ctx.save(); ctx.translate(x,PAD.t+CH+13); ctx.rotate(-0.35); ctx.fillText(clip(lbl,12),0,0); ctx.restore();
-    });
-  }
-
-  // ─ DONUT ─
-  function donut(id, labels, values, colors, h=190) {
-    const s=setup(id,h); if(!s)return;
-    const {ctx,W,H}=s;
-    const total=values.reduce((a,b)=>a+b,0); if(!total)return;
-    const cols=Array.isArray(colors)&&colors.length?colors:COLS;
-    const rows=Math.ceil(labels.length/2), lH=16*rows+10;
-    const cx=W/2, cy=(H-lH)/2, R=Math.min(cx,cy)-10, ir=R*0.58;
-    let angle=-Math.PI/2;
-    values.forEach((v,i)=>{
-      const sweep=v/total*Math.PI*2;
-      ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,R,angle,angle+sweep); ctx.closePath();
-      ctx.fillStyle=cols[i%cols.length]; ctx.fill(); ctx.strokeStyle=BG; ctx.lineWidth=2; ctx.stroke();
-      angle+=sweep;
-    });
-    ctx.beginPath(); ctx.arc(cx,cy,ir,0,Math.PI*2); ctx.fillStyle=BG; ctx.fill();
-    ctx.textAlign='center'; ctx.font=Fo(18,800); ctx.fillStyle=TXT; ctx.fillText(numFmt(total),cx,cy+6);
-    ctx.font=Fm(9); ctx.fillStyle=LBL; ctx.fillText('total',cx,cy+20);
-    let lx=8, ly=H-lH+14;
-    labels.forEach((lbl,i)=>{
-      const pct=Math.round(values[i]/total*100);
-      ctx.fillStyle=cols[i%cols.length]; ctx.beginPath(); ctx.arc(lx+5,ly-4,5,0,Math.PI*2); ctx.fill();
-      ctx.font=Fo(9,400); ctx.fillStyle=LBL; ctx.textAlign='left';
-      ctx.fillText(clip(lbl,13)+' '+pct+'%',lx+13,ly);
-      if((i+1)%2===0){lx=8;ly+=16;}else{lx=W/2;}
-    });
-  }
-
-  return {line,hbar,vbar,donut};
+  return { bar, line, donut, clear };
 })();
 
-// ═══════════════════════════════════════════════════════
-//  APP
-// ═══════════════════════════════════════════════════════
-const $   = id => document.getElementById(id);
-const fmt = n  => typeof n==='number'?n.toLocaleString('en-IN'):'—';
-const fmtR= n  => typeof n==='number'?'₹'+(n>=100000?(n/100000).toFixed(2)+'L':n.toLocaleString('en-IN')):'—';
-const esc = s  => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-const ago = iso=>{ if(!iso)return'—'; const d=Math.floor((Date.now()-new Date(iso))/1000); return d<60?d+'s ago':d<3600?Math.floor(d/60)+'m ago':Math.floor(d/3600)+'h ago'; };
-const inn = iso=>{ if(!iso)return'—'; const d=Math.floor((new Date(iso)-Date.now())/1000); return d<=0?'now':d<60?'in '+d+'s':d<3600?'in '+Math.floor(d/60)+'m':'in '+Math.floor(d/3600)+'h'; };
-
-function toast(msg,type=''){
-  const t=$('toast'); t.textContent=msg; t.className='show'+(type==='success'?' ok':type==='error'?' err':'');
-  clearTimeout(t._t); t._t=setTimeout(()=>t.className='',3500);
+// ─── App State & Helpers ─────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const fmt  = n => typeof n==='number' ? n.toLocaleString('en-IN') : '—';
+const fmtR = n => typeof n==='number' ? '₹'+(n>=100000?(n/100000).toFixed(2)+'L':n.toLocaleString('en-IN')) : '—';
+function toast(msg, type='') {
+  const t=$('toast'); t.textContent=msg; t.className='show '+(type==='success'?'ok':type==='error'?'err':'');
+  clearTimeout(t._t); t._t=setTimeout(()=>t.className='',3200);
 }
-function showBanner(msg,type,ico){
-  const b=$('banner'); b.classList.remove('show','bw','be','bo');
-  b.classList.add('show',type==='error'?'be':type==='ok'?'bo':'bw');
-  $('b-ico').textContent=ico||''; $('b-msg').textContent=msg;
+async function apiFetch(path) {
+  const r = await fetch(path);
+  if (!r.ok) throw new Error('HTTP '+r.status);
+  return r.json();
 }
-async function apiFetch(path){ const r=await fetch(path); if(!r.ok)throw new Error('HTTP '+r.status); return r.json(); }
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 
-function cvShow(id,has){
-  const c=$(id), e=$(id+'-e');
-  if(c)c.style.display=has?'block':'none';
-  if(e)e.style.display=has?'none':'block';
-}
+let gStats=null, logsPage=1;
 
-function countUp(el,target){
-  if(!el)return;
-  const n=parseFloat(String(target).replace(/[₹,L\s]/g,''));
-  if(isNaN(n)||n===0){el.textContent=target;return;}
-  const dur=Math.min(700,n*1.5),t0=performance.now();
-  const tick=now=>{
-    const p=Math.min((now-t0)/dur,1),e=1-Math.pow(1-p,3),cur=Math.floor(n*e);
-    el.textContent=String(target).startsWith('₹')?'₹'+cur.toLocaleString('en-IN'):cur.toLocaleString('en-IN');
-    if(p<1)requestAnimationFrame(tick);else el.textContent=target;
-  };
-  requestAnimationFrame(tick);
-}
+const ACCENT='#FF6B35',GREEN='#00E5A0',RED='#FF3B5C',YELLOW='#FFB800',
+      BLUE='#4D9EFF',PURPLE='#A78BFA',TEAL='#22D3EE';
 
-let gStats=null,logsPage=1;
-const C={'cy':'#00CFFF','or':'#FF6B35','gr':'#00E5A0','re':'#FF2D55','ye':'#FFB800','bl':'#4D9EFF','pu':'#A78BFA','te':'#22D3EE'};
-
-// Boot
+// ─── Boot ────────────────────────────────────────────────────────────────────
 (async function boot(){
-  const today=new Date(),week=new Date(today); week.setDate(today.getDate()-7);
-  $('dt').value=today.toISOString().slice(0,10); $('df').value=week.toISOString().slice(0,10);
-  updateSyncStatus(); setInterval(updateSyncStatus,30000);
+  const today=new Date(), week=new Date(today);
+  week.setDate(today.getDate()-7);
+  $('dt').value=today.toISOString().slice(0,10);
+  $('df').value=week.toISOString().slice(0,10);
   try {
     const {apis,total_files}=await apiFetch('/api/apis');
-    ['sel-api','l-api','al-api'].forEach(sid=>{
-      const el=$(sid); if(!el)return;
-      (apis||[]).forEach(a=>{ const o=document.createElement('option'); o.value=a; o.textContent=a; el.appendChild(o); });
+    ['sel-api','l-api','al-api'].forEach(id=>{
+      const el=$(id); if(!el) return;
+      apis.forEach(a=>{ const o=document.createElement('option'); o.value=a; o.textContent=a; el.appendChild(o); });
     });
-    if(!total_files) await checkAws(); else $('stxt').textContent=total_files+' log files';
-    loadAlerts(); loadOverview();
-  } catch(e){ toast('Backend error: '+e.message,'error'); $('stxt').textContent='Error'; showBanner('Backend unreachable: '+e.message,'error','🔴'); }
+    $('stxt').textContent=total_files+' log files in S3';
+    loadAlerts();
+    // auto-load
+    loadOverview();
+    // initial status bar
+    const p=await apiFetch('/api/sync/progress');
+    renderStatusBar(p);
+    renderSyncDrawer(p);
+    // if sync is already running on load, start polling
+    if(p.syncing){ startProgressPolling(); }
+  } catch(e){ toast('Backend error: '+e.message,'error'); $('stxt').textContent='Error'; }
 })();
 
-async function checkAws(){
-  try {
-    const d=await apiFetch('/api/debug');
-    if(!d.has_access_key||!d.has_secret_key) showBanner('AWS credentials missing. Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in Railway environment variables.','error','🔑');
-    else if(d.sync_error) showBanner('Sync error: '+d.sync_error,'error','⚠️');
-    else if(!d.last_sync) showBanner('Initial S3 sync in progress — data will appear shortly.','ok','⏳');
-    else if(d.entry_count===0) showBanner(`Sync done but 0 entries. Check S3_BUCKET="${d.S3_BUCKET}" and S3_PREFIX="${d.S3_PREFIX}" in Railway env.`,'warn','🪣');
-  } catch(e){}
-}
+// Tabs
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.tp').forEach(p=>p.classList.remove('active'));
+    tab.classList.add('active');
+    $('tab-'+tab.dataset.tab).classList.add('active');
+    if(tab.dataset.tab==='payments' && gStats) renderPayTab(gStats);
+    if(tab.dataset.tab==='diagnostics') loadDiag();
+  });
+});
 
-function setSyncDot(st){
-  $('sync-dot').className='sdot '+(st==='syncing'?'s-sync':st==='error'?'s-err':'s-live');
-}
-
-async function updateSyncStatus(){
-  try {
-    const s=await apiFetch('/api/sync/status');
-    setSyncDot(s.syncing?'syncing':s.sync_error?'error':'live');
-    $('sb-f').textContent=s.file_count+' files'; $('sb-e').textContent=fmt(s.entry_count)+' entries';
-    $('sb-l').textContent=ago(s.last_sync); $('sb-n').textContent=inn(s.next_sync);
-    if(s.sync_error){ $('sb-er').textContent='Error: '+s.sync_error.slice(0,55); $('sb-er').style.display=''; $('sb-es').style.display=''; }
-    else{ $('sb-er').style.display='none'; $('sb-es').style.display='none'; }
-    if(s.syncing) $('stxt').textContent='Syncing S3…';
-  } catch(e){}
-}
-
-function openDiag(){
-  const b=$('diag-box'); b.style.display='block'; b.open=true; switchTab('alerts');
-  apiFetch('/api/debug').then(d=>{ $('diag-out').textContent=JSON.stringify(d,null,2); }).catch(e=>{ $('diag-out').textContent='Error: '+e.message; });
-}
-function switchTab(name){
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  document.querySelectorAll('.tp').forEach(p=>p.classList.remove('active'));
-  document.querySelector('[data-tab="'+name+'"]').classList.add('active');
-  $('tab-'+name).classList.add('active');
-}
-
-document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{ switchTab(t.dataset.tab); if(t.dataset.tab==='payments'&&gStats)renderPayTab(gStats); }));
-
-$('btn-load').addEventListener('click',loadOverview);
-$('btn-ref').addEventListener('click',async()=>{ await fetch('/api/cache/clear',{method:'POST'}); toast('Cache cleared','success'); loadOverview(); });
-$('btn-fs').addEventListener('click',async()=>{
-  $('btn-fs').disabled=true;
-  try { const d=await(await fetch('/api/sync/force',{method:'POST'})).json(); toast(d.message||'Sync triggered',d.success?'success':'error'); setSyncDot('syncing'); setTimeout(updateSyncStatus,3000); }
-  catch(e){ toast('Error: '+e.message,'error'); }
-  finally{ setTimeout(()=>$('btn-fs').disabled=false,5000); }
+// ─── Overview ────────────────────────────────────────────────────────────────
+$('btn-load').addEventListener('click', loadOverview);
+$('btn-ref').addEventListener('click', async()=>{
+  await fetch('/api/cache/clear',{method:'POST'});
+  toast('Cache cleared','success'); loadOverview();
 });
 
 async function loadOverview(){
-  const api=$('sel-api').value,from=$('df').value,to=$('dt').value;
-  if(!from||!to){toast('Select a date range','error');return;}
-  $('ov-ld').classList.add('on'); $('ov-ct').style.opacity='.4'; $('stxt').textContent='Loading…';
+  const apiV=$('sel-api').value, dfrom=$('df').value, dto=$('dt').value;
+  if(!dfrom||!dto){ toast('Select a date range','error'); return; }
+  $('ov-ld').style.display='block'; $('ov-ct').style.opacity='0.3'; $('stxt').textContent='Loading…';
   try {
-    const p=new URLSearchParams({date_from:from,date_to:to}); if(api)p.set('api',api);
-    gStats=await apiFetch('/api/stats?'+p);
+    const p=new URLSearchParams({date_from:dfrom,date_to:dto});
+    if(apiV) p.set('api',apiV);
+    gStats = await apiFetch('/api/stats?'+p);
     renderCards(gStats); renderCharts(gStats); renderRecentErrors(gStats.recent_errors||[]);
     $('stxt').textContent=(gStats.files_loaded||0)+' files · '+fmt(gStats.total)+' entries';
   } catch(e){ toast('Failed: '+e.message,'error'); $('stxt').textContent='Error'; }
-  finally{ $('ov-ld').classList.remove('on'); $('ov-ct').style.opacity='1'; }
+  finally { $('ov-ld').style.display='none'; $('ov-ct').style.opacity='1'; }
 }
 
 function renderCards(s){
-  countUp($('c-tot'),fmt(s.total)); countUp($('c-err'),fmt(s.errors)); countUp($('c-wrn'),fmt(s.warnings));
-  countUp($('c-cre'),fmt(s.payments_created)); countUp($('c-cap'),fmt(s.payments_captured)); countUp($('c-rev'),fmtR(s.revenue_inr));
-  $('c-fi').textContent=(s.files_loaded||0)+' files loaded';
-  $('c-er').textContent=s.error_rate+'% error rate';
-  $('c-fa').textContent=fmt(s.payments_failed)+' failed';
+  $('c-tot').textContent=fmt(s.total); $('c-files').textContent=(s.files_loaded||0)+' files';
+  $('c-err').textContent=fmt(s.errors); $('c-erate').textContent=s.error_rate+'% error rate';
+  $('c-warn').textContent=fmt(s.warnings);
+  $('c-cre').textContent=fmt(s.payments_created);
+  $('c-cap').textContent=fmt(s.payments_captured);
+  $('c-fail').textContent=fmt(s.payments_failed)+' failed';
+  $('c-rev').textContent=fmtR(s.revenue_inr);
 }
 
 function renderCharts(s){
-  const hl=s.hourly_labels||[],hv=s.hourly_values||[];
-  cvShow('ch-tl',hl.length); if(hl.length){ CHART.line('ch-tl',hl.map(h=>h.slice(11)),[{data:hv,color:C.cy}]); $('tl-m').textContent=hl.length+' hours'; }
-  const epK=Object.keys(s.endpoints||{}).slice(0,8); cvShow('ch-ep',epK.length);
-  if(epK.length) CHART.hbar('ch-ep',epK,epK.map(k=>s.endpoints[k]),[C.cy,C.bl,C.te,C.gr,C.pu,C.or,C.ye,C.re]);
-  const psK=Object.keys(s.payment_statuses||{}); cvShow('ch-ps',psK.length);
-  if(psK.length) CHART.donut('ch-ps',psK,psK.map(k=>s.payment_statuses[k]),psK.map(k=>k==='captured'?C.gr:k==='created'?C.or:C.re));
-  const eeK=Object.keys(s.err_by_endpoint||{}).slice(0,6); cvShow('ch-ee',eeK.length);
-  if(eeK.length) CHART.hbar('ch-ee',eeK,eeK.map(k=>s.err_by_endpoint[k]),Array(8).fill(C.re));
-  const flK=Object.keys(s.flows||{}).slice(0,6); cvShow('ch-fl',flK.length);
-  if(flK.length) CHART.hbar('ch-fl',flK.map(k=>k.replace('implemtation_','').replace('_flowSub_Flow','').replace('-log-flow','  ')),flK.map(k=>s.flows[k]),[C.bl,C.te,C.pu,C.gr,C.cy,C.ye]);
-  const pmK=Object.keys(s.payment_methods||{}); cvShow('ch-pm',pmK.length);
-  if(pmK.length) CHART.donut('ch-pm',pmK,pmK.map(k=>s.payment_methods[k]),[C.te,C.pu,C.ye,C.bl,C.gr]);
+  // Timeline line chart
+  const hours=s.hourly_labels||[];
+  CHR.line('ch-tl', hours.map(h=>h.slice(11)), [{data:s.hourly_values||[],color:ACCENT}]);
+
+  // Endpoints bar
+  const epK=Object.keys(s.endpoints||{}).slice(0,6);
+  CHR.bar('ch-ep',epK.map(k=>k.replace('POST ','POST\n').replace('GET ','')),epK.map(k=>s.endpoints[k]),[ACCENT,BLUE],{horiz:true});
+
+  // Payment status donut
+  const psK=Object.keys(s.payment_statuses||{});
+  CHR.donut('ch-ps',psK,psK.map(k=>s.payment_statuses[k]),psK.map(k=>k==='captured'?GREEN:k==='created'?ACCENT:RED));
+
+  // Errors by endpoint bar
+  const eeK=Object.keys(s.err_by_endpoint||{}).slice(0,5);
+  if(eeK.length) CHR.bar('ch-ee',eeK.map(k=>k.replace('POST ','').replace('GET ','')),eeK.map(k=>s.err_by_endpoint[k]),[RED],{horiz:true});
+
+  // Flows bar
+  const flK=Object.keys(s.flows||{}).slice(0,4);
+  CHR.bar('ch-fl',flK.map(k=>k.replace('implemtation_','').replace('_flowSub_Flow','').replace('-log-flow','')),
+    flK.map(k=>s.flows[k]),[BLUE,TEAL,PURPLE,GREEN]);
+
+  // UPI methods donut
+  const pmK=Object.keys(s.payment_methods||{});
+  if(pmK.length) CHR.donut('ch-pm',pmK,pmK.map(k=>s.payment_methods[k]),[TEAL,PURPLE,YELLOW,BLUE]);
 }
 
 function renderRecentErrors(errors){
-  $('rc-ct').textContent=errors.length+' entries';
   const body=$('re-body');
-  if(!errors.length){body.innerHTML='<tr><td colspan="7" class="emp">✓ No errors in selected range</td></tr>';return;}
-  body.innerHTML=errors.slice(-25).reverse().map(e=>`<tr class="row">
+  $('rc-ct').textContent=errors.length+' entries';
+  if(!errors.length){ body.innerHTML='<tr><td colspan="7" class="emp">✓ No errors in selected range</td></tr>'; return; }
+  body.innerHTML=errors.slice(-20).reverse().map(e=>`<tr>
     <td><span class="badge b${e.level}">${e.level}</span></td>
-    <td class="mono td3" style="font-size:10px;white-space:nowrap">${e.timestamp}</td>
-    <td class="td2" style="font-size:10px">${esc(e.api)}</td>
-    <td><span class="torn mono" style="font-size:10px">${e.method} ${e.endpoint}</span></td>
-    <td class="td3" style="font-size:10px">${esc((e.flow||'').replace('implemtation_','').replace('_flowSub_Flow',''))}</td>
-    <td>${e.error_code?`<span class="tred mono" style="font-size:10px">${esc(e.error_code)}</span>`:'<span class="td3">—</span>'}</td>
-    <td class="ttr td2" style="font-size:10px">${esc(e.message||'')}</td>
+    <td class="mono tdim" style="white-space:nowrap;font-size:10px">${e.timestamp}</td>
+    <td class="tdim">${e.api}</td>
+    <td><span class="torn mono">${e.method} ${e.endpoint}</span></td>
+    <td class="tdim" style="font-size:10px">${(e.flow||'').replace('implemtation_','').replace('_flowSub_Flow','')}</td>
+    <td>${e.error_code?`<span class="tred">${e.error_code}</span>`:'<span class="tdim">—</span>'}</td>
+    <td class="ttrunc tdim">${esc(e.message||'')}</td>
   </tr>`).join('');
 }
 
+// ─── Payments tab ─────────────────────────────────────────────────────────────
 function renderPayTab(s){
-  if(!s)return;
-  countUp($('p-cre'),fmt(s.payments_created)); countUp($('p-cap'),fmt(s.payments_captured));
-  countUp($('p-fail'),fmt(s.payments_failed)); countUp($('p-rev'),fmtR(s.revenue_inr));
+  if(!s) return;
+  $('p-cre').textContent=fmt(s.payments_created);
+  $('p-cap').textContent=fmt(s.payments_captured);
+  $('p-fail').textContent=fmt(s.payments_failed);
+  $('p-rev').textContent=fmtR(s.revenue_inr);
+
   const dK=Object.keys(s.daily||{});
-  if(dK.length) CHART.line('ch-da',dK,[{data:dK.map(k=>s.daily[k]),color:C.pu}]);
-  CHART.vbar('ch-fn',['Created','Captured','Failed'],[s.payments_created,s.payments_captured,s.payments_failed],[C.or,C.gr,C.re]);
+  CHR.line('ch-da',dK,[{data:dK.map(k=>s.daily[k]),color:PURPLE}]);
+  CHR.bar('ch-fn',['Created','Captured','Failed'],[s.payments_created,s.payments_captured,s.payments_failed],[ACCENT,GREEN,RED]);
+
   const pmK=Object.keys(s.payment_methods||{});
-  if(pmK.length) CHART.donut('ch-um',pmK,pmK.map(k=>s.payment_methods[k]),[C.te,C.bl,C.ye,C.gr]);
+  if(pmK.length) CHR.donut('ch-um',pmK,pmK.map(k=>s.payment_methods[k]),[TEAL,BLUE,YELLOW,GREEN]);
 }
 
+// ─── Log Explorer ──────────────────────────────────────────────────────────────
 $('btn-srch').addEventListener('click',()=>{logsPage=1;loadLogs();});
-$('l-api').addEventListener('change',async()=>{
-  const a=$('l-api').value; const {dates}=await apiFetch('/api/dates'+(a?'?api='+a:''));
-  const sel=$('l-date'); sel.innerHTML='<option value="">All dates</option>';
-  (dates||[]).forEach(d=>{const o=document.createElement('option');o.value=d;o.textContent=d;sel.appendChild(o);});
+$('l-api').addEventListener('change', async()=>{
+  const a=$('l-api').value;
+  const {dates}=await apiFetch('/api/dates'+(a?'?api='+a:''));
+  const sel=$('l-date');
+  sel.innerHTML='<option value="">All dates</option>';
+  dates.forEach(d=>{ const o=document.createElement('option'); o.value=d; o.textContent=d; sel.appendChild(o); });
 });
 
 async function loadLogs(){
-  const p=new URLSearchParams({api:$('l-api').value,date:$('l-date').value,level:$('l-lvl').value,endpoint:$('l-ep').value,search:$('l-srch').value,page:logsPage,per_page:50});
-  $('l-ld').classList.add('on'); $('l-tw').style.opacity='.4';
+  const p=new URLSearchParams({
+    api:$('l-api').value, date:$('l-date').value,
+    level:$('l-lvl').value, endpoint:$('l-ep').value,
+    search:$('l-srch').value, page:logsPage, per_page:50
+  });
+  $('l-ld').style.display='block'; $('l-tw').style.opacity='0.3';
   try {
     const d=await apiFetch('/api/logs?'+p);
-    renderLogsTable(d.logs||[]); $('l-tot').textContent=fmt(d.total)+' entries · pg '+d.page+'/'+d.pages; renderPagination(d.page,d.pages);
-  } catch(e){toast('Failed: '+e.message,'error');}
-  finally{$('l-ld').classList.remove('on');$('l-tw').style.opacity='1';}
+    renderLogsTable(d.logs||[]);
+    $('l-tot').textContent=fmt(d.total)+' entries · pg '+d.page+'/'+d.pages;
+    renderPagination(d.page,d.pages);
+  } catch(e){ toast('Failed: '+e.message,'error'); }
+  finally{ $('l-ld').style.display='none'; $('l-tw').style.opacity='1'; }
 }
 
 function renderLogsTable(logs){
   const body=$('l-body');
-  if(!logs.length){body.innerHTML='<tr><td colspan="11" class="emp">No logs match filters</td></tr>';return;}
-  const rzC=st=>st==='captured'?'bok':st==='created'?'bcreated':'bfail';
-  body.innerHTML=logs.map(e=>`<tr class="row">
-    <td><span class="badge b${e.level}">${e.level}</span></td>
-    <td class="mono td3" style="font-size:10px;white-space:nowrap">${e.timestamp}</td>
-    <td class="td2" style="font-size:10px">${esc(e.api)}</td>
-    <td><span class="badge b${e.method}">${e.method}</span></td>
-    <td class="mono tcy" style="font-size:10px">${esc(e.endpoint)}</td>
-    <td class="td3" style="font-size:10px">${esc((e.flow||'').replace('implemtation_','').replace('_flowSub_Flow',''))}</td>
-    <td>${e.rz_status?`<span class="badge ${rzC(e.rz_status)}">${esc(e.rz_status)}</span>`:'<span class="td3">—</span>'}</td>
-    <td class="mono">${e.amount_inr!=null?'<span class="tgrn">₹'+e.amount_inr.toLocaleString('en-IN')+'</span>':'<span class="td3">—</span>'}</td>
-    <td>${e.error_code?`<span class="tred mono" style="font-size:10px">${esc(e.error_code)}</span>`:'<span class="td3">—</span>'}</td>
-    <td class="mono td3" style="font-size:10px">${esc(e.loan_number||'—')}</td>
-    <td class="ttr td2" style="font-size:10px">${esc(e.message||'')}</td>
-  </tr>`).join('');
+  if(!logs.length){ body.innerHTML='<tr><td colspan="11" class="emp">No logs match filters</td></tr>'; return; }
+  body.innerHTML=logs.map(e=>{
+    const rzB=e.rz_status?`<span class="badge b${e.rz_status==='captured'?'ok':e.rz_status==='created'?'created':'fail'}">${e.rz_status}</span>`:'<span class="tdim">—</span>';
+    return `<tr>
+      <td><span class="badge b${e.level}">${e.level}</span></td>
+      <td class="mono tdim" style="font-size:10px;white-space:nowrap">${e.timestamp}</td>
+      <td class="tdim">${e.api}</td>
+      <td><span class="badge b${e.method==='POST'?'created':'INFO'}">${e.method}</span></td>
+      <td class="mono torn">${e.endpoint}</td>
+      <td class="tdim" style="font-size:10px">${(e.flow||'').replace('implemtation_','').replace('_flowSub_Flow','')}</td>
+      <td>${rzB}</td>
+      <td class="mono">${e.amount_inr!=null?'₹'+e.amount_inr.toLocaleString('en-IN'):'—'}</td>
+      <td>${e.error_code?`<span class="tred">${e.error_code}</span>`:'<span class="tdim">—</span>'}</td>
+      <td class="mono tdim" style="font-size:10px">${e.loan_number||'—'}</td>
+      <td class="ttrunc tdim">${esc(e.message||'')}</td>
+    </tr>`;
+  }).join('');
 }
 
 function renderPagination(page,pages){
   const el=$('l-pg'); if(pages<=1){el.innerHTML='';return;}
   let h=`<button class="pb" ${page===1?'disabled':''} onclick="goPage(${page-1})">‹ Prev</button>`;
-  const s=Math.max(1,page-3),e=Math.min(pages,s+6);
-  for(let p=s;p<=e;p++) h+=`<button class="pb ${p===page?'active':''}" onclick="goPage(${p})">${p}</button>`;
+  const s=Math.max(1,page-3), e2=Math.min(pages,s+6);
+  for(let p=s;p<=e2;p++) h+=`<button class="pb ${p===page?'active':''}" onclick="goPage(${p})">${p}</button>`;
   h+=`<button class="pb" ${page===pages?'disabled':''} onclick="goPage(${page+1})">Next ›</button>`;
   el.innerHTML=h;
 }
 function goPage(p){logsPage=p;loadLogs();}
 
-$('btn-cal').addEventListener('click',async()=>{
-  const nm=$('al-nm').value.trim(),th=$('al-th').value;
+// ─── Alerts ───────────────────────────────────────────────────────────────────
+$('btn-cal').addEventListener('click', async()=>{
+  const nm=$('al-nm').value.trim(), th=$('al-th').value;
   if(!nm||!th){toast('Name and threshold required','error');return;}
-  try{
-    await fetch('/api/alerts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:nm,api:$('al-api').value,metric:$('al-mt').value,operator:$('al-op').value,threshold:parseFloat(th),webhook_url:$('al-wh').value.trim(),enabled:true})});
+  try {
+    await fetch('/api/alerts',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name:nm,api:$('al-api').value,metric:$('al-mt').value,
+        operator:$('al-op').value,threshold:parseFloat(th),webhook_url:$('al-wh').value.trim(),enabled:true})});
     toast('Alert created ✓','success'); $('al-nm').value=''; $('al-th').value=''; loadAlerts();
-  }catch(e){toast('Failed: '+e.message,'error');}
+  } catch(e){toast('Failed: '+e.message,'error');}
 });
-$('btn-twh').addEventListener('click',async()=>{
-  const url=$('al-wh').value.trim(); if(!url){toast('Enter webhook URL','error');return;}
-  try{const d=await(await fetch('/api/alerts/test-webhook',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({webhook_url:url})})).json();
-    if(d.success)toast('Webhook OK · '+d.status_code,'success');else toast('Failed: '+d.error,'error');
-  }catch(e){toast('Error: '+e.message,'error');}
+
+$('btn-twh').addEventListener('click', async()=>{
+  const url=$('al-wh').value.trim();
+  if(!url){toast('Enter a webhook URL','error');return;}
+  try {
+    const r=await fetch('/api/alerts/test-webhook',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({webhook_url:url})});
+    const d=await r.json();
+    if(d.success) toast('Sent ✓ status '+d.status_code,'success'); else toast('Failed: '+d.error,'error');
+  } catch(e){toast('Error: '+e.message,'error');}
 });
+
 async function loadAlerts(){
   try{
     const {alerts}=await apiFetch('/api/alerts');
     const el=$('al-list');
-    if(!alerts.length){el.innerHTML='<div class="emp" style="padding:28px 0">🔔 No alerts configured</div>';return;}
+    if(!alerts.length){el.innerHTML='<div class="emp">🔔 No alerts configured</div>';return;}
     el.innerHTML=alerts.map(a=>`<div class="ai">
-      <div class="aidot ${a.enabled?'on':'off'}"></div>
-      <div class="aibody"><div class="ainame">${esc(a.name)}</div>
-      <div class="aimeta">${a.api||'All APIs'} · <code>${a.metric}</code> ${a.operator} ${a.threshold}${a.last_fired?' · Last: '+a.last_fired.slice(0,16):''}</div>
-      ${a.webhook_url?`<div class="aimeta" style="color:var(--text3);font-size:10px;margin-top:2px">${a.webhook_url.slice(0,50)}…</div>`:''}</div>
-      <div class="aiacts">
+      <div class="ai-info">
+        <div class="ai-name">${esc(a.name)}</div>
+        <div class="ai-meta">${a.api||'All APIs'} · <code>${a.metric}</code> ${a.operator} ${a.threshold}${a.last_fired?' · Last: '+a.last_fired.slice(0,16):''}</div>
+        ${a.webhook_url?`<div class="ai-meta tdim">${a.webhook_url.slice(0,48)}…</div>`:''}
+      </div>
+      <div class="ai-acts">
         <label class="tog"><input type="checkbox" ${a.enabled?'checked':''} onchange="togAlert('${a.id}',this.checked)"><span class="tsl"></span></label>
         <button class="btn btn-d btn-sm" onclick="delAlert('${a.id}')">✕</button>
-      </div></div>`).join('');
+      </div>
+    </div>`).join('');
   }catch(e){toast('Could not load alerts','error');}
 }
-async function togAlert(id,e){await fetch('/api/alerts/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:e})});toast(e?'Enabled':'Disabled');loadAlerts();}
-async function delAlert(id){if(!confirm('Delete this alert?'))return;await fetch('/api/alerts/'+id,{method:'DELETE'});toast('Deleted');loadAlerts();}
+async function togAlert(id,e){
+  await fetch('/api/alerts/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:e})});
+  toast(e?'Enabled':'Disabled');
+}
+async function delAlert(id){
+  if(!confirm('Delete this alert?')) return;
+  await fetch('/api/alerts/'+id,{method:'DELETE'}); toast('Deleted'); loadAlerts();
+}
 
-let _rt; window.addEventListener('resize',()=>{clearTimeout(_rt);_rt=setTimeout(()=>{if(gStats){renderCharts(gStats);renderPayTab(gStats);}},280);});
+// Re-draw charts on window resize
+let _rt; window.addEventListener('resize',()=>{ clearTimeout(_rt); _rt=setTimeout(()=>{ if(gStats){renderCharts(gStats); renderPayTab(gStats);} },300); });
+
+// ─── Sync Drawer ──────────────────────────────────────────────────────────────
+let _spPoll = null, _prevSyncPhase = null, _lastSyncDone = null;
+
+function openSyncDrawer(){
+  $('sync-drawer').classList.add('open');
+  $('sync-overlay').style.display='block';
+  startProgressPolling();
+}
+function closeSyncDrawer(){
+  $('sync-drawer').classList.remove('open');
+  $('sync-overlay').style.display='none';
+}
+async function forceSyncAndOpen(){
+  openSyncDrawer();
+  try {
+    const r = await fetch('/api/sync/force',{method:'POST'});
+    const d = await r.json();
+    if(!d.success) toast(d.message,'error');
+    else toast('Sync triggered ✓','success');
+  } catch(e){ toast('Force sync failed: '+e.message,'error'); }
+}
+
+function startProgressPolling(){
+  if(_spPoll) return;
+  _spPoll = setInterval(pollSyncProgress, 2000);
+  pollSyncProgress();
+}
+function stopProgressPolling(){
+  if(_spPoll){ clearInterval(_spPoll); _spPoll=null; }
+}
+
+async function pollSyncProgress(){
+  try {
+    const p = await apiFetch('/api/sync/progress');
+    renderSyncDrawer(p);
+    renderStatusBar(p);
+    // Auto-reload overview when sync completes
+    if(p.phase==='done' && _prevSyncPhase && _prevSyncPhase!=='done' && _prevSyncPhase!=='idle'){
+      toast('✓ Sync complete — reloading data','success');
+      setTimeout(()=>{ loadOverview(); populateApis(); },800);
+    }
+    _prevSyncPhase = p.phase;
+    // Stop heavy polling if idle or done and drawer is closed
+    if((p.phase==='done'||p.phase==='idle'||p.phase==='error') && !$('sync-drawer').classList.contains('open')){
+      stopProgressPolling();
+    }
+  } catch(e){}
+}
+
+function renderSyncDrawer(p){
+  // Phase badge
+  const badge=$('sd-phase-badge');
+  const phaseMap={
+    idle:['ph-idle','● Idle'],
+    listing:['ph-listing','⟳ Listing S3'],
+    parsing:['ph-parsing','⟳ Parsing'],
+    done:['ph-done','✓ Complete'],
+    error:['ph-error','✗ Error']
+  };
+  const [cls,lbl]=phaseMap[p.phase]||['ph-idle','● Unknown'];
+  badge.className='ph-badge '+cls;
+  badge.textContent=lbl;
+
+  // Stats
+  $('sd-elapsed').textContent = p.elapsed_secs ? p.elapsed_secs+'s' : '—';
+  $('sd-files-done').textContent = p.total_files ? `${p.files_done||0}/${p.total_files}` : (p.file_count||'—');
+  $('sd-entries').textContent = p.entries_parsed ? fmt(p.entries_parsed) : fmt(p.entry_count||0);
+
+  // Progress bar
+  const pct = p.total_files ? Math.round(((p.files_done||0)/p.total_files)*100) : (p.phase==='done'?100:0);
+  const fill=$('sd-prog-fill');
+  fill.style.width=pct+'%';
+  fill.className='prog-fill'+(p.phase==='done'?' done':p.phase==='error'?' err':'');
+  $('sd-pct').textContent=pct+'%';
+
+  // Current file
+  const cf=$('sd-cur-file');
+  if(p.current_file) cf.innerHTML=`<span style="color:var(--text3)">Parsing:</span> <span style="color:var(--teal)">${p.current_file}</span>`;
+  else if(p.phase==='listing') cf.innerHTML='<span style="color:var(--blue)">Listing S3 objects…</span>';
+  else if(p.phase==='done') cf.innerHTML='<span style="color:var(--green)">✓ All files processed</span>';
+  else if(p.phase==='error') cf.innerHTML=`<span style="color:var(--red)">✗ ${p.phase_label||p.sync_error||'Unknown error'}</span>`;
+  else cf.innerHTML='<span style="color:var(--text3)">Waiting for sync…</span>';
+
+  // Per-prefix cards
+  const pfxEl=$('sd-prefixes');
+  if(p.prefixes && p.prefixes.length){
+    pfxEl.innerHTML=p.prefixes.map(pr=>`
+      <div class="pfx-card" style="margin-bottom:8px">
+        <div class="pfx-name">📡 ${pr.prefix}</div>
+        <div class="pfx-stats">
+          <div class="pfx-stat">Files found <span>${pr.files_found||0}</span></div>
+          <div class="pfx-stat">Fetched <span style="color:var(--blue)">${pr.files_parsed||0}</span></div>
+          <div class="pfx-stat">Cached <span style="color:var(--green)">${pr.files_cached||0}</span></div>
+          <div class="pfx-stat">Downloaded <span style="color:var(--accent)">${pr.bytes_read?Math.round(pr.bytes_read/1024)+'KB':'—'}</span></div>
+        </div>
+      </div>`).join('');
+  }
+
+  // Activity log
+  const logEl=$('sd-log');
+  if(p.log && p.log.length){
+    logEl.innerHTML=p.log.slice().reverse().map(l=>{
+      const cls=l.msg.startsWith('✓')?'ok':l.msg.startsWith('✗')?'err':l.msg.includes('↓')?'inf':'';
+      return `<div class="log-line ${cls}"><span class="ts">${l.ts}</span>${esc(l.msg)}</div>`;
+    }).join('');
+  }
+}
+
+// ─── Status Bar ───────────────────────────────────────────────────────────────
+function renderStatusBar(p){
+  const dot=$('sb-sync-dot');
+  const lbl=$('sb-sync-label');
+
+  if(p.syncing){
+    dot.className='sb-spin';
+    lbl.textContent=p.phase_label||'Syncing…';
+    lbl.style.color='var(--blue)';
+  } else if(p.phase==='error' || p.sync_error){
+    dot.className='sdot';dot.style.background='var(--red)';dot.style.animation='none';
+    lbl.textContent='Sync error';lbl.style.color='var(--red)';
+  } else {
+    dot.className='sb-pulse';dot.style.background='';dot.style.animation='';
+    lbl.textContent='Live';lbl.style.color='';
+  }
+
+  $('sb-files').textContent=fmt(p.file_count||0);
+  $('sb-entries').textContent=fmt(p.entry_count||0);
+  $('sb-last').textContent=p.last_sync?timeAgo(p.last_sync):'—';
+  $('sb-next').textContent=p.next_sync?timeAgo(p.next_sync,true):'—';
+}
+
+function timeAgo(iso, future=false){
+  const diff=Math.round((new Date(iso)-Date.now())/1000);
+  const abs=Math.abs(diff);
+  const str=abs<60?abs+'s':abs<3600?Math.round(abs/60)+'m':Math.round(abs/3600)+'h';
+  return future?(diff>0?'in '+str:'overdue'):(diff<0?str+' ago':'just now');
+}
+
+// ─── Diagnostics ─────────────────────────────────────────────────────────────
+async function loadDiag(){
+  $('diag-ld').style.display='block';
+  try {
+    const d=await apiFetch('/api/debug');
+    const grid=$('diag-grid');
+    const rows=[
+      {k:'S3 Bucket',v:d.S3_BUCKET,ok:!!d.S3_BUCKET},
+      {k:'S3 Prefixes',v:(d.S3_PREFIXES||[]).join(', ')},
+      {k:'AWS Region',v:d.AWS_REGION},
+      {k:'Access Key',v:d.has_access_key?'✓ Set':'✗ Missing',ok:d.has_access_key},
+      {k:'Secret Key',v:d.has_secret_key?'✓ Set':'✗ Missing',ok:d.has_secret_key},
+      {k:'boto3',v:d.boto3_installed?'✓ Installed':'✗ Missing',ok:d.boto3_installed},
+      {k:'Sync Phase',v:d.phase||'—'},
+      {k:'Sync Error',v:d.sync_error||'None',ok:!d.sync_error},
+      {k:'Files Loaded',v:fmt(d.file_count||0)},
+      {k:'Entries',v:fmt(d.entry_count||0)},
+      {k:'Store Days',v:d.store_days+' days'},
+      {k:'Sync Interval',v:Math.round(d.sync_interval_secs/60)+' min'},
+      {k:'Available From',v:d.available_from||'—'},
+      {k:'Available To',v:d.available_to||'—'},
+    ];
+    grid.innerHTML=rows.map(r=>`
+      <div class="diag-row">
+        <div class="diag-key">${r.k}</div>
+        <div class="diag-val ${r.ok===true?'diag-ok':r.ok===false?'diag-err':''}">${esc(String(r.v||'—'))}</div>
+      </div>`).join('');
+    // Sample files
+    if(d.sample_files && d.sample_files.length){
+      $('diag-files-wrap').style.display='block';
+      $('diag-files-body').innerHTML=d.sample_files.map(f=>`<tr>
+        <td class="mono tdim" style="font-size:10px">${esc(f.key)}</td>
+        <td class="torn">${esc(f.api)}</td>
+        <td class="tdim">${f.date}</td>
+        <td class="tdim">${f.size_kb} KB</td>
+        <td class="mono tdim" style="font-size:10px">${esc(f.prefix||'—')}</td>
+      </tr>`).join('');
+    }
+    // Available APIs
+    if(d.available_apis && d.available_apis.length){
+      $('diag-apis-wrap').style.display='block';
+      $('diag-apis-list').innerHTML=d.available_apis.map(a=>
+        `<span style="background:var(--bg3);border:1px solid var(--border2);border-radius:5px;
+          padding:4px 10px;font-size:11px;color:var(--teal)">${esc(a)}</span>`).join('');
+    }
+  } catch(e){ toast('Diag failed: '+e.message,'error'); }
+  finally { $('diag-ld').style.display='none'; }
+}
+
+async function populateApis(){
+  try{
+    const {apis}=await apiFetch('/api/apis');
+    ['sel-api','l-api','al-api'].forEach(id=>{
+      const el=$(id); if(!el) return;
+      const cur=el.value;
+      el.querySelectorAll('option:not([value=""])').forEach(o=>o.remove());
+      apis.forEach(a=>{ const o=document.createElement('option'); o.value=a; o.textContent=a; el.appendChild(o); });
+      el.value=cur;
+    });
+  } catch(e){}
+}
+
+// Start status bar polling on load (every 10s, lightweight)
+setInterval(async()=>{
+  try{ const p=await apiFetch('/api/sync/progress'); renderStatusBar(p); } catch(e){}
+}, 10000);
+// Also refresh progress drawer if open
+setInterval(()=>{
+  if($('sync-drawer').classList.contains('open')) pollSyncProgress();
+},2000);
+
 </script>
 </body>
 </html>
