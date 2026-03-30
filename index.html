@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>MuleSoft Log Intelligence</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
@@ -22,12 +22,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 .logo::before{content:'◈';font-size:18px}
 .sep{width:1px;height:26px;background:var(--border)}
 .ctrls{display:flex;align-items:center;gap:10px;flex:1;flex-wrap:wrap}
-.tr{display:flex;align-items:center;gap:8px;margin-left:auto;flex-shrink:0}
-/* Sync status strip */
-.sync-strip{display:flex;align-items:center;gap:8px;padding:6px 22px;background:var(--bg);border-bottom:1px solid var(--border);font-size:11px;color:var(--text3)}
-.sync-pill{display:flex;align-items:center;gap:5px}
-.sync-sep{width:1px;height:12px;background:var(--border)}
-.ctr-badge{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:2px 7px;font-size:10px;letter-spacing:.3px}
+.tr{display:flex;align-items:center;gap:8px;margin-left:auto}
 /* Inputs */
 select,input[type=date],input[type=text],input[type=number],input[type=url],textarea{
   background:var(--bg3);border:1px solid var(--border);color:var(--text);
@@ -40,7 +35,6 @@ label{font-size:11px;color:var(--text2)}
 .btn-p{background:var(--accent);color:#fff}.btn-p:hover{background:var(--accent2)}
 .btn-g{background:transparent;color:var(--text2);border:1px solid var(--border)}.btn-g:hover{border-color:var(--accent);color:var(--accent)}
 .btn-d{background:transparent;color:var(--red);border:1px solid var(--red)}.btn-d:hover{background:var(--red);color:#fff}
-.btn-teal{background:transparent;color:var(--teal);border:1px solid var(--teal)}.btn-teal:hover{background:var(--teal);color:#000}
 .btn-sm{padding:4px 10px;font-size:11px}
 .btn:disabled{opacity:.45;cursor:not-allowed}
 /* Tabs */
@@ -124,22 +118,98 @@ tr:hover td{background:var(--bg3)}
 .st{font-family:var(--fh);font-size:12px;font-weight:700;color:var(--text2);letter-spacing:.8px;text-transform:uppercase}
 .flex{display:flex;align-items:center;gap:8px}
 .mla{margin-left:auto}
-/* Dots */
-.sdot{width:7px;height:7px;border-radius:50%;display:inline-block;flex-shrink:0}
+.sdot{width:7px;height:7px;border-radius:50%;display:inline-block}
 .dlive{background:var(--green);animation:pulse 2s infinite}
-.dsyncing{background:var(--yellow);animation:pulse .6s infinite}
-.derr{background:var(--red)}
-.dwait{background:var(--text3)}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-/* Warn banner */
-.warn-banner{background:rgba(255,59,92,.08);border:1px solid rgba(255,59,92,.25);border-radius:8px;padding:11px 14px;margin-bottom:16px;font-size:12px;color:var(--red);display:none}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+/* ── Sync Drawer ── */
+#sync-drawer{
+  position:fixed;right:0;top:0;bottom:0;width:400px;
+  background:var(--bg2);border-left:1px solid var(--border);
+  z-index:500;display:flex;flex-direction:column;
+  transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);
+  box-shadow:-8px 0 32px rgba(0,0,0,.5)
+}
+#sync-drawer.open{transform:translateX(0)}
+.sd-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 20px;border-bottom:1px solid var(--border);
+  background:var(--bg3)
+}
+.sd-title{font-family:var(--fh);font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px}
+.sd-close{background:none;border:none;color:var(--text2);cursor:pointer;font-size:18px;line-height:1;padding:2px 6px;border-radius:4px}
+.sd-close:hover{color:var(--text);background:var(--border)}
+.sd-body{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:14px}
+/* Phase badge */
+.ph-row{display:flex;align-items:center;gap:10px}
+.ph-badge{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.5px
+}
+.ph-idle{background:rgba(122,143,175,.12);color:var(--text2)}
+.ph-listing,.ph-parsing{background:rgba(77,158,255,.15);color:var(--blue)}
+.ph-done{background:rgba(0,229,160,.13);color:var(--green)}
+.ph-error{background:rgba(255,59,92,.18);color:var(--red)}
+/* Progress bar */
+.prog-wrap{background:var(--bg3);border:1px solid var(--border);border-radius:6px;overflow:hidden;height:8px}
+.prog-fill{height:100%;border-radius:6px;transition:width .4s ease;background:linear-gradient(90deg,var(--blue),var(--teal))}
+.prog-fill.done{background:linear-gradient(90deg,var(--green),var(--teal))}
+.prog-fill.err{background:var(--red)}
+/* Prefix cards */
+.pfx-card{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:11px 14px}
+.pfx-name{font-size:11px;color:var(--teal);font-weight:700;margin-bottom:7px;font-family:var(--fm)}
+.pfx-stats{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px}
+.pfx-stat{font-size:11px;color:var(--text2)}.pfx-stat span{color:var(--text);font-weight:700}
+/* Log terminal */
+.log-term{
+  background:var(--bg);border:1px solid var(--border);border-radius:8px;
+  padding:10px 12px;font-family:var(--fm);font-size:10px;
+  max-height:200px;overflow-y:auto;color:var(--text2)
+}
+.log-line{padding:1px 0;line-height:1.6}
+.log-line .ts{color:var(--text3);margin-right:6px}
+.log-line.ok{color:var(--green)}.log-line.err{color:var(--red)}.log-line.inf{color:var(--blue)}
+/* Sync stats row */
+.sd-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.sd-stat{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;text-align:center}
+.sd-stat-val{font-family:var(--fh);font-size:18px;font-weight:700;color:var(--text)}
+.sd-stat-lbl{font-size:10px;color:var(--text3);margin-top:2px;text-transform:uppercase;letter-spacing:.5px}
+/* Status bar (below tabs) */
+#status-bar{
+  display:flex;align-items:center;gap:12px;padding:6px 22px;
+  background:var(--bg2);border-bottom:1px solid var(--border);
+  font-size:11px;color:var(--text2);flex-wrap:wrap
+}
+#status-bar .sb-item{display:flex;align-items:center;gap:5px;white-space:nowrap}
+#status-bar .sb-sep{color:var(--border2);margin:0 2px}
+#status-bar .sb-sync-btn{
+  margin-left:auto;background:none;border:1px solid var(--border);
+  color:var(--text2);font-size:10px;padding:3px 10px;border-radius:5px;
+  cursor:pointer;font-family:var(--fm);transition:all .2s
+}
+#status-bar .sb-sync-btn:hover{border-color:var(--accent);color:var(--accent)}
+#status-bar .sb-view-btn{
+  background:none;border:none;color:var(--blue);font-size:10px;
+  padding:2px 6px;border-radius:4px;cursor:pointer;font-family:var(--fm)
+}
+#status-bar .sb-view-btn:hover{text-decoration:underline}
+.sb-pulse{display:inline-block;width:6px;height:6px;border-radius:50%;
+  background:var(--green);animation:pulse 2s infinite}
+.sb-spin{display:inline-block;width:10px;height:10px;
+  border:2px solid var(--border);border-top-color:var(--blue);
+  border-radius:50%;animation:spin .7s linear infinite}
+/* Diag panel */
+.diag-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px}
+.diag-row{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 11px}
+.diag-key{color:var(--text2);margin-bottom:2px;font-size:10px;text-transform:uppercase;letter-spacing:.5px}
+.diag-val{color:var(--text);font-family:var(--fm);word-break:break-all}
+.diag-ok{color:var(--green)}.diag-err{color:var(--red)}
 @media(max-width:1100px){.cr1{grid-template-columns:1fr 1fr}.cr2{grid-template-columns:1fr 1fr}}
 @media(max-width:700px){.cr1,.cr2,.ag{grid-template-columns:1fr}.ctrls{display:none}}
+@media(max-width:700px){#sync-drawer{width:100%}}
 </style>
 </head>
 <body>
 <div class="app">
-
 <!-- TOPBAR -->
 <div class="topbar">
   <div class="logo">MuleSoft Intelligence</div>
@@ -149,44 +219,117 @@ tr:hover td{background:var(--bg3)}
     <div class="flex"><label>From</label><input type="date" id="df"/></div>
     <div class="flex"><label>To</label><input type="date" id="dt"/></div>
     <button class="btn btn-p btn-sm" id="btn-load">▶ Load</button>
+    <button class="btn btn-g btn-sm" id="btn-ref">↺ Refresh</button>
   </div>
   <div class="tr">
-    <button class="btn btn-teal btn-sm" id="btn-fsync" title="Trigger immediate S3 sync">⟳ Sync Now</button>
-    <button class="btn btn-g btn-sm" id="btn-ref" title="Clear stats cache and reload">↺ Reload</button>
+    <span class="sdot dlive"></span>
+    <span style="font-size:11px;color:var(--text2)" id="stxt">Ready</span>
   </div>
 </div>
-
-<!-- SYNC STATUS STRIP -->
-<div class="sync-strip">
-  <div class="sync-pill">
-    <span class="sdot dwait" id="sync-dot"></span>
-    <span id="sync-main">Initializing…</span>
-  </div>
-  <div class="sync-sep"></div>
-  <span id="sync-entries" style="color:var(--text2)"></span>
-  <div class="sync-sep"></div>
-  <span id="sync-next"></span>
-  <div class="sync-sep"></div>
-  <span id="ar-ctr" style="color:var(--text3)" title="Display auto-refreshes every 60s from in-memory data"></span>
-  <span id="sync-err" style="color:var(--red);display:none"></span>
-</div>
-
 <!-- TABS -->
 <div class="tabs">
   <div class="tab active" data-tab="overview">Overview</div>
   <div class="tab" data-tab="logs">Log Explorer</div>
   <div class="tab" data-tab="payments">Payments</div>
   <div class="tab" data-tab="alerts">Alerts</div>
+  <div class="tab" data-tab="diagnostics">Diagnostics</div>
 </div>
+<!-- STATUS BAR -->
+<div id="status-bar">
+  <div class="sb-item"><span id="sb-sync-dot" class="sb-pulse"></span><span id="sb-sync-label">Ready</span></div>
+  <span class="sb-sep">·</span>
+  <div class="sb-item">📁 <span id="sb-files">—</span> files</div>
+  <span class="sb-sep">·</span>
+  <div class="sb-item">📋 <span id="sb-entries">—</span> entries</div>
+  <span class="sb-sep">·</span>
+  <div class="sb-item">Last sync: <span id="sb-last">—</span></div>
+  <span class="sb-sep">·</span>
+  <div class="sb-item">Next: <span id="sb-next">—</span></div>
+  <button class="sb-view-btn" onclick="openSyncDrawer()">⟳ View progress</button>
+  <button class="sb-sync-btn" onclick="forceSyncAndOpen()">↺ Force Sync</button>
+</div>
+
+<!-- SYNC DRAWER -->
+<div id="sync-drawer">
+  <div class="sd-head">
+    <div class="sd-title">
+      <span id="sd-phase-badge" class="ph-badge ph-idle">● Idle</span>
+      S3 Sync Progress
+    </div>
+    <button class="sd-close" onclick="closeSyncDrawer()">✕</button>
+  </div>
+  <div class="sd-body">
+
+    <!-- timing stats -->
+    <div class="sd-stats">
+      <div class="sd-stat"><div class="sd-stat-val" id="sd-elapsed">—</div><div class="sd-stat-lbl">Elapsed</div></div>
+      <div class="sd-stat"><div class="sd-stat-val" id="sd-files-done">—</div><div class="sd-stat-lbl">Files</div></div>
+      <div class="sd-stat"><div class="sd-stat-val" id="sd-entries">—</div><div class="sd-stat-lbl">Entries</div></div>
+    </div>
+    <!-- cache tier breakdown -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:7px 10px;text-align:center">
+        <div style="font-size:16px;font-weight:700;color:var(--red)" id="sd-s3">—</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px">↓ S3 FETCH</div>
+      </div>
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:7px 10px;text-align:center">
+        <div style="font-size:16px;font-weight:700;color:var(--green)" id="sd-disk">—</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px">💾 DISK HIT</div>
+      </div>
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:7px 10px;text-align:center">
+        <div style="font-size:16px;font-weight:700;color:var(--teal)" id="sd-mem">—</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px">⚡ RAM HIT</div>
+      </div>
+    </div>
+
+    <!-- overall progress bar -->
+    <div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+        <span style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Overall</span>
+        <span id="sd-pct" style="font-size:10px;color:var(--text2)">0%</span>
+      </div>
+      <div class="prog-wrap"><div id="sd-prog-fill" class="prog-fill" style="width:0%"></div></div>
+    </div>
+
+    <!-- current file -->
+    <div id="sd-cur-file" style="font-size:11px;color:var(--text2);font-family:var(--fm);
+      background:var(--bg3);border:1px solid var(--border);border-radius:6px;
+      padding:7px 11px;min-height:32px;word-break:break-all">
+      Waiting for sync…
+    </div>
+
+    <!-- per-prefix breakdown -->
+    <div>
+      <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px">Per Server Prefix</div>
+      <div id="sd-prefixes">
+        <div style="font-size:11px;color:var(--text3);padding:8px">No data yet — trigger a sync to begin</div>
+      </div>
+    </div>
+
+    <!-- activity log -->
+    <div>
+      <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px">Activity Log</div>
+      <div class="log-term" id="sd-log"><div style="color:var(--text3)">Log will appear when sync starts…</div></div>
+    </div>
+
+    <!-- actions -->
+    <div style="display:flex;gap:8px;padding-top:4px;flex-wrap:wrap">
+      <button class="btn btn-p btn-sm" onclick="forceSyncAndOpen()">↺ Force Sync Now</button>
+      <button class="btn btn-g btn-sm" onclick="wipeDiskCache()">🗑 Wipe Disk Cache</button>
+      <button class="btn btn-g btn-sm" onclick="closeSyncDrawer()">Close</button>
+    </div>
+  </div>
+</div>
+<div id="sync-overlay" onclick="closeSyncDrawer()"
+  style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:499"></div>
 
 <!-- MAIN -->
 <div class="main">
 
 <!-- OVERVIEW -->
 <div class="tp active" id="tab-overview">
-  <div id="ov-ld" class="ld" style="display:none"><div class="sp"></div><div>Loading from memory…</div></div>
+  <div id="ov-ld" class="ld" style="display:none"><div class="sp"></div><div>Fetching from S3…</div></div>
   <div id="ov-ct">
-    <div id="sync-warn" class="warn-banner"></div>
     <div class="cards">
       <div class="card"><div class="card-lbl">Total Requests</div><div class="card-val" id="c-tot">—</div><div class="card-sub" id="c-files">—</div><div class="card-icon">📊</div></div>
       <div class="card c-err"><div class="card-lbl">Errors</div><div class="card-val tred" id="c-err">—</div><div class="card-sub" id="c-erate">—</div><div class="card-icon">🔴</div></div>
@@ -206,7 +349,7 @@ tr:hover td{background:var(--bg3)}
       <div class="cbox"><div class="ctitle"><span>◆</span>UPI Methods</div><canvas id="ch-pm" height="200"></canvas></div>
     </div>
     <div style="margin-top:15px">
-      <div class="sh"><div class="st">Recent Errors &amp; Warnings</div><span id="rc-ct" style="font-size:11px;color:var(--text3)"></span></div>
+      <div class="sh"><div class="st">Recent Errors & Warnings</div><span id="rc-ct" style="font-size:11px;color:var(--text3)"></span></div>
       <div class="ltw"><table><thead><tr><th>Level</th><th>Timestamp</th><th>API</th><th>Endpoint</th><th>Flow</th><th>Error Code</th><th>Message</th></tr></thead>
       <tbody id="re-body"><tr><td colspan="7" class="emp">✓ No errors in range</td></tr></tbody></table></div>
     </div>
@@ -224,7 +367,7 @@ tr:hover td{background:var(--bg3)}
     <button class="btn btn-p btn-sm" id="btn-srch">Search</button>
     <span class="mla" style="font-size:11px;color:var(--text2)" id="l-tot"></span>
   </div>
-  <div id="l-ld" class="ld" style="display:none"><div class="sp"></div><div>Filtering…</div></div>
+  <div id="l-ld" class="ld" style="display:none"><div class="sp"></div><div>Loading…</div></div>
   <div class="ltw" id="l-tw">
     <table><thead><tr><th>Level</th><th>Timestamp</th><th>API</th><th>M</th><th>Endpoint</th><th>Flow</th><th>Rz Status</th><th>Amount ₹</th><th>Error Code</th><th>Loan#</th><th>Message</th></tr></thead>
     <tbody id="l-body"><tr><td colspan="11" class="emp">Select API and click Search</td></tr></tbody></table>
@@ -267,7 +410,7 @@ tr:hover td{background:var(--bg3)}
         </select></div>
       </div>
       <div class="fr">
-        <div class="fg"><label>Operator</label><select id="al-op"><option value=">">&gt; greater than</option><option value=">=">&gt;= at least</option><option value="<">&lt; less than</option></select></div>
+        <div class="fg"><label>Operator</label><select id="al-op"><option value=">">&#62; greater than</option><option value=">=">&#62;= at least</option><option value="<">&#60; less than</option></select></div>
         <div class="fg"><label>Threshold *</label><input type="number" id="al-th" placeholder="10" min="0"/></div>
       </div>
       <div class="fg"><label>Webhook URL (Slack / Teams)</label><input type="url" id="al-wh" placeholder="https://hooks.slack.com/…"/></div>
@@ -284,7 +427,7 @@ tr:hover td{background:var(--bg3)}
   <div class="panel" style="margin-top:15px">
     <div class="ptitle">How Alerts Work</div>
     <div style="color:var(--text2);font-size:12px;line-height:1.9">
-      Checks every <strong style="color:var(--text)">5 minutes</strong> against today's in-memory log data (no S3 calls).<br/>
+      Checks every <strong style="color:var(--text)">5 minutes</strong> against today's S3 logs. Fires an HTTP POST to your webhook when threshold is breached.<br/>
       <strong style="color:var(--accent)">Metrics:</strong>
       <code>errors</code> error log count ·
       <code>error_rate</code> % of total ·
@@ -294,21 +437,49 @@ tr:hover td{background:var(--bg3)}
     </div>
   </div>
 </div>
+<!-- DIAGNOSTICS -->
+<div class="tp" id="tab-diagnostics">
+  <div class="sh">
+    <div class="st">System Diagnostics</div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-g btn-sm" onclick="loadDiag()">↺ Refresh</button>
+      <button class="btn btn-p btn-sm" onclick="forceSyncAndOpen()">↺ Force Sync</button>
+    </div>
+  </div>
+  <div id="diag-ld" class="ld" style="display:none"><div class="sp"></div><div>Loading diagnostics…</div></div>
+  <div id="diag-ct">
+    <div class="diag-grid" id="diag-grid" style="margin-bottom:16px">
+      <div style="grid-column:1/-1;color:var(--text3);font-size:12px;padding:20px;text-align:center">Click Refresh to load diagnostics</div>
+    </div>
+    <div id="diag-files-wrap" style="display:none">
+      <div class="st" style="margin-bottom:10px">Sample Files from S3</div>
+      <div class="ltw"><table>
+        <thead><tr><th>Key</th><th>API</th><th>Date</th><th>Size</th><th>Prefix</th></tr></thead>
+        <tbody id="diag-files-body"></tbody>
+      </table></div>
+    </div>
+    <div id="diag-apis-wrap" style="display:none;margin-top:16px">
+      <div class="st" style="margin-bottom:10px">Detected APIs</div>
+      <div id="diag-apis-list" style="display:flex;flex-wrap:wrap;gap:7px"></div>
+    </div>
+  </div>
+</div>
 
 </div><!-- /main -->
 </div><!-- /app -->
 <div id="toast"></div>
 
 <script>
-// ─── Tiny Canvas Chart Library ────────────────────────────────────────────────
+// ─── Tiny Canvas Chart Library (no CDN needed) ────────────────────────────
 const CHR = (() => {
-  const C = id => document.getElementById(id);
+  const C = (id) => document.getElementById(id);
   const _instances = {};
 
   function clear(id) {
-    _instances[id] = null;
+    if (_instances[id]) { _instances[id] = null; }
     const el = C(id); if (!el) return;
-    el.getContext('2d').clearRect(0, 0, el.width, el.height);
+    const ctx = el.getContext('2d');
+    ctx.clearRect(0, 0, el.width, el.height);
   }
 
   function resize(canvas, h) {
@@ -316,131 +487,216 @@ const CHR = (() => {
     canvas.width  = w * devicePixelRatio;
     canvas.height = h * devicePixelRatio;
     canvas.style.width  = w  + 'px';
-    canvas.style.height = h  + 'px';
+    canvas.style.height = h + 'px';
     const ctx = canvas.getContext('2d');
     ctx.scale(devicePixelRatio, devicePixelRatio);
     return [w, h, ctx];
   }
 
   const COLS = ['#FF6B35','#4D9EFF','#00E5A0','#FFB800','#A78BFA','#22D3EE','#FF3B5C','#F472B6'];
-  const GRID = '#1E2A40', LBL = '#7A8FAF', TXT = '#C8D4E8';
+  const GRID = '#1E2A40'; const LBL = '#7A8FAF'; const TXT = '#C8D4E8';
 
+  function textFit(ctx, text, maxW) {
+    let sz = 11;
+    ctx.font = sz + 'px "Space Mono",monospace';
+    while (ctx.measureText(text).width > maxW && sz > 7) { sz--; ctx.font = sz + 'px "Space Mono",monospace'; }
+    return text;
+  }
+
+  /* ── Bar chart ── */
   function bar(id, labels, values, colors, opts = {}) {
     clear(id);
     const canvas = C(id); if (!canvas) return;
-    const [W, H, ctx] = resize(canvas, opts.h || 200);
+    const h = opts.h || 200;
+    const [W, H, ctx] = resize(canvas, h);
     const horiz = opts.horiz || false;
-    const pad   = { t:10, r:14, b: horiz ? 30 : 50, l: horiz ? 120 : 40 };
-    const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
-    const n = values.length; if (!n) return;
-    const max  = Math.max(...values, 1);
+
+    const pad = { t:10, r:14, b: horiz ? 30 : 50, l: horiz ? 120 : 40 };
+    const cw = W - pad.l - pad.r;
+    const ch = H - pad.t - pad.b;
+    const n  = values.length;
+    if (!n) return;
+
+    const max = Math.max(...values, 1);
     const cols = Array.isArray(colors) ? colors : COLS;
+
     ctx.font = '10px "Space Mono",monospace';
+    ctx.fillStyle = LBL;
 
     if (!horiz) {
-      const bw = Math.max(4, (cw / n) * 0.6), gap = cw / n;
+      // vertical bars
+      const bw = Math.max(4, (cw / n) * 0.6);
+      const gap = cw / n;
+      // grid lines
       for (let i=0;i<=4;i++) {
-        const y = pad.t + ch - ch * i / 4;
-        ctx.strokeStyle=GRID;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(pad.l+cw,y);ctx.stroke();
-        const v = Math.round(max*i/4);
-        ctx.fillStyle=LBL;ctx.textAlign='right';
-        ctx.fillText(v>999?(v/1000).toFixed(1)+'k':v, pad.l-4, y+4);
+        const y = pad.t + ch - (ch * i / 4);
+        ctx.strokeStyle = GRID; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l+cw, y); ctx.stroke();
+        const v = Math.round(max * i / 4);
+        ctx.fillStyle = LBL; ctx.textAlign = 'right';
+        ctx.fillText(v > 999 ? (v/1000).toFixed(1)+'k' : v, pad.l - 4, y + 4);
       }
-      labels.forEach((lbl,i) => {
-        const x = pad.l + gap*i + gap/2, bh = ch*(values[i]/max), y = pad.t+ch-bh;
-        ctx.fillStyle=(cols[i%cols.length])+'CC';
-        ctx.beginPath();ctx.roundRect(x-bw/2,y,bw,bh,[3,3,0,0]);ctx.fill();
-        ctx.fillStyle=TXT;ctx.textAlign='center';
-        if(bh>16) ctx.fillText(values[i],x,y-4);
-        ctx.fillStyle=LBL;ctx.textAlign='center';
-        const sl=String(lbl).length>12?String(lbl).slice(0,12)+'…':String(lbl);
-        ctx.save();ctx.translate(x,pad.t+ch+12);ctx.rotate(-0.5);ctx.fillText(sl,0,0);ctx.restore();
+      labels.forEach((lbl, i) => {
+        const x = pad.l + gap * i + gap/2;
+        const bh = ch * (values[i] / max);
+        const y  = pad.t + ch - bh;
+        ctx.fillStyle = (cols[i % cols.length]) + 'CC';
+        ctx.beginPath();
+        ctx.roundRect(x - bw/2, y, bw, bh, [3,3,0,0]);
+        ctx.fill();
+        // value on top
+        ctx.fillStyle = TXT; ctx.textAlign='center';
+        if (bh > 16) ctx.fillText(values[i], x, y - 4);
+        // x label
+        ctx.fillStyle = LBL; ctx.textAlign='center';
+        const sl = String(lbl).length > 12 ? String(lbl).slice(0,12)+'…' : String(lbl);
+        ctx.save(); ctx.translate(x, pad.t+ch+12); ctx.rotate(-0.5); ctx.fillText(sl, 0, 0); ctx.restore();
       });
     } else {
-      const bh2 = Math.max(3,(ch/n)*0.55), gap2 = ch/n;
+      // horizontal bars
+      const bh2 = Math.max(3, (ch / n) * 0.55);
+      const gap2 = ch / n;
       for (let i=0;i<=4;i++) {
-        const x = pad.l + cw*i/4;
-        ctx.strokeStyle=GRID;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,pad.t);ctx.lineTo(x,pad.t+ch);ctx.stroke();
-        const v = Math.round(max*i/4);
-        ctx.fillStyle=LBL;ctx.textAlign='center';
+        const x = pad.l + cw * i / 4;
+        ctx.strokeStyle = GRID; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(x,pad.t); ctx.lineTo(x,pad.t+ch); ctx.stroke();
+        const v = Math.round(max * i / 4);
+        ctx.fillStyle=LBL; ctx.textAlign='center';
         ctx.fillText(v>999?(v/1000).toFixed(1)+'k':v, x, pad.t+ch+14);
       }
       labels.forEach((lbl,i) => {
-        const y = pad.t+gap2*i+gap2/2, bw2 = cw*(values[i]/max);
-        ctx.fillStyle=(cols[i%cols.length])+'CC';
-        ctx.beginPath();ctx.roundRect(pad.l,y-bh2/2,bw2,bh2,[0,3,3,0]);ctx.fill();
-        ctx.fillStyle=LBL;ctx.textAlign='right';
-        const sl=String(lbl).length>18?String(lbl).slice(0,18)+'…':String(lbl);
-        ctx.fillText(sl, pad.l-6, y+4);
-        ctx.fillStyle=TXT;ctx.textAlign='left';
-        ctx.fillText(values[i], pad.l+bw2+4, y+4);
+        const y = pad.t + gap2 * i + gap2/2;
+        const bw2 = cw * (values[i] / max);
+        ctx.fillStyle = (cols[i % cols.length]) + 'CC';
+        ctx.beginPath();
+        ctx.roundRect(pad.l, y - bh2/2, bw2, bh2, [0,3,3,0]);
+        ctx.fill();
+        // label left
+        ctx.fillStyle = LBL; ctx.textAlign='right';
+        const sl = String(lbl).length > 18 ? String(lbl).slice(0,18)+'…' : String(lbl);
+        ctx.fillText(sl, pad.l - 6, y + 4);
+        // value inside/right
+        ctx.fillStyle = TXT; ctx.textAlign='left';
+        ctx.fillText(values[i], pad.l + bw2 + 4, y + 4);
       });
     }
     _instances[id] = true;
   }
 
+  /* ── Line chart ── */
   function line(id, labels, datasets, opts = {}) {
     clear(id);
     const canvas = C(id); if (!canvas) return;
-    const [W, H, ctx] = resize(canvas, opts.h || 200);
-    const pad = {t:10,r:14,b:48,l:42};
-    const cw = W-pad.l-pad.r, ch = H-pad.t-pad.b, n = labels.length;
+    const h = opts.h || 200;
+    const [W, H, ctx] = resize(canvas, h);
+    const pad = { t:10, r:14, b:48, l:42 };
+    const cw = W - pad.l - pad.r;
+    const ch = H - pad.t - pad.b;
+    const n  = labels.length;
     if (!n) return;
-    const allVals = datasets.flatMap(d=>d.data);
-    const max = Math.max(...allVals,1);
+
+    const allVals = datasets.flatMap(d => d.data);
+    const max = Math.max(...allVals, 1);
+
     ctx.font = '10px "Space Mono",monospace';
+
+    // grid
     for (let i=0;i<=4;i++) {
-      const y = pad.t+ch-ch*i/4;
-      ctx.strokeStyle=GRID;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(pad.l+cw,y);ctx.stroke();
-      const v = Math.round(max*i/4);
-      ctx.fillStyle=LBL;ctx.textAlign='right';
+      const y = pad.t + ch - (ch * i / 4);
+      ctx.strokeStyle = GRID; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(pad.l+cw,y); ctx.stroke();
+      const v = Math.round(max * i / 4);
+      ctx.fillStyle = LBL; ctx.textAlign='right';
       ctx.fillText(v>999?(v/1000).toFixed(1)+'k':v, pad.l-4, y+4);
     }
-    datasets.forEach((ds,di) => {
+
+    datasets.forEach((ds, di) => {
       const col = ds.color || COLS[di];
-      const pts = ds.data.map((v,i)=>[pad.l+cw*i/Math.max(n-1,1), pad.t+ch-ch*v/max]);
-      ctx.beginPath();ctx.moveTo(pts[0][0],pad.t+ch);
-      pts.forEach(([x,y])=>ctx.lineTo(x,y));
-      ctx.lineTo(pts[pts.length-1][0],pad.t+ch);ctx.closePath();
-      ctx.fillStyle=col+'22';ctx.fill();
-      ctx.beginPath();ctx.strokeStyle=col;ctx.lineWidth=2;ctx.lineJoin='round';
-      pts.forEach(([x,y],i)=>i===0?ctx.moveTo(x,y):ctx.lineTo(x,y));ctx.stroke();
-      pts.forEach(([x,y])=>{ctx.beginPath();ctx.arc(x,y,3,0,Math.PI*2);ctx.fillStyle=col;ctx.fill();});
+      const pts = ds.data.map((v,i) => [pad.l + cw * i / Math.max(n-1,1), pad.t + ch - ch * v / max]);
+
+      // fill
+      ctx.beginPath();
+      ctx.moveTo(pts[0][0], pad.t+ch);
+      pts.forEach(([x,y]) => ctx.lineTo(x,y));
+      ctx.lineTo(pts[pts.length-1][0], pad.t+ch);
+      ctx.closePath();
+      ctx.fillStyle = col + '22';
+      ctx.fill();
+
+      // line
+      ctx.beginPath();
+      ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.lineJoin='round';
+      pts.forEach(([x,y],i) => i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y));
+      ctx.stroke();
+
+      // dots
+      pts.forEach(([x,y]) => {
+        ctx.beginPath(); ctx.arc(x,y,3,0,Math.PI*2);
+        ctx.fillStyle=col; ctx.fill();
+      });
     });
-    ctx.fillStyle=LBL;ctx.textAlign='center';
-    const step = Math.max(1,Math.floor(n/10));
-    labels.forEach((lbl,i)=>{
-      if(i%step!==0) return;
-      const x = pad.l+cw*i/Math.max(n-1,1);
-      ctx.save();ctx.translate(x,pad.t+ch+12);ctx.rotate(-0.6);ctx.fillText(String(lbl).slice(-5),0,0);ctx.restore();
+
+    // x labels
+    ctx.fillStyle = LBL; ctx.textAlign='center';
+    const step = Math.max(1, Math.floor(n / 10));
+    labels.forEach((lbl,i) => {
+      if (i % step !== 0) return;
+      const x = pad.l + cw * i / Math.max(n-1,1);
+      const sl = String(lbl).slice(-5);
+      ctx.save(); ctx.translate(x, pad.t+ch+12); ctx.rotate(-0.6); ctx.fillText(sl,0,0); ctx.restore();
     });
     _instances[id] = true;
   }
 
+  /* ── Doughnut ── */
   function donut(id, labels, values, colors, opts = {}) {
     clear(id);
     const canvas = C(id); if (!canvas) return;
-    const [W, H, ctx] = resize(canvas, opts.h || 200);
-    const total = values.reduce((a,b)=>a+b,0); if (!total) return;
+    const h = opts.h || 200;
+    const [W, H, ctx] = resize(canvas, h);
+    const total = values.reduce((a,b)=>a+b,0);
+    if (!total) return;
     const cols = colors || COLS;
-    const lh=18, lpad=12, legendH=Math.ceil(labels.length/2)*lh+lpad;
-    const cx=W/2, cy=(H-legendH)/2, r=Math.min(cx,cy)-10, ir=r*0.55;
-    let angle=-Math.PI/2;
-    values.forEach((v,i)=>{
-      const sweep=(v/total)*Math.PI*2;
-      ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,angle,angle+sweep);ctx.closePath();
-      ctx.fillStyle=cols[i%cols.length];ctx.fill();angle+=sweep;
+
+    const lh = 18; const lpad = 12;
+    const legendH = Math.ceil(labels.length / 2) * lh + lpad;
+    const cx = W/2, cy = (H-legendH)/2;
+    const r  = Math.min(cx, cy) - 10;
+    const ir = r * 0.55;
+
+    let angle = -Math.PI/2;
+    values.forEach((v,i) => {
+      const sweep = (v/total) * Math.PI*2;
+      ctx.beginPath();
+      ctx.moveTo(cx,cy); ctx.arc(cx,cy,r,angle,angle+sweep);
+      ctx.closePath();
+      ctx.fillStyle = cols[i%cols.length];
+      ctx.fill();
+      angle += sweep;
     });
-    ctx.beginPath();ctx.arc(cx,cy,ir,0,Math.PI*2);ctx.fillStyle='#121929';ctx.fill();
-    ctx.fillStyle=TXT;ctx.textAlign='center';
-    ctx.font='bold 16px "Syne",sans-serif';ctx.fillText(total,cx,cy+2);
-    ctx.font='9px "Space Mono",monospace';ctx.fillStyle=LBL;ctx.fillText('total',cx,cy+15);
-    const lx0=8; let lx=lx0, ly=H-legendH+lpad, colW=W/2;
-    labels.forEach((lbl,i)=>{
-      ctx.fillStyle=cols[i%cols.length];ctx.fillRect(lx,ly-8,10,10);
-      ctx.fillStyle=LBL;ctx.textAlign='left';ctx.font='10px "Space Mono",monospace';
-      ctx.fillText(String(lbl).slice(0,14)+' '+Math.round(values[i]/total*100)+'%',lx+13,ly);
-      if((i+1)%2===0){lx=lx0;ly+=lh;}else{lx=colW;}
+
+    // hole
+    ctx.beginPath(); ctx.arc(cx,cy,ir,0,Math.PI*2);
+    ctx.fillStyle = '#121929'; ctx.fill();
+
+    // center text
+    ctx.fillStyle = TXT; ctx.textAlign='center';
+    ctx.font = 'bold 16px "Syne",sans-serif';
+    ctx.fillText(total, cx, cy+2);
+    ctx.font = '9px "Space Mono",monospace';
+    ctx.fillStyle = LBL;
+    ctx.fillText('total', cx, cy+15);
+
+    // legend
+    const lx0 = 8; let lx = lx0, ly = H - legendH + lpad;
+    const colW = W/2;
+    labels.forEach((lbl,i) => {
+      ctx.fillStyle = cols[i%cols.length];
+      ctx.fillRect(lx, ly-8, 10, 10);
+      ctx.fillStyle = LBL; ctx.textAlign='left'; ctx.font='10px "Space Mono",monospace';
+      const pct = Math.round(values[i]/total*100);
+      ctx.fillText(String(lbl).slice(0,14)+' '+pct+'%', lx+13, ly);
+      if ((i+1)%2===0) { lx=lx0; ly+=lh; } else { lx=colW; }
     });
     _instances[id] = true;
   }
@@ -448,213 +704,87 @@ const CHR = (() => {
   return { bar, line, donut, clear };
 })();
 
-// ─── App State & Helpers ──────────────────────────────────────────────────────
+// ─── App State & Helpers ─────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
 const fmt  = n => typeof n==='number' ? n.toLocaleString('en-IN') : '—';
 const fmtR = n => typeof n==='number' ? '₹'+(n>=100000?(n/100000).toFixed(2)+'L':n.toLocaleString('en-IN')) : '—';
-
 function toast(msg, type='') {
   const t=$('toast'); t.textContent=msg; t.className='show '+(type==='success'?'ok':type==='error'?'err':'');
   clearTimeout(t._t); t._t=setTimeout(()=>t.className='',3200);
 }
 async function apiFetch(path) {
-  const r=await fetch(path); if(!r.ok) throw new Error('HTTP '+r.status); return r.json();
+  const r = await fetch(path);
+  if (!r.ok) throw new Error('HTTP '+r.status);
+  return r.json();
 }
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
-function timeAgo(iso) {
-  if(!iso) return 'never';
-  const d=Math.round((Date.now()-new Date(iso))/1000);
-  if(d<60) return d+'s ago'; if(d<3600) return Math.floor(d/60)+'m ago';
-  return Math.floor(d/3600)+'h ago';
-}
-function countdown(iso) {
-  if(!iso) return '';
-  const d=Math.max(0,Math.round((new Date(iso)-Date.now())/1000));
-  const m=Math.floor(d/60), s=d%60;
-  return m+':'+(s<10?'0':'')+s;
-}
 
 let gStats=null, logsPage=1;
-let _bgLoading=false, _wasSyncing=false;
-let _autoRefTimer=null, _syncPollTimer=null, _ctrTimer=null;
-let _autoRefSecs=60; // display auto-refresh countdown
 
 const ACCENT='#FF6B35',GREEN='#00E5A0',RED='#FF3B5C',YELLOW='#FFB800',
       BLUE='#4D9EFF',PURPLE='#A78BFA',TEAL='#22D3EE';
 
-// ─── Sync status polling ───────────────────────────────────────────────────────
-async function pollSyncStatus() {
-  try {
-    const s = await apiFetch('/api/sync/status');
-    const dot  = $('sync-dot');
-    const main = $('sync-main');
-    const ents = $('sync-entries');
-    const nxt  = $('sync-next');
-    const errEl= $('sync-err');
-
-    if (s.syncing) {
-      dot.className = 'sdot dsyncing';
-      main.textContent = 'Syncing from S3…';
-      nxt.textContent  = '';
-      _wasSyncing = true;
-    } else if (s.sync_error) {
-      dot.className = 'sdot derr';
-      main.textContent = 'Sync failed';
-      errEl.textContent = '⚠ '+s.sync_error.slice(0,80);
-      errEl.style.display = 'inline';
-      nxt.textContent = '';
-    } else {
-      // Just finished syncing — reload display data
-      if (_wasSyncing) {
-        _wasSyncing = false;
-        toast('S3 sync complete — reloading data', 'success');
-        await loadOverview();
-      }
-      dot.className = 'sdot dlive';
-      main.textContent = 'Synced '+timeAgo(s.last_sync);
-      errEl.style.display = 'none';
-      nxt.textContent = s.next_sync ? 'Next sync in '+countdown(s.next_sync) : '';
-    }
-
-    ents.textContent = s.entry_count ? fmt(s.entry_count)+' entries in memory' : 'No data yet';
-
-    // Show warning banner if still syncing on first load
-    const wb = $('sync-warn');
-    if (!s.last_sync && !s.syncing) {
-      wb.style.display='block';
-      wb.textContent='⚠ Backend is still initializing. Data will appear after the first S3 sync (~30s after deploy).';
-    } else {
-      wb.style.display='none';
-    }
-  } catch(e) {
-    $('sync-dot').className='sdot derr';
-    $('sync-main').textContent='Backend unreachable';
-  }
-}
-
-// Tick nxt countdown every second
-function startCountdownTick() {
-  setInterval(async () => {
-    try {
-      const s = await apiFetch('/api/sync/status');
-      if (!s.syncing && s.next_sync) {
-        $('sync-next').textContent = 'Next sync in '+countdown(s.next_sync);
-      }
-    } catch(e){}
-  }, 10000); // update every 10s (lightweight)
-}
-
-// ─── Display auto-refresh (every 60s — just re-reads from backend RAM) ────────
-function scheduleDisplayRefresh() {
-  clearTimeout(_autoRefTimer);
-  _autoRefSecs = 60;
-  _autoRefTimer = setTimeout(async () => {
-    if (!_bgLoading && gStats) {
-      await loadOverview(true); // silent=true
-    }
-    scheduleDisplayRefresh();
-  }, 60000);
-}
-
-// ─── Boot ─────────────────────────────────────────────────────────────────────
+// ─── Boot ────────────────────────────────────────────────────────────────────
 (async function boot(){
   const today=new Date(), week=new Date(today);
   week.setDate(today.getDate()-7);
   $('dt').value=today.toISOString().slice(0,10);
   $('df').value=week.toISOString().slice(0,10);
-
-  // Initial sync status check
-  await pollSyncStatus();
-
   try {
-    const {apis, total_files} = await apiFetch('/api/apis');
-    ['sel-api','l-api','al-api'].forEach(id => {
+    const {apis,total_files}=await apiFetch('/api/apis');
+    ['sel-api','l-api','al-api'].forEach(id=>{
       const el=$(id); if(!el) return;
-      apis.forEach(a => {
-        const o=document.createElement('option'); o.value=a; o.textContent=a; el.appendChild(o);
-      });
+      apis.forEach(a=>{ const o=document.createElement('option'); o.value=a; o.textContent=a; el.appendChild(o); });
     });
+    $('stxt').textContent=total_files+' log files in S3';
     loadAlerts();
-    if (total_files > 0) loadOverview();
-  } catch(e) { toast('Backend error: '+e.message,'error'); }
-
-  // Poll sync status every 30s
-  setInterval(pollSyncStatus, 30000);
-
-  // Update countdown text every 10s
-  startCountdownTick();
-
-  // Schedule auto-refresh of display every 60s
-  scheduleDisplayRefresh();
+    // auto-load
+    loadOverview();
+    // initial status bar
+    const p=await apiFetch('/api/sync/progress');
+    renderStatusBar(p);
+    renderSyncDrawer(p);
+    // if sync is already running on load, start polling
+    if(p.syncing){ startProgressPolling(); }
+  } catch(e){ toast('Backend error: '+e.message,'error'); $('stxt').textContent='Error'; }
 })();
 
-// ─── Tabs ─────────────────────────────────────────────────────────────────────
-document.querySelectorAll('.tab').forEach(tab => {
-  tab.addEventListener('click', () => {
+// Tabs
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
     document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
     document.querySelectorAll('.tp').forEach(p=>p.classList.remove('active'));
     tab.classList.add('active');
     $('tab-'+tab.dataset.tab).classList.add('active');
-    if (tab.dataset.tab==='payments' && gStats) renderPayTab(gStats);
+    if(tab.dataset.tab==='payments' && gStats) renderPayTab(gStats);
+    if(tab.dataset.tab==='diagnostics') loadDiag();
   });
 });
 
-// ─── Overview ─────────────────────────────────────────────────────────────────
-$('btn-load').addEventListener('click', () => loadOverview());
-$('btn-ref').addEventListener('click', async () => {
+// ─── Overview ────────────────────────────────────────────────────────────────
+$('btn-load').addEventListener('click', loadOverview);
+$('btn-ref').addEventListener('click', async()=>{
   await fetch('/api/cache/clear',{method:'POST'});
-  toast('Cache cleared — reloading','success');
-  loadOverview();
-});
-$('btn-fsync').addEventListener('click', async () => {
-  $('btn-fsync').disabled=true;
-  try {
-    const r = await fetch('/api/sync/force',{method:'POST'});
-    const d = await r.json();
-    if (d.success) {
-      toast('Sync triggered — pulling latest S3 data…');
-      $('sync-dot').className='sdot dsyncing';
-      $('sync-main').textContent='Syncing from S3…';
-      _wasSyncing = true;
-    } else {
-      toast(d.message||'Sync already running');
-    }
-  } catch(e){ toast('Error: '+e.message,'error'); }
-  setTimeout(()=>{ $('btn-fsync').disabled=false; }, 5000);
+  toast('Cache cleared','success'); loadOverview();
 });
 
-async function loadOverview(silent=false) {
+async function loadOverview(){
   const apiV=$('sel-api').value, dfrom=$('df').value, dto=$('dt').value;
   if(!dfrom||!dto){ toast('Select a date range','error'); return; }
-  if (_bgLoading) return;
-  _bgLoading=true;
-  if (!silent) {
-    $('ov-ld').style.display='block';
-    $('ov-ct').style.opacity='0.3';
-  }
+  $('ov-ld').style.display='block'; $('ov-ct').style.opacity='0.3'; $('stxt').textContent='Loading…';
   try {
-    const p=new URLSearchParams({date_from:dfrom, date_to:dto});
-    if (apiV) p.set('api',apiV);
+    const p=new URLSearchParams({date_from:dfrom,date_to:dto});
+    if(apiV) p.set('api',apiV);
     gStats = await apiFetch('/api/stats?'+p);
-    renderCards(gStats);
-    renderCharts(gStats);
-    renderRecentErrors(gStats.recent_errors||[]);
-    if (!silent) toast('Data loaded — '+fmt(gStats.total)+' entries','success');
-  } catch(e) { toast('Failed: '+e.message,'error'); }
-  finally {
-    _bgLoading=false;
-    $('ov-ld').style.display='none';
-    $('ov-ct').style.opacity='1';
-    // Reset display refresh countdown
-    scheduleDisplayRefresh();
-  }
+    renderCards(gStats); renderCharts(gStats); renderRecentErrors(gStats.recent_errors||[]);
+    $('stxt').textContent=(gStats.files_loaded||0)+' files · '+fmt(gStats.total)+' entries';
+  } catch(e){ toast('Failed: '+e.message,'error'); $('stxt').textContent='Error'; }
+  finally { $('ov-ld').style.display='none'; $('ov-ct').style.opacity='1'; }
 }
 
-function renderCards(s) {
-  $('c-tot').textContent=fmt(s.total);
-  $('c-files').textContent=(s.files_loaded||0)+' files in range';
-  $('c-err').textContent=fmt(s.errors);
-  $('c-erate').textContent=s.error_rate+'% error rate';
+function renderCards(s){
+  $('c-tot').textContent=fmt(s.total); $('c-files').textContent=(s.files_loaded||0)+' files';
+  $('c-err').textContent=fmt(s.errors); $('c-erate').textContent=s.error_rate+'% error rate';
   $('c-warn').textContent=fmt(s.warnings);
   $('c-cre').textContent=fmt(s.payments_created);
   $('c-cap').textContent=fmt(s.payments_captured);
@@ -662,28 +792,34 @@ function renderCards(s) {
   $('c-rev').textContent=fmtR(s.revenue_inr);
 }
 
-function renderCharts(s) {
+function renderCharts(s){
+  // Timeline line chart
   const hours=s.hourly_labels||[];
   CHR.line('ch-tl', hours.map(h=>h.slice(11)), [{data:s.hourly_values||[],color:ACCENT}]);
 
+  // Endpoints bar
   const epK=Object.keys(s.endpoints||{}).slice(0,6);
   CHR.bar('ch-ep',epK.map(k=>k.replace('POST ','POST\n').replace('GET ','')),epK.map(k=>s.endpoints[k]),[ACCENT,BLUE],{horiz:true});
 
+  // Payment status donut
   const psK=Object.keys(s.payment_statuses||{});
   CHR.donut('ch-ps',psK,psK.map(k=>s.payment_statuses[k]),psK.map(k=>k==='captured'?GREEN:k==='created'?ACCENT:RED));
 
+  // Errors by endpoint bar
   const eeK=Object.keys(s.err_by_endpoint||{}).slice(0,5);
   if(eeK.length) CHR.bar('ch-ee',eeK.map(k=>k.replace('POST ','').replace('GET ','')),eeK.map(k=>s.err_by_endpoint[k]),[RED],{horiz:true});
 
+  // Flows bar
   const flK=Object.keys(s.flows||{}).slice(0,4);
   CHR.bar('ch-fl',flK.map(k=>k.replace('implemtation_','').replace('_flowSub_Flow','').replace('-log-flow','')),
     flK.map(k=>s.flows[k]),[BLUE,TEAL,PURPLE,GREEN]);
 
+  // UPI methods donut
   const pmK=Object.keys(s.payment_methods||{});
   if(pmK.length) CHR.donut('ch-pm',pmK,pmK.map(k=>s.payment_methods[k]),[TEAL,PURPLE,YELLOW,BLUE]);
 }
 
-function renderRecentErrors(errors) {
+function renderRecentErrors(errors){
   const body=$('re-body');
   $('rc-ct').textContent=errors.length+' entries';
   if(!errors.length){ body.innerHTML='<tr><td colspan="7" class="emp">✓ No errors in selected range</td></tr>'; return; }
@@ -699,22 +835,24 @@ function renderRecentErrors(errors) {
 }
 
 // ─── Payments tab ─────────────────────────────────────────────────────────────
-function renderPayTab(s) {
+function renderPayTab(s){
   if(!s) return;
   $('p-cre').textContent=fmt(s.payments_created);
   $('p-cap').textContent=fmt(s.payments_captured);
   $('p-fail').textContent=fmt(s.payments_failed);
   $('p-rev').textContent=fmtR(s.revenue_inr);
+
   const dK=Object.keys(s.daily||{});
   CHR.line('ch-da',dK,[{data:dK.map(k=>s.daily[k]),color:PURPLE}]);
   CHR.bar('ch-fn',['Created','Captured','Failed'],[s.payments_created,s.payments_captured,s.payments_failed],[ACCENT,GREEN,RED]);
+
   const pmK=Object.keys(s.payment_methods||{});
   if(pmK.length) CHR.donut('ch-um',pmK,pmK.map(k=>s.payment_methods[k]),[TEAL,BLUE,YELLOW,GREEN]);
 }
 
-// ─── Log Explorer ─────────────────────────────────────────────────────────────
-$('btn-srch').addEventListener('click', () => { logsPage=1; loadLogs(); });
-$('l-api').addEventListener('change', async () => {
+// ─── Log Explorer ──────────────────────────────────────────────────────────────
+$('btn-srch').addEventListener('click',()=>{logsPage=1;loadLogs();});
+$('l-api').addEventListener('change', async()=>{
   const a=$('l-api').value;
   const {dates}=await apiFetch('/api/dates'+(a?'?api='+a:''));
   const sel=$('l-date');
@@ -722,7 +860,7 @@ $('l-api').addEventListener('change', async () => {
   dates.forEach(d=>{ const o=document.createElement('option'); o.value=d; o.textContent=d; sel.appendChild(o); });
 });
 
-async function loadLogs() {
+async function loadLogs(){
   const p=new URLSearchParams({
     api:$('l-api').value, date:$('l-date').value,
     level:$('l-lvl').value, endpoint:$('l-ep').value,
@@ -733,12 +871,12 @@ async function loadLogs() {
     const d=await apiFetch('/api/logs?'+p);
     renderLogsTable(d.logs||[]);
     $('l-tot').textContent=fmt(d.total)+' entries · pg '+d.page+'/'+d.pages;
-    renderPagination(d.page, d.pages);
+    renderPagination(d.page,d.pages);
   } catch(e){ toast('Failed: '+e.message,'error'); }
   finally{ $('l-ld').style.display='none'; $('l-tw').style.opacity='1'; }
 }
 
-function renderLogsTable(logs) {
+function renderLogsTable(logs){
   const body=$('l-body');
   if(!logs.length){ body.innerHTML='<tr><td colspan="11" class="emp">No logs match filters</td></tr>'; return; }
   body.innerHTML=logs.map(e=>{
@@ -759,7 +897,7 @@ function renderLogsTable(logs) {
   }).join('');
 }
 
-function renderPagination(page, pages) {
+function renderPagination(page,pages){
   const el=$('l-pg'); if(pages<=1){el.innerHTML='';return;}
   let h=`<button class="pb" ${page===1?'disabled':''} onclick="goPage(${page-1})">‹ Prev</button>`;
   const s=Math.max(1,page-3), e2=Math.min(pages,s+6);
@@ -770,7 +908,7 @@ function renderPagination(page, pages) {
 function goPage(p){logsPage=p;loadLogs();}
 
 // ─── Alerts ───────────────────────────────────────────────────────────────────
-$('btn-cal').addEventListener('click', async () => {
+$('btn-cal').addEventListener('click', async()=>{
   const nm=$('al-nm').value.trim(), th=$('al-th').value;
   if(!nm||!th){toast('Name and threshold required','error');return;}
   try {
@@ -781,18 +919,18 @@ $('btn-cal').addEventListener('click', async () => {
   } catch(e){toast('Failed: '+e.message,'error');}
 });
 
-$('btn-twh').addEventListener('click', async () => {
+$('btn-twh').addEventListener('click', async()=>{
   const url=$('al-wh').value.trim();
   if(!url){toast('Enter a webhook URL','error');return;}
   try {
     const r=await fetch('/api/alerts/test-webhook',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({webhook_url:url})});
     const d=await r.json();
-    d.success ? toast('Sent ✓ status '+d.status_code,'success') : toast('Failed: '+d.error,'error');
+    if(d.success) toast('Sent ✓ status '+d.status_code,'success'); else toast('Failed: '+d.error,'error');
   } catch(e){toast('Error: '+e.message,'error');}
 });
 
-async function loadAlerts() {
-  try {
+async function loadAlerts(){
+  try{
     const {alerts}=await apiFetch('/api/alerts');
     const el=$('al-list');
     if(!alerts.length){el.innerHTML='<div class="emp">🔔 No alerts configured</div>';return;}
@@ -807,7 +945,7 @@ async function loadAlerts() {
         <button class="btn btn-d btn-sm" onclick="delAlert('${a.id}')">✕</button>
       </div>
     </div>`).join('');
-  } catch(e){toast('Could not load alerts','error');}
+  }catch(e){toast('Could not load alerts','error');}
 }
 async function togAlert(id,e){
   await fetch('/api/alerts/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:e})});
@@ -818,12 +956,234 @@ async function delAlert(id){
   await fetch('/api/alerts/'+id,{method:'DELETE'}); toast('Deleted'); loadAlerts();
 }
 
-// ─── Resize charts on window resize ───────────────────────────────────────────
-let _rt;
-window.addEventListener('resize', () => {
-  clearTimeout(_rt);
-  _rt=setTimeout(()=>{ if(gStats){renderCharts(gStats);renderPayTab(gStats);} }, 300);
-});
+// Re-draw charts on window resize
+let _rt; window.addEventListener('resize',()=>{ clearTimeout(_rt); _rt=setTimeout(()=>{ if(gStats){renderCharts(gStats); renderPayTab(gStats);} },300); });
+
+// ─── Sync Drawer ──────────────────────────────────────────────────────────────
+let _spPoll = null, _prevSyncPhase = null, _lastSyncDone = null;
+
+function openSyncDrawer(){
+  $('sync-drawer').classList.add('open');
+  $('sync-overlay').style.display='block';
+  startProgressPolling();
+}
+function closeSyncDrawer(){
+  $('sync-drawer').classList.remove('open');
+  $('sync-overlay').style.display='none';
+}
+async function forceSyncAndOpen(){
+  openSyncDrawer();
+  try {
+    const r = await fetch('/api/sync/force',{method:'POST'});
+    const d = await r.json();
+    if(!d.success) toast(d.message,'error');
+    else toast('Sync triggered ✓','success');
+  } catch(e){ toast('Force sync failed: '+e.message,'error'); }
+}
+
+function startProgressPolling(){
+  if(_spPoll) return;
+  _spPoll = setInterval(pollSyncProgress, 2000);
+  pollSyncProgress();
+}
+function stopProgressPolling(){
+  if(_spPoll){ clearInterval(_spPoll); _spPoll=null; }
+}
+
+async function pollSyncProgress(){
+  try {
+    const p = await apiFetch('/api/sync/progress');
+    renderSyncDrawer(p);
+    renderStatusBar(p);
+    // Auto-reload overview when sync completes
+    if(p.phase==='done' && _prevSyncPhase && _prevSyncPhase!=='done' && _prevSyncPhase!=='idle'){
+      toast('✓ Sync complete — reloading data','success');
+      setTimeout(()=>{ loadOverview(); populateApis(); },800);
+    }
+    _prevSyncPhase = p.phase;
+    // Stop heavy polling if idle or done and drawer is closed
+    if((p.phase==='done'||p.phase==='idle'||p.phase==='error') && !$('sync-drawer').classList.contains('open')){
+      stopProgressPolling();
+    }
+  } catch(e){}
+}
+
+function renderSyncDrawer(p){
+  // Phase badge
+  const badge=$('sd-phase-badge');
+  const phaseMap={
+    idle:['ph-idle','● Idle'],
+    listing:['ph-listing','⟳ Listing S3'],
+    parsing:['ph-parsing','⟳ Parsing'],
+    done:['ph-done','✓ Complete'],
+    error:['ph-error','✗ Error']
+  };
+  const [cls,lbl]=phaseMap[p.phase]||['ph-idle','● Unknown'];
+  badge.className='ph-badge '+cls;
+  badge.textContent=lbl;
+
+  // Stats
+  $('sd-elapsed').textContent = p.elapsed_secs ? p.elapsed_secs+'s' : '—';
+  $('sd-files-done').textContent = p.total_files ? `${p.files_done||0}/${p.total_files}` : (p.file_count||'—');
+  $('sd-entries').textContent = p.entries_parsed ? fmt(p.entries_parsed) : fmt(p.entry_count||0);
+  $('sd-s3').textContent   = p.s3_fetches  != null ? p.s3_fetches  : '—';
+  $('sd-disk').textContent = p.disk_hits   != null ? p.disk_hits   : '—';
+  $('sd-mem').textContent  = p.mem_hits    != null ? p.mem_hits    : '—';
+
+  // Progress bar
+  const pct = p.total_files ? Math.round(((p.files_done||0)/p.total_files)*100) : (p.phase==='done'?100:0);
+  const fill=$('sd-prog-fill');
+  fill.style.width=pct+'%';
+  fill.className='prog-fill'+(p.phase==='done'?' done':p.phase==='error'?' err':'');
+  $('sd-pct').textContent=pct+'%';
+
+  // Current file
+  const cf=$('sd-cur-file');
+  if(p.current_file) cf.innerHTML=`<span style="color:var(--text3)">Parsing:</span> <span style="color:var(--teal)">${p.current_file}</span>`;
+  else if(p.phase==='listing') cf.innerHTML='<span style="color:var(--blue)">Listing S3 objects…</span>';
+  else if(p.phase==='done') cf.innerHTML='<span style="color:var(--green)">✓ All files processed</span>';
+  else if(p.phase==='error') cf.innerHTML=`<span style="color:var(--red)">✗ ${p.phase_label||p.sync_error||'Unknown error'}</span>`;
+  else cf.innerHTML='<span style="color:var(--text3)">Waiting for sync…</span>';
+
+  // Per-prefix cards
+  const pfxEl=$('sd-prefixes');
+  if(p.prefixes && p.prefixes.length){
+    pfxEl.innerHTML=p.prefixes.map(pr=>`
+      <div class="pfx-card" style="margin-bottom:8px">
+        <div class="pfx-name">📡 ${pr.prefix}</div>
+        <div class="pfx-stats">
+          <div class="pfx-stat">Files found <span>${pr.files_found||0}</span></div>
+          <div class="pfx-stat">Fetched <span style="color:var(--blue)">${pr.files_parsed||0}</span></div>
+          <div class="pfx-stat">Cached <span style="color:var(--green)">${pr.files_cached||0}</span></div>
+          <div class="pfx-stat">Downloaded <span style="color:var(--accent)">${pr.bytes_read?Math.round(pr.bytes_read/1024)+'KB':'—'}</span></div>
+        </div>
+      </div>`).join('');
+  }
+
+  // Activity log
+  const logEl=$('sd-log');
+  if(p.log && p.log.length){
+    logEl.innerHTML=p.log.slice().reverse().map(l=>{
+      const cls=l.msg.startsWith('✓')?'ok':l.msg.startsWith('✗')?'err':l.msg.includes('↓')?'inf':'';
+      return `<div class="log-line ${cls}"><span class="ts">${l.ts}</span>${esc(l.msg)}</div>`;
+    }).join('');
+  }
+}
+
+// ─── Status Bar ───────────────────────────────────────────────────────────────
+function renderStatusBar(p){
+  const dot=$('sb-sync-dot');
+  const lbl=$('sb-sync-label');
+
+  if(p.syncing){
+    dot.className='sb-spin';
+    lbl.textContent=p.phase_label||'Syncing…';
+    lbl.style.color='var(--blue)';
+  } else if(p.phase==='error' || p.sync_error){
+    dot.className='sdot';dot.style.background='var(--red)';dot.style.animation='none';
+    lbl.textContent='Sync error';lbl.style.color='var(--red)';
+  } else {
+    dot.className='sb-pulse';dot.style.background='';dot.style.animation='';
+    lbl.textContent='Live';lbl.style.color='';
+  }
+
+  $('sb-files').textContent=fmt(p.file_count||0);
+  $('sb-entries').textContent=fmt(p.entry_count||0);
+  $('sb-last').textContent=p.last_sync?timeAgo(p.last_sync):'—';
+  $('sb-next').textContent=p.next_sync?timeAgo(p.next_sync,true):'—';
+}
+
+function timeAgo(iso, future=false){
+  const diff=Math.round((new Date(iso)-Date.now())/1000);
+  const abs=Math.abs(diff);
+  const str=abs<60?abs+'s':abs<3600?Math.round(abs/60)+'m':Math.round(abs/3600)+'h';
+  return future?(diff>0?'in '+str:'overdue'):(diff<0?str+' ago':'just now');
+}
+
+// ─── Diagnostics ─────────────────────────────────────────────────────────────
+async function loadDiag(){
+  $('diag-ld').style.display='block';
+  try {
+    const d=await apiFetch('/api/debug');
+    const grid=$('diag-grid');
+    const rows=[
+      {k:'S3 Bucket',v:d.S3_BUCKET,ok:!!d.S3_BUCKET},
+      {k:'S3 Prefixes',v:(d.S3_PREFIXES||[]).join(', ')},
+      {k:'AWS Region',v:d.AWS_REGION},
+      {k:'Access Key',v:d.has_access_key?'✓ Set':'✗ Missing',ok:d.has_access_key},
+      {k:'Secret Key',v:d.has_secret_key?'✓ Set':'✗ Missing',ok:d.has_secret_key},
+      {k:'boto3',v:d.boto3_installed?'✓ Installed':'✗ Missing',ok:d.boto3_installed},
+      {k:'Sync Phase',v:d.phase||'—'},
+      {k:'Sync Error',v:d.sync_error||'None',ok:!d.sync_error},
+      {k:'Parallel Workers',v:d.parallel_workers||'—'},
+      {k:'Files Loaded',v:fmt(d.file_count||0)},
+      {k:'Entries',v:fmt(d.entry_count||0)},
+      {k:'Store Days',v:d.store_days+' days'},
+      {k:'Sync Interval',v:Math.round(d.sync_interval_secs/60)+' min'},
+      {k:'Disk Cache Path',v:d.disk_cache_path||'—'},
+      {k:'Disk Cache Rows',v:(d.disk_cache_stats?.rows||0)+' rows'},
+      {k:'Disk Cache Size',v:(d.disk_cache_stats?.size_mb||0)+' MB'},
+      {k:'Available From',v:d.available_from||'—'},
+      {k:'Available To',v:d.available_to||'—'},
+    ];
+    grid.innerHTML=rows.map(r=>`
+      <div class="diag-row">
+        <div class="diag-key">${r.k}</div>
+        <div class="diag-val ${r.ok===true?'diag-ok':r.ok===false?'diag-err':''}">${esc(String(r.v||'—'))}</div>
+      </div>`).join('');
+    // Sample files
+    if(d.sample_files && d.sample_files.length){
+      $('diag-files-wrap').style.display='block';
+      $('diag-files-body').innerHTML=d.sample_files.map(f=>`<tr>
+        <td class="mono tdim" style="font-size:10px">${esc(f.key)}</td>
+        <td class="torn">${esc(f.api)}</td>
+        <td class="tdim">${f.date}</td>
+        <td class="tdim">${f.size_kb} KB</td>
+        <td class="mono tdim" style="font-size:10px">${esc(f.prefix||'—')}</td>
+      </tr>`).join('');
+    }
+    // Available APIs
+    if(d.available_apis && d.available_apis.length){
+      $('diag-apis-wrap').style.display='block';
+      $('diag-apis-list').innerHTML=d.available_apis.map(a=>
+        `<span style="background:var(--bg3);border:1px solid var(--border2);border-radius:5px;
+          padding:4px 10px;font-size:11px;color:var(--teal)">${esc(a)}</span>`).join('');
+    }
+  } catch(e){ toast('Diag failed: '+e.message,'error'); }
+  finally { $('diag-ld').style.display='none'; }
+}
+
+async function wipeDiskCache(){
+  if(!confirm('Wipe SQLite disk cache? Next sync will re-download all historical files from S3.')) return;
+  try {
+    const r = await fetch('/api/cache/disk/clear',{method:'POST'});
+    const d = await r.json();
+    toast(d.message||'Cache wiped','success');
+  } catch(e){ toast('Failed: '+e.message,'error'); }
+}
+
+async function populateApis(){
+  try{
+    const {apis}=await apiFetch('/api/apis');
+    ['sel-api','l-api','al-api'].forEach(id=>{
+      const el=$(id); if(!el) return;
+      const cur=el.value;
+      el.querySelectorAll('option:not([value=""])').forEach(o=>o.remove());
+      apis.forEach(a=>{ const o=document.createElement('option'); o.value=a; o.textContent=a; el.appendChild(o); });
+      el.value=cur;
+    });
+  } catch(e){}
+}
+
+// Start status bar polling on load (every 10s, lightweight)
+setInterval(async()=>{
+  try{ const p=await apiFetch('/api/sync/progress'); renderStatusBar(p); } catch(e){}
+}, 10000);
+// Also refresh progress drawer if open
+setInterval(()=>{
+  if($('sync-drawer').classList.contains('open')) pollSyncProgress();
+},2000);
+
 </script>
 </body>
 </html>
