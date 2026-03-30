@@ -2,5 +2,7 @@
 builder = "nixpacks"
 
 [deploy]
-startCommand = "gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120"
+# Single worker prevents OOM when streaming 10MB S3 files
+# Timeout extended to 5min for large log queries
+startCommand = "gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 300 --keep-alive 5"
 restartPolicyType = "on_failure"
