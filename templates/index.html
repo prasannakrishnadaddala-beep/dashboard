@@ -1,1011 +1,756 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>MuleSoft Log Intelligence</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" />
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
 <style>
-/* ── Reset & tokens ───────────────────────────────────────────── */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-:root {
-  --bg:         #080C12;
-  --bg2:        #0E1420;
-  --bg3:        #151C2B;
-  --card:       #121929;
-  --border:     #1E2A40;
-  --border2:    #263352;
-  --text:       #C8D4E8;
-  --text2:      #7A8FAF;
-  --text3:      #4A5F7A;
-  --accent:     #FF6B35;
-  --accent2:    #FF9563;
-  --green:      #00E5A0;
-  --red:        #FF3B5C;
-  --yellow:     #FFB800;
-  --blue:       #4D9EFF;
-  --purple:     #A78BFA;
-  --font-head:  'Syne', sans-serif;
-  --font-mono:  'Space Mono', monospace;
-  --radius:     10px;
-  --shadow:     0 4px 24px rgba(0,0,0,0.5);
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080C12;--bg2:#0E1420;--bg3:#151C2B;--card:#121929;
+  --border:#1E2A40;--border2:#263352;--text:#C8D4E8;--text2:#7A8FAF;--text3:#4A5F7A;
+  --accent:#FF6B35;--accent2:#FF9563;--green:#00E5A0;--red:#FF3B5C;
+  --yellow:#FFB800;--blue:#4D9EFF;--purple:#A78BFA;--teal:#22D3EE;
+  --fh:'Syne',sans-serif;--fm:'Space Mono',monospace;--r:10px;
 }
-
-html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font-mono); font-size: 13px; line-height: 1.5; }
-
-/* ── Layout ────────────────────────────────────────────────────── */
-.app { display: flex; flex-direction: column; min-height: 100vh; }
-
-/* ── Topbar ────────────────────────────────────────────────────── */
-.topbar {
-  display: flex; align-items: center; gap: 16px;
-  padding: 0 24px; height: 56px;
-  background: var(--bg2); border-bottom: 1px solid var(--border);
-  position: sticky; top: 0; z-index: 100;
-}
-.topbar-logo {
-  font-family: var(--font-head); font-size: 17px; font-weight: 800;
-  color: var(--accent); letter-spacing: -0.5px; white-space: nowrap;
-  display: flex; align-items: center; gap: 8px;
-}
-.topbar-logo::before { content: '◈'; font-size: 20px; }
-.topbar-sep { width: 1px; height: 28px; background: var(--border); }
-.topbar-controls { display: flex; align-items: center; gap: 10px; flex: 1; flex-wrap: wrap; }
-.topbar-right { display: flex; align-items: center; gap: 8px; margin-left: auto; }
-
-/* ── Controls ──────────────────────────────────────────────────── */
-select, input[type="date"], input[type="text"], input[type="number"],
-input[type="url"], textarea {
-  background: var(--bg3); border: 1px solid var(--border);
-  color: var(--text); font-family: var(--font-mono); font-size: 12px;
-  padding: 6px 10px; border-radius: 6px; outline: none;
-  transition: border-color .2s;
-}
-select:focus, input:focus, textarea:focus { border-color: var(--accent); }
-select { cursor: pointer; }
-label { font-size: 11px; color: var(--text2); }
-
-/* ── Buttons ───────────────────────────────────────────────────── */
-.btn {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 6px 14px; border-radius: 6px; border: none;
-  font-family: var(--font-mono); font-size: 12px; cursor: pointer;
-  transition: all .2s; white-space: nowrap;
-}
-.btn-primary { background: var(--accent); color: #fff; }
-.btn-primary:hover { background: var(--accent2); }
-.btn-ghost { background: transparent; color: var(--text2); border: 1px solid var(--border); }
-.btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
-.btn-danger { background: transparent; color: var(--red); border: 1px solid var(--red); }
-.btn-danger:hover { background: var(--red); color: #fff; }
-.btn-sm { padding: 4px 10px; font-size: 11px; }
-.btn:disabled { opacity: 0.45; cursor: not-allowed; }
-
-/* ── Tabs ──────────────────────────────────────────────────────── */
-.tabs { display: flex; gap: 2px; background: var(--bg2); padding: 0 24px; border-bottom: 1px solid var(--border); }
-.tab {
-  padding: 12px 18px; cursor: pointer; font-size: 12px; color: var(--text2);
-  border-bottom: 2px solid transparent; transition: all .2s; letter-spacing: .5px;
-}
-.tab:hover { color: var(--text); }
-.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
-
-/* ── Main ──────────────────────────────────────────────────────── */
-.main { flex: 1; padding: 20px 24px; max-width: 1600px; margin: 0 auto; width: 100%; }
-.tab-pane { display: none; }
-.tab-pane.active { display: block; }
-
-/* ── Summary cards ─────────────────────────────────────────────── */
-.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; margin-bottom: 22px; }
-.card {
-  background: var(--card); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 16px 18px;
-  position: relative; overflow: hidden; transition: border-color .2s;
-}
-.card::before {
-  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-  background: var(--card-accent, var(--accent));
-}
-.card:hover { border-color: var(--border2); }
-.card-label { font-size: 10px; color: var(--text2); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
-.card-value { font-family: var(--font-head); font-size: 28px; font-weight: 800; color: var(--text); line-height: 1; }
-.card-sub { font-size: 10px; color: var(--text3); margin-top: 4px; }
-.card-icon { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); font-size: 28px; opacity: .08; }
-
-.card--err   { --card-accent: var(--red);    }
-.card--warn  { --card-accent: var(--yellow); }
-.card--ok    { --card-accent: var(--green);  }
-.card--blue  { --card-accent: var(--blue);   }
-.card--purple{ --card-accent: var(--purple); }
-
-/* ── Charts grid ───────────────────────────────────────────────── */
-.charts { display: grid; gap: 14px; }
-.charts-row { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 14px; margin-bottom: 14px; }
-.charts-row2 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
-.chart-box {
-  background: var(--card); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 16px;
-}
-.chart-title {
-  font-family: var(--font-head); font-size: 12px; font-weight: 700;
-  color: var(--text2); letter-spacing: 1px; text-transform: uppercase;
-  margin-bottom: 14px; display: flex; align-items: center; gap: 6px;
-}
-.chart-title span { color: var(--accent); }
-.chart-canvas-wrap { position: relative; height: 220px; }
-
-/* ── Log table ─────────────────────────────────────────────────── */
-.log-controls { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
-.log-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); }
-table { width: 100%; border-collapse: collapse; font-size: 11px; }
-thead { background: var(--bg3); }
-th { padding: 10px 12px; text-align: left; color: var(--text2); font-weight: 700; letter-spacing: .5px; border-bottom: 1px solid var(--border); white-space: nowrap; }
-td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
-tr:last-child td { border-bottom: none; }
-tr:hover td { background: var(--bg3); }
-
-.badge {
-  display: inline-block; padding: 2px 7px; border-radius: 4px;
-  font-size: 10px; font-weight: 700; letter-spacing: .5px;
-}
-.badge-INFO   { background: rgba(77,158,255,.15); color: var(--blue); }
-.badge-ERROR  { background: rgba(255,59,92,.18);  color: var(--red); }
-.badge-WARN   { background: rgba(255,184,0,.15);  color: var(--yellow); }
-.badge-DEBUG  { background: rgba(167,139,250,.12); color: var(--purple); }
-.badge-ok     { background: rgba(0,229,160,.13); color: var(--green); }
-.badge-fail   { background: rgba(255,59,92,.18);  color: var(--red); }
-.badge-created{ background: rgba(255,107,53,.13); color: var(--accent); }
-
-.mono { font-family: var(--font-mono); font-size: 11px; }
-.text-sm { font-size: 11px; }
-.text-dim { color: var(--text3); }
-.text-red { color: var(--red); }
-.text-green { color: var(--green); }
-.text-orange { color: var(--accent); }
-.text-trunc { max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-/* ── Pagination ────────────────────────────────────────────────── */
-.pagination { display: flex; align-items: center; gap: 8px; margin-top: 14px; justify-content: center; }
-.page-btn {
-  padding: 5px 12px; background: var(--bg3); border: 1px solid var(--border);
-  border-radius: 5px; color: var(--text2); cursor: pointer; font-family: var(--font-mono);
-  font-size: 12px; transition: all .2s;
-}
-.page-btn:hover, .page-btn.active { border-color: var(--accent); color: var(--accent); }
-.page-btn:disabled { opacity: .4; cursor: not-allowed; }
-
-/* ── Alerts panel ──────────────────────────────────────────────── */
-.alerts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.panel { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
-.panel-title { font-family: var(--font-head); font-size: 14px; font-weight: 700; margin-bottom: 16px; color: var(--text); }
-.form-group { margin-bottom: 12px; }
-.form-group label { display: block; margin-bottom: 4px; }
-.form-group input, .form-group select { width: 100%; }
-.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-
-.alert-item {
-  border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px;
-  margin-bottom: 10px; display: flex; align-items: flex-start; gap: 12px;
-  background: var(--bg3);
-}
-.alert-item-info { flex: 1; }
-.alert-name { font-weight: 700; margin-bottom: 2px; }
-.alert-meta { font-size: 11px; color: var(--text2); }
-.alert-actions { display: flex; gap: 6px; align-items: center; }
-.toggle { position: relative; display: inline-block; width: 36px; height: 20px; }
-.toggle input { display: none; }
-.toggle-slider {
-  position: absolute; inset: 0; background: var(--bg); border: 1px solid var(--border);
-  border-radius: 20px; cursor: pointer; transition: .3s;
-}
-.toggle-slider::before {
-  content: ''; position: absolute; left: 2px; top: 50%;
-  transform: translateY(-50%); width: 14px; height: 14px;
-  background: var(--text3); border-radius: 50%; transition: .3s;
-}
-.toggle input:checked + .toggle-slider { background: var(--accent); border-color: var(--accent); }
-.toggle input:checked + .toggle-slider::before { left: calc(100% - 16px); background: #fff; }
-
-/* ── Loading & empty ───────────────────────────────────────────── */
-.loading { text-align: center; padding: 60px 20px; color: var(--text2); }
-.loading-spinner { display: inline-block; width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; margin-bottom: 12px; }
-@keyframes spin { to { transform: rotate(360deg); } }
-.empty { text-align: center; padding: 40px 20px; color: var(--text3); }
-.empty-icon { font-size: 36px; margin-bottom: 8px; }
-
-/* ── Toast ─────────────────────────────────────────────────────── */
-#toast {
-  position: fixed; bottom: 24px; right: 24px; z-index: 9999;
-  padding: 12px 20px; border-radius: 8px; font-size: 12px;
-  background: var(--bg3); border: 1px solid var(--border);
-  color: var(--text); box-shadow: var(--shadow);
-  transform: translateY(80px); opacity: 0; transition: all .3s;
-  max-width: 320px;
-}
-#toast.show { transform: translateY(0); opacity: 1; }
-#toast.success { border-color: var(--green); color: var(--green); }
-#toast.error   { border-color: var(--red);   color: var(--red);   }
-
-/* ── Misc ──────────────────────────────────────────────────────── */
-.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-.section-title { font-family: var(--font-head); font-size: 13px; font-weight: 700; color: var(--text2); letter-spacing: .8px; text-transform: uppercase; }
-.divider { height: 1px; background: var(--border); margin: 20px 0; }
-.flex { display: flex; align-items: center; gap: 8px; }
-.ml-auto { margin-left: auto; }
-.status-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
-.dot-live { background: var(--green); animation: pulse 2s infinite; }
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
-
-@media (max-width: 1100px) {
-  .charts-row { grid-template-columns: 1fr 1fr; }
-  .charts-row2 { grid-template-columns: 1fr 1fr; }
-}
-@media (max-width: 700px) {
-  .charts-row, .charts-row2 { grid-template-columns: 1fr; }
-  .alerts-grid { grid-template-columns: 1fr; }
-  .topbar-controls { display: none; }
-}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--fm);font-size:13px;line-height:1.5}
+.app{display:flex;flex-direction:column;min-height:100vh}
+/* Topbar */
+.topbar{display:flex;align-items:center;gap:14px;padding:0 22px;height:54px;background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+.logo{font-family:var(--fh);font-size:16px;font-weight:800;color:var(--accent);display:flex;align-items:center;gap:8px;white-space:nowrap}
+.logo::before{content:'◈';font-size:18px}
+.sep{width:1px;height:26px;background:var(--border)}
+.ctrls{display:flex;align-items:center;gap:10px;flex:1;flex-wrap:wrap}
+.tr{display:flex;align-items:center;gap:8px;margin-left:auto}
+/* Inputs */
+select,input[type=date],input[type=text],input[type=number],input[type=url],textarea{
+  background:var(--bg3);border:1px solid var(--border);color:var(--text);
+  font-family:var(--fm);font-size:12px;padding:6px 10px;border-radius:6px;outline:none;transition:border-color .2s}
+select:focus,input:focus,textarea:focus{border-color:var(--accent)}
+label{font-size:11px;color:var(--text2)}
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:6px;border:none;
+  font-family:var(--fm);font-size:12px;cursor:pointer;transition:all .2s;white-space:nowrap}
+.btn-p{background:var(--accent);color:#fff}.btn-p:hover{background:var(--accent2)}
+.btn-g{background:transparent;color:var(--text2);border:1px solid var(--border)}.btn-g:hover{border-color:var(--accent);color:var(--accent)}
+.btn-d{background:transparent;color:var(--red);border:1px solid var(--red)}.btn-d:hover{background:var(--red);color:#fff}
+.btn-sm{padding:4px 10px;font-size:11px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+/* Tabs */
+.tabs{display:flex;gap:2px;background:var(--bg2);padding:0 22px;border-bottom:1px solid var(--border)}
+.tab{padding:12px 18px;cursor:pointer;font-size:12px;color:var(--text2);border-bottom:2px solid transparent;transition:all .2s;letter-spacing:.5px}
+.tab:hover{color:var(--text)}.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+/* Main */
+.main{flex:1;padding:18px 22px;max-width:1600px;margin:0 auto;width:100%}
+.tp{display:none}.tp.active{display:block}
+/* Cards */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:13px;margin-bottom:20px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:15px 17px;position:relative;overflow:hidden;transition:border-color .2s}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--ca,var(--accent))}
+.card-lbl{font-size:10px;color:var(--text2);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px}
+.card-val{font-family:var(--fh);font-size:28px;font-weight:800;color:var(--text);line-height:1}
+.card-sub{font-size:10px;color:var(--text3);margin-top:4px}
+.card-icon{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:26px;opacity:.07}
+.c-err{--ca:var(--red)}.c-warn{--ca:var(--yellow)}.c-ok{--ca:var(--green)}.c-blue{--ca:var(--blue)}.c-pur{--ca:var(--purple)}
+/* Charts */
+.cr1{display:grid;grid-template-columns:2fr 1fr 1fr;gap:13px;margin-bottom:13px}
+.cr2{display:grid;grid-template-columns:1fr 1fr 1fr;gap:13px}
+.cbox{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:15px}
+.ctitle{font-family:var(--fh);font-size:11px;font-weight:700;color:var(--text2);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.ctitle span{color:var(--accent)}
+canvas{display:block}
+/* Log table */
+.lc{display:flex;gap:10px;margin-bottom:13px;flex-wrap:wrap;align-items:center}
+.ltw{overflow-x:auto;border:1px solid var(--border);border-radius:var(--r)}
+table{width:100%;border-collapse:collapse;font-size:11px}
+thead{background:var(--bg3)}
+th{padding:9px 11px;text-align:left;color:var(--text2);font-weight:700;letter-spacing:.5px;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:8px 11px;border-bottom:1px solid var(--border);vertical-align:top}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--bg3)}
+.badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.5px}
+.bINFO{background:rgba(77,158,255,.15);color:var(--blue)}
+.bERROR{background:rgba(255,59,92,.18);color:var(--red)}
+.bWARN{background:rgba(255,184,0,.15);color:var(--yellow)}
+.bok{background:rgba(0,229,160,.13);color:var(--green)}
+.bfail{background:rgba(255,59,92,.18);color:var(--red)}
+.bcreated{background:rgba(255,107,53,.13);color:var(--accent)}
+.mono{font-family:var(--fm);font-size:11px}
+.tdim{color:var(--text3)}.tred{color:var(--red)}.tgrn{color:var(--green)}.torn{color:var(--accent)}
+.ttrunc{max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Pagination */
+.pg{display:flex;align-items:center;gap:8px;margin-top:13px;justify-content:center}
+.pb{padding:5px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:5px;
+  color:var(--text2);cursor:pointer;font-family:var(--fm);font-size:12px;transition:all .2s}
+.pb:hover,.pb.active{border-color:var(--accent);color:var(--accent)}
+.pb:disabled{opacity:.4;cursor:not-allowed}
+/* Alerts */
+.ag{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:19px}
+.ptitle{font-family:var(--fh);font-size:13px;font-weight:700;margin-bottom:15px;color:var(--text)}
+.fg{margin-bottom:11px}.fg label{display:block;margin-bottom:4px}
+.fg input,.fg select,.fg textarea{width:100%}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ai{border:1px solid var(--border);border-radius:8px;padding:11px 13px;margin-bottom:9px;display:flex;align-items:flex-start;gap:11px;background:var(--bg3)}
+.ai-info{flex:1}.ai-name{font-weight:700;margin-bottom:2px}.ai-meta{font-size:11px;color:var(--text2)}
+.ai-acts{display:flex;gap:6px;align-items:center}
+.tog{position:relative;display:inline-block;width:36px;height:20px}
+.tog input{display:none}
+.tsl{position:absolute;inset:0;background:var(--bg);border:1px solid var(--border);border-radius:20px;cursor:pointer;transition:.3s}
+.tsl::before{content:'';position:absolute;left:2px;top:50%;transform:translateY(-50%);width:14px;height:14px;background:var(--text3);border-radius:50%;transition:.3s}
+.tog input:checked+.tsl{background:var(--accent);border-color:var(--accent)}
+.tog input:checked+.tsl::before{left:calc(100% - 16px);background:#fff}
+/* Loading */
+.ld{text-align:center;padding:55px 20px;color:var(--text2)}
+.sp{display:inline-block;width:30px;height:30px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:11px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.emp{text-align:center;padding:35px 20px;color:var(--text3)}
+/* Toast */
+#toast{position:fixed;bottom:22px;right:22px;z-index:9999;padding:11px 18px;border-radius:8px;font-size:12px;
+  background:var(--bg3);border:1px solid var(--border);color:var(--text);
+  transform:translateY(80px);opacity:0;transition:all .3s;max-width:320px}
+#toast.show{transform:translateY(0);opacity:1}
+#toast.ok{border-color:var(--green);color:var(--green)}
+#toast.err{border-color:var(--red);color:var(--red)}
+/* Section */
+.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px}
+.st{font-family:var(--fh);font-size:12px;font-weight:700;color:var(--text2);letter-spacing:.8px;text-transform:uppercase}
+.flex{display:flex;align-items:center;gap:8px}
+.mla{margin-left:auto}
+.sdot{width:7px;height:7px;border-radius:50%;display:inline-block}
+.dlive{background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@media(max-width:1100px){.cr1{grid-template-columns:1fr 1fr}.cr2{grid-template-columns:1fr 1fr}}
+@media(max-width:700px){.cr1,.cr2,.ag{grid-template-columns:1fr}.ctrls{display:none}}
 </style>
 </head>
 <body>
-<div class="app" id="app">
-
-<!-- ── TOPBAR ─────────────────────────────────────────────── -->
+<div class="app">
+<!-- TOPBAR -->
 <div class="topbar">
-  <div class="topbar-logo">MuleSoft Intelligence</div>
-  <div class="topbar-sep"></div>
-  <div class="topbar-controls">
-    <div class="flex">
-      <label>API</label>
-      <select id="sel-api" style="min-width:220px">
-        <option value="">All APIs</option>
-      </select>
-    </div>
-    <div class="flex">
-      <label>From</label>
-      <input type="date" id="date-from" />
-    </div>
-    <div class="flex">
-      <label>To</label>
-      <input type="date" id="date-to" />
-    </div>
-    <button class="btn btn-primary btn-sm" id="btn-load">▶ Load</button>
-    <button class="btn btn-ghost btn-sm" id="btn-refresh" title="Clear cache & reload">↺ Refresh</button>
+  <div class="logo">MuleSoft Intelligence</div>
+  <div class="sep"></div>
+  <div class="ctrls">
+    <div class="flex"><label>API</label><select id="sel-api" style="min-width:210px"><option value="">All APIs</option></select></div>
+    <div class="flex"><label>From</label><input type="date" id="df"/></div>
+    <div class="flex"><label>To</label><input type="date" id="dt"/></div>
+    <button class="btn btn-p btn-sm" id="btn-load">▶ Load</button>
+    <button class="btn btn-g btn-sm" id="btn-ref">↺ Refresh</button>
   </div>
-  <div class="topbar-right">
-    <span class="status-dot dot-live"></span>
-    <span style="font-size:11px;color:var(--text2)" id="status-txt">Ready</span>
+  <div class="tr">
+    <span class="sdot dlive"></span>
+    <span style="font-size:11px;color:var(--text2)" id="stxt">Ready</span>
   </div>
 </div>
-
-<!-- ── TABS ───────────────────────────────────────────────── -->
+<!-- TABS -->
 <div class="tabs">
   <div class="tab active" data-tab="overview">Overview</div>
   <div class="tab" data-tab="logs">Log Explorer</div>
   <div class="tab" data-tab="payments">Payments</div>
   <div class="tab" data-tab="alerts">Alerts</div>
 </div>
-
-<!-- ── MAIN ───────────────────────────────────────────────── -->
+<!-- MAIN -->
 <div class="main">
 
-  <!-- ── OVERVIEW TAB ─────────────────────────────────────── -->
-  <div class="tab-pane active" id="tab-overview">
-    <div id="overview-loading" class="loading" style="display:none">
-      <div class="loading-spinner"></div>
-      <div>Fetching logs from S3…</div>
+<!-- OVERVIEW -->
+<div class="tp active" id="tab-overview">
+  <div id="ov-ld" class="ld" style="display:none"><div class="sp"></div><div>Fetching from S3…</div></div>
+  <div id="ov-ct">
+    <div class="cards">
+      <div class="card"><div class="card-lbl">Total Requests</div><div class="card-val" id="c-tot">—</div><div class="card-sub" id="c-files">—</div><div class="card-icon">📊</div></div>
+      <div class="card c-err"><div class="card-lbl">Errors</div><div class="card-val tred" id="c-err">—</div><div class="card-sub" id="c-erate">—</div><div class="card-icon">🔴</div></div>
+      <div class="card c-warn"><div class="card-lbl">Warnings</div><div class="card-val" style="color:var(--yellow)" id="c-warn">—</div><div class="card-sub">WARN level</div><div class="card-icon">⚠️</div></div>
+      <div class="card c-ok"><div class="card-lbl">Orders Created</div><div class="card-val tgrn" id="c-cre">—</div><div class="card-sub">Razorpay orders</div><div class="card-icon">🧾</div></div>
+      <div class="card c-blue"><div class="card-lbl">Captured</div><div class="card-val" style="color:var(--blue)" id="c-cap">—</div><div class="card-sub" id="c-fail">—</div><div class="card-icon">💳</div></div>
+      <div class="card c-pur"><div class="card-lbl">Revenue (INR)</div><div class="card-val" style="color:var(--purple)" id="c-rev">—</div><div class="card-sub">captured sum</div><div class="card-icon">₹</div></div>
     </div>
-    <div id="overview-content">
-      <!-- Cards -->
-      <div class="cards" id="cards-row">
-        <div class="card"><div class="card-label">Total Requests</div><div class="card-value" id="c-total">—</div><div class="card-sub" id="c-files">0 files loaded</div><div class="card-icon">📊</div></div>
-        <div class="card card--err"><div class="card-label">Errors</div><div class="card-value text-red" id="c-errors">—</div><div class="card-sub" id="c-err-rate">0% error rate</div><div class="card-icon">🔴</div></div>
-        <div class="card card--warn"><div class="card-label">Warnings</div><div class="card-value" style="color:var(--yellow)" id="c-warnings">—</div><div class="card-sub">log-level WARN</div><div class="card-icon">⚠️</div></div>
-        <div class="card card--ok"><div class="card-label">Orders Created</div><div class="card-value text-green" id="c-created">—</div><div class="card-sub">Razorpay orders</div><div class="card-icon">🧾</div></div>
-        <div class="card card--blue"><div class="card-label">Payments Captured</div><div class="card-value" style="color:var(--blue)" id="c-captured">—</div><div class="card-sub" id="c-failed">0 failed</div><div class="card-icon">💳</div></div>
-        <div class="card card--purple"><div class="card-label">Revenue (INR)</div><div class="card-value" style="color:var(--purple)" id="c-revenue">—</div><div class="card-sub">captured payments</div><div class="card-icon">₹</div></div>
-      </div>
-
-      <!-- Row 1: Timeline + Endpoints + Payment Status -->
-      <div class="charts-row">
-        <div class="chart-box">
-          <div class="chart-title"><span>◆</span> Requests Timeline</div>
-          <div class="chart-canvas-wrap"><canvas id="ch-timeline"></canvas></div>
-        </div>
-        <div class="chart-box">
-          <div class="chart-title"><span>◆</span> Endpoints</div>
-          <div class="chart-canvas-wrap"><canvas id="ch-endpoints"></canvas></div>
-        </div>
-        <div class="chart-box">
-          <div class="chart-title"><span>◆</span> Payment Status</div>
-          <div class="chart-canvas-wrap"><canvas id="ch-status"></canvas></div>
-        </div>
-      </div>
-
-      <!-- Row 2: Error by Endpoint + Flows + Payment Methods -->
-      <div class="charts-row2">
-        <div class="chart-box">
-          <div class="chart-title"><span>◆</span> Errors by Endpoint</div>
-          <div class="chart-canvas-wrap"><canvas id="ch-errendpoint"></canvas></div>
-        </div>
-        <div class="chart-box">
-          <div class="chart-title"><span>◆</span> Flow Distribution</div>
-          <div class="chart-canvas-wrap"><canvas id="ch-flows"></canvas></div>
-        </div>
-        <div class="chart-box">
-          <div class="chart-title"><span>◆</span> Payment Methods</div>
-          <div class="chart-canvas-wrap"><canvas id="ch-methods"></canvas></div>
-        </div>
-      </div>
-
-      <!-- Recent errors -->
-      <div style="margin-top:16px">
-        <div class="section-header">
-          <div class="section-title">Recent Errors &amp; Warnings</div>
-          <span id="recent-err-count" style="font-size:11px;color:var(--text3)"></span>
-        </div>
-        <div class="log-table-wrap">
-          <table>
-            <thead><tr>
-              <th>Level</th><th>Timestamp</th><th>API</th><th>Endpoint</th>
-              <th>Flow</th><th>Error Code</th><th>Message</th>
-            </tr></thead>
-            <tbody id="recent-errors-body">
-              <tr><td colspan="7" class="empty"><div class="empty-icon">✓</div>No errors in selected range</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+    <div class="cr1">
+      <div class="cbox"><div class="ctitle"><span>◆</span>Request Timeline</div><canvas id="ch-tl" height="200"></canvas></div>
+      <div class="cbox"><div class="ctitle"><span>◆</span>Endpoints</div><canvas id="ch-ep" height="200"></canvas></div>
+      <div class="cbox"><div class="ctitle"><span>◆</span>Payment Status</div><canvas id="ch-ps" height="200"></canvas></div>
+    </div>
+    <div class="cr2">
+      <div class="cbox"><div class="ctitle"><span>◆</span>Errors by Endpoint</div><canvas id="ch-ee" height="200"></canvas></div>
+      <div class="cbox"><div class="ctitle"><span>◆</span>Flow Distribution</div><canvas id="ch-fl" height="200"></canvas></div>
+      <div class="cbox"><div class="ctitle"><span>◆</span>UPI Methods</div><canvas id="ch-pm" height="200"></canvas></div>
+    </div>
+    <div style="margin-top:15px">
+      <div class="sh"><div class="st">Recent Errors & Warnings</div><span id="rc-ct" style="font-size:11px;color:var(--text3)"></span></div>
+      <div class="ltw"><table><thead><tr><th>Level</th><th>Timestamp</th><th>API</th><th>Endpoint</th><th>Flow</th><th>Error Code</th><th>Message</th></tr></thead>
+      <tbody id="re-body"><tr><td colspan="7" class="emp">✓ No errors in range</td></tr></tbody></table></div>
     </div>
   </div>
+</div>
 
-  <!-- ── LOGS TAB ──────────────────────────────────────────── -->
-  <div class="tab-pane" id="tab-logs">
-    <div class="log-controls">
-      <select id="log-sel-api" style="min-width:200px"><option value="">All APIs</option></select>
-      <select id="log-sel-date"><option value="">All dates</option></select>
-      <select id="log-sel-level">
-        <option value="">All levels</option>
-        <option value="ERROR">ERROR</option>
-        <option value="WARN">WARN</option>
-        <option value="INFO">INFO</option>
-        <option value="DEBUG">DEBUG</option>
-      </select>
-      <select id="log-sel-endpoint">
-        <option value="">All endpoints</option>
-        <option value="/create">POST /create</option>
-        <option value="status">GET /status</option>
-      </select>
-      <input type="text" id="log-search" placeholder="Search loan#, customer, paymentId…" style="min-width:250px" />
-      <button class="btn btn-primary btn-sm" id="btn-search-logs">Search</button>
-      <span class="ml-auto" style="font-size:11px;color:var(--text2)" id="log-total-txt"></span>
-    </div>
-    <div id="logs-loading" class="loading" style="display:none">
-      <div class="loading-spinner"></div><div>Loading logs…</div>
-    </div>
-    <div class="log-table-wrap" id="logs-table-wrap">
-      <table>
-        <thead><tr>
-          <th>Level</th><th>Timestamp</th><th>API</th><th>Method</th>
-          <th>Endpoint</th><th>Flow</th><th>Rz Status</th>
-          <th>Amount ₹</th><th>Error Code</th><th>Loan#</th><th>Message</th>
-        </tr></thead>
-        <tbody id="logs-body">
-          <tr><td colspan="11" class="empty"><div class="empty-icon">🔍</div>Select API and click Search</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <div class="pagination" id="logs-pagination"></div>
+<!-- LOGS -->
+<div class="tp" id="tab-logs">
+  <div class="lc">
+    <select id="l-api" style="min-width:200px"><option value="">All APIs</option></select>
+    <select id="l-date"><option value="">All dates</option></select>
+    <select id="l-lvl"><option value="">All levels</option><option>ERROR</option><option>WARN</option><option>INFO</option><option>DEBUG</option></select>
+    <select id="l-ep"><option value="">All endpoints</option><option value="/create">POST /create</option><option value="status">GET /status</option></select>
+    <input type="text" id="l-srch" placeholder="Search loan#, customer, paymentId…" style="min-width:240px"/>
+    <button class="btn btn-p btn-sm" id="btn-srch">Search</button>
+    <span class="mla" style="font-size:11px;color:var(--text2)" id="l-tot"></span>
   </div>
+  <div id="l-ld" class="ld" style="display:none"><div class="sp"></div><div>Loading…</div></div>
+  <div class="ltw" id="l-tw">
+    <table><thead><tr><th>Level</th><th>Timestamp</th><th>API</th><th>M</th><th>Endpoint</th><th>Flow</th><th>Rz Status</th><th>Amount ₹</th><th>Error Code</th><th>Loan#</th><th>Message</th></tr></thead>
+    <tbody id="l-body"><tr><td colspan="11" class="emp">Select API and click Search</td></tr></tbody></table>
+  </div>
+  <div class="pg" id="l-pg"></div>
+</div>
 
-  <!-- ── PAYMENTS TAB ──────────────────────────────────────── -->
-  <div class="tab-pane" id="tab-payments">
-    <div id="pay-loading" class="loading" style="display:none">
-      <div class="loading-spinner"></div><div>Loading payment data…</div>
+<!-- PAYMENTS -->
+<div class="tp" id="tab-payments">
+  <div id="p-ld" class="ld" style="display:none"><div class="sp"></div><div>Loading…</div></div>
+  <div id="p-ct">
+    <div class="cards" style="margin-bottom:18px">
+      <div class="card c-ok"><div class="card-lbl">Orders Created</div><div class="card-val tgrn" id="p-cre">—</div></div>
+      <div class="card c-blue"><div class="card-lbl">Captured</div><div class="card-val" style="color:var(--blue)" id="p-cap">—</div></div>
+      <div class="card c-err"><div class="card-lbl">Failed</div><div class="card-val tred" id="p-fail">—</div></div>
+      <div class="card c-pur"><div class="card-lbl">Total Revenue</div><div class="card-val" style="color:var(--purple)" id="p-rev">—</div></div>
     </div>
-    <div id="pay-content">
-      <div class="cards" style="margin-bottom:20px">
-        <div class="card card--ok"><div class="card-label">Total Orders Created</div><div class="card-value text-green" id="p-created">—</div><div class="card-sub">Razorpay orders</div></div>
-        <div class="card card--blue"><div class="card-label">Payments Captured</div><div class="card-value" style="color:var(--blue)" id="p-captured">—</div><div class="card-sub">success rate below</div></div>
-        <div class="card card--err"><div class="card-label">Failed Payments</div><div class="card-value text-red" id="p-failed">—</div><div class="card-sub">Razorpay error_code</div></div>
-        <div class="card card--purple"><div class="card-label">Total Revenue</div><div class="card-value" style="color:var(--purple)" id="p-revenue">—</div><div class="card-sub">sum of captured</div></div>
-      </div>
-      <div class="charts-row">
-        <div class="chart-box">
-          <div class="chart-title"><span>◆</span> Daily Revenue (INR)</div>
-          <div class="chart-canvas-wrap"><canvas id="ch-rev"></canvas></div>
-        </div>
-        <div class="chart-box">
-          <div class="chart-title"><span>◆</span> Order vs Capture</div>
-          <div class="chart-canvas-wrap"><canvas id="ch-funnel"></canvas></div>
-        </div>
-        <div class="chart-box">
-          <div class="chart-title"><span>◆</span> UPI Methods</div>
-          <div class="chart-canvas-wrap"><canvas id="ch-pay-methods"></canvas></div>
-        </div>
-      </div>
-
-      <div style="margin-top:16px">
-        <div class="section-header">
-          <div class="section-title">Captured Payments</div>
-        </div>
-        <div class="log-table-wrap">
-          <table>
-            <thead><tr>
-              <th>Timestamp</th><th>Payment ID</th><th>Order ID</th>
-              <th>Amount ₹</th><th>Method</th><th>Customer</th><th>Loan#</th><th>Status</th>
-            </tr></thead>
-            <tbody id="payments-body">
-              <tr><td colspan="8" class="empty">Load data first</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+    <div class="cr1">
+      <div class="cbox"><div class="ctitle"><span>◆</span>Daily Activity</div><canvas id="ch-da" height="200"></canvas></div>
+      <div class="cbox"><div class="ctitle"><span>◆</span>Order → Capture Funnel</div><canvas id="ch-fn" height="200"></canvas></div>
+      <div class="cbox"><div class="ctitle"><span>◆</span>UPI Methods</div><canvas id="ch-um" height="200"></canvas></div>
     </div>
   </div>
+</div>
 
-  <!-- ── ALERTS TAB ─────────────────────────────────────────── -->
-  <div class="tab-pane" id="tab-alerts">
-    <div class="alerts-grid">
-
-      <!-- Create alert -->
-      <div class="panel">
-        <div class="panel-title">Create Alert Rule</div>
-        <div class="form-group">
-          <label>Alert Name *</label>
-          <input type="text" id="al-name" placeholder="e.g. High Error Rate" />
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>API Filter</label>
-            <select id="al-api"><option value="">All APIs</option></select>
-          </div>
-          <div class="form-group">
-            <label>Metric *</label>
-            <select id="al-metric">
-              <option value="errors">Error Count</option>
-              <option value="error_rate">Error Rate (%)</option>
-              <option value="payments_failed">Failed Payments</option>
-              <option value="total_requests">Total Requests</option>
-              <option value="warnings">Warning Count</option>
-            </select>
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Operator</label>
-            <select id="al-op">
-              <option value=">">&gt; greater than</option>
-              <option value=">=">&gt;= at least</option>
-              <option value="<">&lt; less than</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Threshold *</label>
-            <input type="number" id="al-threshold" placeholder="10" min="0" />
-          </div>
-        </div>
-        <div class="form-group">
-          <label>Webhook URL (Slack / Teams / custom)</label>
-          <input type="url" id="al-webhook" placeholder="https://hooks.slack.com/…" />
-        </div>
-        <div style="display:flex;gap:8px;margin-top:4px">
-          <button class="btn btn-primary" id="btn-create-alert">+ Create Alert</button>
-          <button class="btn btn-ghost" id="btn-test-webhook">Test Webhook</button>
-        </div>
+<!-- ALERTS -->
+<div class="tp" id="tab-alerts">
+  <div class="ag">
+    <div class="panel">
+      <div class="ptitle">Create Alert Rule</div>
+      <div class="fg"><label>Alert Name *</label><input type="text" id="al-nm" placeholder="e.g. High Error Rate"/></div>
+      <div class="fr">
+        <div class="fg"><label>API Filter</label><select id="al-api"><option value="">All APIs</option></select></div>
+        <div class="fg"><label>Metric *</label><select id="al-mt">
+          <option value="errors">Error Count</option>
+          <option value="error_rate">Error Rate (%)</option>
+          <option value="payments_failed">Failed Payments</option>
+          <option value="total_requests">Total Requests</option>
+          <option value="warnings">Warning Count</option>
+        </select></div>
       </div>
-
-      <!-- Alert list -->
-      <div class="panel">
-        <div class="panel-title">Active Alert Rules</div>
-        <div id="alerts-list">
-          <div class="empty"><div class="empty-icon">🔔</div>No alerts configured</div>
-        </div>
+      <div class="fr">
+        <div class="fg"><label>Operator</label><select id="al-op"><option value=">">&#62; greater than</option><option value=">=">&#62;= at least</option><option value="<">&#60; less than</option></select></div>
+        <div class="fg"><label>Threshold *</label><input type="number" id="al-th" placeholder="10" min="0"/></div>
       </div>
-
+      <div class="fg"><label>Webhook URL (Slack / Teams)</label><input type="url" id="al-wh" placeholder="https://hooks.slack.com/…"/></div>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button class="btn btn-p" id="btn-cal">+ Create Alert</button>
+        <button class="btn btn-g" id="btn-twh">Test Webhook</button>
+      </div>
     </div>
-
-    <!-- Alert docs -->
-    <div class="panel" style="margin-top:16px">
-      <div class="panel-title">How Alerts Work</div>
-      <div style="color:var(--text2);font-size:12px;line-height:1.8">
-        The backend checks configured alert rules every <strong style="color:var(--text)">5 minutes</strong> against today's log data pulled from S3.
-        When a threshold is breached, an HTTP POST is sent to your webhook URL with a Slack-compatible JSON payload.
-        You can use Slack Incoming Webhooks, Microsoft Teams Connectors, or any custom endpoint.
-        <br /><br />
-        <strong style="color:var(--accent)">Supported Metrics:</strong><br />
-        <code>errors</code> — total log lines with level=ERROR or Razorpay error_code set<br />
-        <code>error_rate</code> — errors as percentage of total requests<br />
-        <code>payments_failed</code> — count of Razorpay responses with non-null error_code<br />
-        <code>total_requests</code> — total log entries in the file<br />
-        <code>warnings</code> — total log lines with level=WARN
-      </div>
+    <div class="panel">
+      <div class="ptitle">Active Alert Rules</div>
+      <div id="al-list"><div class="emp">🔔 No alerts configured</div></div>
     </div>
   </div>
+  <div class="panel" style="margin-top:15px">
+    <div class="ptitle">How Alerts Work</div>
+    <div style="color:var(--text2);font-size:12px;line-height:1.9">
+      Checks every <strong style="color:var(--text)">5 minutes</strong> against today's S3 logs. Fires an HTTP POST to your webhook when threshold is breached.<br/>
+      <strong style="color:var(--accent)">Metrics:</strong>
+      <code>errors</code> error log count ·
+      <code>error_rate</code> % of total ·
+      <code>payments_failed</code> Razorpay error_code count ·
+      <code>total_requests</code> total entries ·
+      <code>warnings</code> WARN count
+    </div>
+  </div>
+</div>
 
 </div><!-- /main -->
 </div><!-- /app -->
-
 <div id="toast"></div>
 
 <script>
-// ── Utilities ────────────────────────────────────────────────────────────────
-const $ = id => document.getElementById(id);
-const fmt  = n => typeof n === 'number' ? n.toLocaleString('en-IN') : '—';
-const fmtR = n => typeof n === 'number' ? '₹' + (n >= 100000 ? (n/100000).toFixed(2)+'L' : n.toLocaleString('en-IN')) : '—';
+// ─── Tiny Canvas Chart Library (no CDN needed) ────────────────────────────
+const CHR = (() => {
+  const C = (id) => document.getElementById(id);
+  const _instances = {};
 
-function toast(msg, type = '') {
-  const t = $('toast');
-  t.textContent = msg;
-  t.className = 'show ' + type;
-  clearTimeout(t._t);
-  t._t = setTimeout(() => t.className = '', 3000);
-}
+  function clear(id) {
+    if (_instances[id]) { _instances[id] = null; }
+    const el = C(id); if (!el) return;
+    const ctx = el.getContext('2d');
+    ctx.clearRect(0, 0, el.width, el.height);
+  }
 
-async function api(path) {
-  const r = await fetch(path);
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  return r.json();
-}
+  function resize(canvas, h) {
+    const w = canvas.parentElement.clientWidth - 30;
+    canvas.width  = w * devicePixelRatio;
+    canvas.height = h * devicePixelRatio;
+    canvas.style.width  = w  + 'px';
+    canvas.style.height = h + 'px';
+    const ctx = canvas.getContext('2d');
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+    return [w, h, ctx];
+  }
 
-// ── Charts registry (so we can destroy on reload) ─────────────────────────
-const charts = {};
-function mkChart(id, cfg) {
-  if (charts[id]) charts[id].destroy();
-  charts[id] = new Chart($(id), cfg);
-  return charts[id];
-}
+  const COLS = ['#FF6B35','#4D9EFF','#00E5A0','#FFB800','#A78BFA','#22D3EE','#FF3B5C','#F472B6'];
+  const GRID = '#1E2A40'; const LBL = '#7A8FAF'; const TXT = '#C8D4E8';
 
-const ACCENT  = '#FF6B35';
-const GREEN   = '#00E5A0';
-const RED     = '#FF3B5C';
-const YELLOW  = '#FFB800';
-const BLUE    = '#4D9EFF';
-const PURPLE  = '#A78BFA';
-const TEAL    = '#22D3EE';
-const GRID    = '#1E2A40';
-const LBLCOL  = '#7A8FAF';
+  function textFit(ctx, text, maxW) {
+    let sz = 11;
+    ctx.font = sz + 'px "Space Mono",monospace';
+    while (ctx.measureText(text).width > maxW && sz > 7) { sz--; ctx.font = sz + 'px "Space Mono",monospace'; }
+    return text;
+  }
 
-Chart.defaults.color = LBLCOL;
-Chart.defaults.font.family = "'Space Mono', monospace";
-Chart.defaults.font.size   = 11;
+  /* ── Bar chart ── */
+  function bar(id, labels, values, colors, opts = {}) {
+    clear(id);
+    const canvas = C(id); if (!canvas) return;
+    const h = opts.h || 200;
+    const [W, H, ctx] = resize(canvas, h);
+    const horiz = opts.horiz || false;
 
-const baseOpts = {
-  responsive: true, maintainAspectRatio: false,
-  plugins: { legend: { display: false }, tooltip: { backgroundColor: '#151C2B', borderColor: '#263352', borderWidth: 1 } },
-  scales: {
-    x: { grid: { color: GRID }, ticks: { color: LBLCOL, maxRotation: 45, font: { size: 10 } } },
-    y: { grid: { color: GRID }, ticks: { color: LBLCOL } },
-  },
-};
+    const pad = { t:10, r:14, b: horiz ? 30 : 50, l: horiz ? 120 : 40 };
+    const cw = W - pad.l - pad.r;
+    const ch = H - pad.t - pad.b;
+    const n  = values.length;
+    if (!n) return;
 
-function shortLabel(s) {
-  return s.replace('POST ', 'POST\n').replace('GET ', 'GET\n').replace('implemtation_', '').replace('_flowSub_Flow', '').replace('-log-flow','').replace('Sub_Flow','').replace('_Flow','');
-}
+    const max = Math.max(...values, 1);
+    const cols = Array.isArray(colors) ? colors : COLS;
 
-// ── State ────────────────────────────────────────────────────────────────────
-let gStats = null;
-let logsPage = 1;
+    ctx.font = '10px "Space Mono",monospace';
+    ctx.fillStyle = LBL;
 
-// ── Boot ─────────────────────────────────────────────────────────────────────
-(async function boot() {
-  // Default dates: last 7 days
-  const today = new Date();
-  const week  = new Date(today); week.setDate(today.getDate() - 7);
-  $('date-to').value   = today.toISOString().slice(0,10);
-  $('date-from').value = week.toISOString().slice(0,10);
+    if (!horiz) {
+      // vertical bars
+      const bw = Math.max(4, (cw / n) * 0.6);
+      const gap = cw / n;
+      // grid lines
+      for (let i=0;i<=4;i++) {
+        const y = pad.t + ch - (ch * i / 4);
+        ctx.strokeStyle = GRID; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l+cw, y); ctx.stroke();
+        const v = Math.round(max * i / 4);
+        ctx.fillStyle = LBL; ctx.textAlign = 'right';
+        ctx.fillText(v > 999 ? (v/1000).toFixed(1)+'k' : v, pad.l - 4, y + 4);
+      }
+      labels.forEach((lbl, i) => {
+        const x = pad.l + gap * i + gap/2;
+        const bh = ch * (values[i] / max);
+        const y  = pad.t + ch - bh;
+        ctx.fillStyle = (cols[i % cols.length]) + 'CC';
+        ctx.beginPath();
+        ctx.roundRect(x - bw/2, y, bw, bh, [3,3,0,0]);
+        ctx.fill();
+        // value on top
+        ctx.fillStyle = TXT; ctx.textAlign='center';
+        if (bh > 16) ctx.fillText(values[i], x, y - 4);
+        // x label
+        ctx.fillStyle = LBL; ctx.textAlign='center';
+        const sl = String(lbl).length > 12 ? String(lbl).slice(0,12)+'…' : String(lbl);
+        ctx.save(); ctx.translate(x, pad.t+ch+12); ctx.rotate(-0.5); ctx.fillText(sl, 0, 0); ctx.restore();
+      });
+    } else {
+      // horizontal bars
+      const bh2 = Math.max(3, (ch / n) * 0.55);
+      const gap2 = ch / n;
+      for (let i=0;i<=4;i++) {
+        const x = pad.l + cw * i / 4;
+        ctx.strokeStyle = GRID; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(x,pad.t); ctx.lineTo(x,pad.t+ch); ctx.stroke();
+        const v = Math.round(max * i / 4);
+        ctx.fillStyle=LBL; ctx.textAlign='center';
+        ctx.fillText(v>999?(v/1000).toFixed(1)+'k':v, x, pad.t+ch+14);
+      }
+      labels.forEach((lbl,i) => {
+        const y = pad.t + gap2 * i + gap2/2;
+        const bw2 = cw * (values[i] / max);
+        ctx.fillStyle = (cols[i % cols.length]) + 'CC';
+        ctx.beginPath();
+        ctx.roundRect(pad.l, y - bh2/2, bw2, bh2, [0,3,3,0]);
+        ctx.fill();
+        // label left
+        ctx.fillStyle = LBL; ctx.textAlign='right';
+        const sl = String(lbl).length > 18 ? String(lbl).slice(0,18)+'…' : String(lbl);
+        ctx.fillText(sl, pad.l - 6, y + 4);
+        // value inside/right
+        ctx.fillStyle = TXT; ctx.textAlign='left';
+        ctx.fillText(values[i], pad.l + bw2 + 4, y + 4);
+      });
+    }
+    _instances[id] = true;
+  }
 
-  // Load API list
-  try {
-    const { apis, total_files } = await api('/api/apis');
-    const selects = ['sel-api','log-sel-api','al-api'];
-    selects.forEach(id => {
-      const el = $(id);
-      if (!el) return;
-      apis.forEach(a => {
-        const o = document.createElement('option');
-        o.value = a; o.textContent = a;
-        el.appendChild(o);
+  /* ── Line chart ── */
+  function line(id, labels, datasets, opts = {}) {
+    clear(id);
+    const canvas = C(id); if (!canvas) return;
+    const h = opts.h || 200;
+    const [W, H, ctx] = resize(canvas, h);
+    const pad = { t:10, r:14, b:48, l:42 };
+    const cw = W - pad.l - pad.r;
+    const ch = H - pad.t - pad.b;
+    const n  = labels.length;
+    if (!n) return;
+
+    const allVals = datasets.flatMap(d => d.data);
+    const max = Math.max(...allVals, 1);
+
+    ctx.font = '10px "Space Mono",monospace';
+
+    // grid
+    for (let i=0;i<=4;i++) {
+      const y = pad.t + ch - (ch * i / 4);
+      ctx.strokeStyle = GRID; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(pad.l+cw,y); ctx.stroke();
+      const v = Math.round(max * i / 4);
+      ctx.fillStyle = LBL; ctx.textAlign='right';
+      ctx.fillText(v>999?(v/1000).toFixed(1)+'k':v, pad.l-4, y+4);
+    }
+
+    datasets.forEach((ds, di) => {
+      const col = ds.color || COLS[di];
+      const pts = ds.data.map((v,i) => [pad.l + cw * i / Math.max(n-1,1), pad.t + ch - ch * v / max]);
+
+      // fill
+      ctx.beginPath();
+      ctx.moveTo(pts[0][0], pad.t+ch);
+      pts.forEach(([x,y]) => ctx.lineTo(x,y));
+      ctx.lineTo(pts[pts.length-1][0], pad.t+ch);
+      ctx.closePath();
+      ctx.fillStyle = col + '22';
+      ctx.fill();
+
+      // line
+      ctx.beginPath();
+      ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.lineJoin='round';
+      pts.forEach(([x,y],i) => i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y));
+      ctx.stroke();
+
+      // dots
+      pts.forEach(([x,y]) => {
+        ctx.beginPath(); ctx.arc(x,y,3,0,Math.PI*2);
+        ctx.fillStyle=col; ctx.fill();
       });
     });
-    $('status-txt').textContent = `${total_files} log files in S3`;
 
-    // Load alerts
-    loadAlerts();
-  } catch(e) {
-    toast('Cannot connect to backend: ' + e.message, 'error');
-    $('status-txt').textContent = 'Error';
+    // x labels
+    ctx.fillStyle = LBL; ctx.textAlign='center';
+    const step = Math.max(1, Math.floor(n / 10));
+    labels.forEach((lbl,i) => {
+      if (i % step !== 0) return;
+      const x = pad.l + cw * i / Math.max(n-1,1);
+      const sl = String(lbl).slice(-5);
+      ctx.save(); ctx.translate(x, pad.t+ch+12); ctx.rotate(-0.6); ctx.fillText(sl,0,0); ctx.restore();
+    });
+    _instances[id] = true;
   }
+
+  /* ── Doughnut ── */
+  function donut(id, labels, values, colors, opts = {}) {
+    clear(id);
+    const canvas = C(id); if (!canvas) return;
+    const h = opts.h || 200;
+    const [W, H, ctx] = resize(canvas, h);
+    const total = values.reduce((a,b)=>a+b,0);
+    if (!total) return;
+    const cols = colors || COLS;
+
+    const lh = 18; const lpad = 12;
+    const legendH = Math.ceil(labels.length / 2) * lh + lpad;
+    const cx = W/2, cy = (H-legendH)/2;
+    const r  = Math.min(cx, cy) - 10;
+    const ir = r * 0.55;
+
+    let angle = -Math.PI/2;
+    values.forEach((v,i) => {
+      const sweep = (v/total) * Math.PI*2;
+      ctx.beginPath();
+      ctx.moveTo(cx,cy); ctx.arc(cx,cy,r,angle,angle+sweep);
+      ctx.closePath();
+      ctx.fillStyle = cols[i%cols.length];
+      ctx.fill();
+      angle += sweep;
+    });
+
+    // hole
+    ctx.beginPath(); ctx.arc(cx,cy,ir,0,Math.PI*2);
+    ctx.fillStyle = '#121929'; ctx.fill();
+
+    // center text
+    ctx.fillStyle = TXT; ctx.textAlign='center';
+    ctx.font = 'bold 16px "Syne",sans-serif';
+    ctx.fillText(total, cx, cy+2);
+    ctx.font = '9px "Space Mono",monospace';
+    ctx.fillStyle = LBL;
+    ctx.fillText('total', cx, cy+15);
+
+    // legend
+    const lx0 = 8; let lx = lx0, ly = H - legendH + lpad;
+    const colW = W/2;
+    labels.forEach((lbl,i) => {
+      ctx.fillStyle = cols[i%cols.length];
+      ctx.fillRect(lx, ly-8, 10, 10);
+      ctx.fillStyle = LBL; ctx.textAlign='left'; ctx.font='10px "Space Mono",monospace';
+      const pct = Math.round(values[i]/total*100);
+      ctx.fillText(String(lbl).slice(0,14)+' '+pct+'%', lx+13, ly);
+      if ((i+1)%2===0) { lx=lx0; ly+=lh; } else { lx=colW; }
+    });
+    _instances[id] = true;
+  }
+
+  return { bar, line, donut, clear };
 })();
 
-// ── Tabs ─────────────────────────────────────────────────────────────────────
-document.querySelectorAll('.tab').forEach(tab => {
-  tab.addEventListener('click', () => {
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-    tab.classList.add('active');
-    $('tab-' + tab.dataset.tab).classList.add('active');
-  });
-});
+// ─── App State & Helpers ─────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const fmt  = n => typeof n==='number' ? n.toLocaleString('en-IN') : '—';
+const fmtR = n => typeof n==='number' ? '₹'+(n>=100000?(n/100000).toFixed(2)+'L':n.toLocaleString('en-IN')) : '—';
+function toast(msg, type='') {
+  const t=$('toast'); t.textContent=msg; t.className='show '+(type==='success'?'ok':type==='error'?'err':'');
+  clearTimeout(t._t); t._t=setTimeout(()=>t.className='',3200);
+}
+async function apiFetch(path) {
+  const r = await fetch(path);
+  if (!r.ok) throw new Error('HTTP '+r.status);
+  return r.json();
+}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 
-// ── Load overview ─────────────────────────────────────────────────────────────
-$('btn-load').addEventListener('click', loadOverview);
-$('btn-refresh').addEventListener('click', async () => {
-  await fetch('/api/cache/clear', { method: 'POST' });
-  toast('Cache cleared', 'success');
-  loadOverview();
-});
+let gStats=null, logsPage=1;
 
-async function loadOverview() {
-  const apiVal  = $('sel-api').value;
-  const dfrom   = $('date-from').value;
-  const dto     = $('date-to').value;
-  if (!dfrom || !dto) { toast('Please select a date range', 'error'); return; }
+const ACCENT='#FF6B35',GREEN='#00E5A0',RED='#FF3B5C',YELLOW='#FFB800',
+      BLUE='#4D9EFF',PURPLE='#A78BFA',TEAL='#22D3EE';
 
-  $('overview-loading').style.display = 'block';
-  $('overview-content').style.opacity = '0.3';
-  $('status-txt').textContent = 'Loading…';
-
+// ─── Boot ────────────────────────────────────────────────────────────────────
+(async function boot(){
+  const today=new Date(), week=new Date(today);
+  week.setDate(today.getDate()-7);
+  $('dt').value=today.toISOString().slice(0,10);
+  $('df').value=week.toISOString().slice(0,10);
   try {
-    const params = new URLSearchParams({ date_from: dfrom, date_to: dto });
-    if (apiVal) params.set('api', apiVal);
-    gStats = await api('/api/stats?' + params);
+    const {apis,total_files}=await apiFetch('/api/apis');
+    ['sel-api','l-api','al-api'].forEach(id=>{
+      const el=$(id); if(!el) return;
+      apis.forEach(a=>{ const o=document.createElement('option'); o.value=a; o.textContent=a; el.appendChild(o); });
+    });
+    $('stxt').textContent=total_files+' log files in S3';
+    loadAlerts();
+    // auto-load
+    loadOverview();
+  } catch(e){ toast('Backend error: '+e.message,'error'); $('stxt').textContent='Error'; }
+})();
 
-    renderCards(gStats);
-    renderCharts(gStats);
-    renderRecentErrors(gStats.recent_errors || []);
+// Tabs
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.tp').forEach(p=>p.classList.remove('active'));
+    tab.classList.add('active');
+    $('tab-'+tab.dataset.tab).classList.add('active');
+    if(tab.dataset.tab==='payments' && gStats) renderPayTab(gStats);
+  });
+});
 
-    // Also refresh payments tab if open
-    renderPaymentsTab(gStats);
+// ─── Overview ────────────────────────────────────────────────────────────────
+$('btn-load').addEventListener('click', loadOverview);
+$('btn-ref').addEventListener('click', async()=>{
+  await fetch('/api/cache/clear',{method:'POST'});
+  toast('Cache cleared','success'); loadOverview();
+});
 
-    $('status-txt').textContent = `${gStats.files_loaded || 0} files · ${fmt(gStats.total)} entries`;
-  } catch(e) {
-    toast('Failed to load stats: ' + e.message, 'error');
-    $('status-txt').textContent = 'Error';
-  } finally {
-    $('overview-loading').style.display = 'none';
-    $('overview-content').style.opacity = '1';
-  }
+async function loadOverview(){
+  const apiV=$('sel-api').value, dfrom=$('df').value, dto=$('dt').value;
+  if(!dfrom||!dto){ toast('Select a date range','error'); return; }
+  $('ov-ld').style.display='block'; $('ov-ct').style.opacity='0.3'; $('stxt').textContent='Loading…';
+  try {
+    const p=new URLSearchParams({date_from:dfrom,date_to:dto});
+    if(apiV) p.set('api',apiV);
+    gStats = await apiFetch('/api/stats?'+p);
+    renderCards(gStats); renderCharts(gStats); renderRecentErrors(gStats.recent_errors||[]);
+    $('stxt').textContent=(gStats.files_loaded||0)+' files · '+fmt(gStats.total)+' entries';
+  } catch(e){ toast('Failed: '+e.message,'error'); $('stxt').textContent='Error'; }
+  finally { $('ov-ld').style.display='none'; $('ov-ct').style.opacity='1'; }
 }
 
-function renderCards(s) {
-  $('c-total').textContent    = fmt(s.total);
-  $('c-errors').textContent   = fmt(s.errors);
-  $('c-err-rate').textContent = s.error_rate + '% error rate';
-  $('c-warnings').textContent = fmt(s.warnings);
-  $('c-created').textContent  = fmt(s.payments_created);
-  $('c-captured').textContent = fmt(s.payments_captured);
-  $('c-failed').textContent   = fmt(s.payments_failed) + ' failed';
-  $('c-revenue').textContent  = fmtR(s.revenue_inr);
-  $('c-files').textContent    = (s.files_loaded || 0) + ' files loaded';
+function renderCards(s){
+  $('c-tot').textContent=fmt(s.total); $('c-files').textContent=(s.files_loaded||0)+' files';
+  $('c-err').textContent=fmt(s.errors); $('c-erate').textContent=s.error_rate+'% error rate';
+  $('c-warn').textContent=fmt(s.warnings);
+  $('c-cre').textContent=fmt(s.payments_created);
+  $('c-cap').textContent=fmt(s.payments_captured);
+  $('c-fail').textContent=fmt(s.payments_failed)+' failed';
+  $('c-rev').textContent=fmtR(s.revenue_inr);
 }
 
-function renderCharts(s) {
-  // Timeline
-  const hours = s.hourly_labels || [];
-  mkChart('ch-timeline', {
-    type: 'line',
-    data: {
-      labels: hours.map(h => h.slice(11)),
-      datasets: [{
-        label: 'Requests', data: s.hourly_values || [],
-        borderColor: ACCENT, backgroundColor: 'rgba(255,107,53,.1)',
-        fill: true, tension: 0.4, pointRadius: 3, pointBackgroundColor: ACCENT,
-      }]
-    },
-    options: { ...baseOpts }
-  });
+function renderCharts(s){
+  // Timeline line chart
+  const hours=s.hourly_labels||[];
+  CHR.line('ch-tl', hours.map(h=>h.slice(11)), [{data:s.hourly_values||[],color:ACCENT}]);
 
-  // Endpoints
-  const epKeys = Object.keys(s.endpoints || {}).slice(0,8);
-  const epVals = epKeys.map(k => s.endpoints[k]);
-  mkChart('ch-endpoints', {
-    type: 'bar',
-    data: {
-      labels: epKeys.map(shortLabel),
-      datasets: [{ label: 'Count', data: epVals, backgroundColor: [ACCENT, BLUE, GREEN, YELLOW, PURPLE, TEAL] }]
-    },
-    options: { ...baseOpts, indexAxis: 'y' }
-  });
+  // Endpoints bar
+  const epK=Object.keys(s.endpoints||{}).slice(0,6);
+  CHR.bar('ch-ep',epK.map(k=>k.replace('POST ','POST\n').replace('GET ','')),epK.map(k=>s.endpoints[k]),[ACCENT,BLUE],{horiz:true});
 
   // Payment status donut
-  const stKeys = Object.keys(s.payment_statuses || {});
-  const stVals = stKeys.map(k => s.payment_statuses[k]);
-  const stColors = stKeys.map(k => k==='captured' ? GREEN : k==='created' ? ACCENT : RED);
-  mkChart('ch-status', {
-    type: 'doughnut',
-    data: { labels: stKeys, datasets: [{ data: stVals, backgroundColor: stColors, borderWidth: 2, borderColor: '#121929' }] },
-    options: { responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: true, position: 'bottom', labels: { color: LBLCOL, padding: 10 } } } }
-  });
+  const psK=Object.keys(s.payment_statuses||{});
+  CHR.donut('ch-ps',psK,psK.map(k=>s.payment_statuses[k]),psK.map(k=>k==='captured'?GREEN:k==='created'?ACCENT:RED));
 
-  // Error by endpoint
-  const eeKeys = Object.keys(s.err_by_endpoint || {}).slice(0,6);
-  const eeVals = eeKeys.map(k => s.err_by_endpoint[k]);
-  mkChart('ch-errendpoint', {
-    type: 'bar',
-    data: {
-      labels: eeKeys.map(shortLabel),
-      datasets: [{ label: 'Errors', data: eeVals, backgroundColor: RED }]
-    },
-    options: { ...baseOpts, indexAxis: 'y' }
-  });
+  // Errors by endpoint bar
+  const eeK=Object.keys(s.err_by_endpoint||{}).slice(0,5);
+  if(eeK.length) CHR.bar('ch-ee',eeK.map(k=>k.replace('POST ','').replace('GET ','')),eeK.map(k=>s.err_by_endpoint[k]),[RED],{horiz:true});
 
-  // Flows
-  const flKeys = Object.keys(s.flows || {}).slice(0,5);
-  const flVals = flKeys.map(k => s.flows[k]);
-  mkChart('ch-flows', {
-    type: 'bar',
-    data: {
-      labels: flKeys.map(k => k.replace('implemtation_','').replace('_flowSub_Flow','').replace('-log-flow','').replace('Sub_Flow','')),
-      datasets: [{ label: 'Count', data: flVals, backgroundColor: BLUE }]
-    },
-    options: { ...baseOpts }
-  });
+  // Flows bar
+  const flK=Object.keys(s.flows||{}).slice(0,4);
+  CHR.bar('ch-fl',flK.map(k=>k.replace('implemtation_','').replace('_flowSub_Flow','').replace('-log-flow','')),
+    flK.map(k=>s.flows[k]),[BLUE,TEAL,PURPLE,GREEN]);
 
-  // Payment methods
-  const pmKeys = Object.keys(s.payment_methods || {});
-  const pmVals = pmKeys.map(k => s.payment_methods[k]);
-  mkChart('ch-methods', {
-    type: 'doughnut',
-    data: { labels: pmKeys.map(k => k || 'unknown'), datasets: [{ data: pmVals, backgroundColor: [TEAL, PURPLE, YELLOW, BLUE, GREEN], borderWidth: 2, borderColor: '#121929' }] },
-    options: { responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: true, position: 'bottom', labels: { color: LBLCOL, padding: 10 } } } }
-  });
+  // UPI methods donut
+  const pmK=Object.keys(s.payment_methods||{});
+  if(pmK.length) CHR.donut('ch-pm',pmK,pmK.map(k=>s.payment_methods[k]),[TEAL,PURPLE,YELLOW,BLUE]);
 }
 
-function renderRecentErrors(errors) {
-  const body = $('recent-errors-body');
-  $('recent-err-count').textContent = errors.length + ' entries';
-  if (!errors.length) {
-    body.innerHTML = '<tr><td colspan="7" class="empty"><div class="empty-icon">✓</div>No errors in selected range</td></tr>';
-    return;
-  }
-  body.innerHTML = errors.slice(-20).reverse().map(e => `
-    <tr>
-      <td><span class="badge badge-${e.level}">${e.level}</span></td>
-      <td class="mono text-dim">${e.timestamp}</td>
-      <td class="text-dim">${e.api}</td>
-      <td><span class="text-orange mono">${e.method} ${e.endpoint}</span></td>
-      <td class="text-dim">${(e.flow||'').replace('implemtation_','').replace('_flowSub_Flow','')}</td>
-      <td>${e.error_code ? `<span class="text-red">${e.error_code}</span>` : '<span class="text-dim">—</span>'}</td>
-      <td class="text-trunc text-dim">${esc(e.message||'')}</td>
-    </tr>
-  `).join('');
+function renderRecentErrors(errors){
+  const body=$('re-body');
+  $('rc-ct').textContent=errors.length+' entries';
+  if(!errors.length){ body.innerHTML='<tr><td colspan="7" class="emp">✓ No errors in selected range</td></tr>'; return; }
+  body.innerHTML=errors.slice(-20).reverse().map(e=>`<tr>
+    <td><span class="badge b${e.level}">${e.level}</span></td>
+    <td class="mono tdim" style="white-space:nowrap;font-size:10px">${e.timestamp}</td>
+    <td class="tdim">${e.api}</td>
+    <td><span class="torn mono">${e.method} ${e.endpoint}</span></td>
+    <td class="tdim" style="font-size:10px">${(e.flow||'').replace('implemtation_','').replace('_flowSub_Flow','')}</td>
+    <td>${e.error_code?`<span class="tred">${e.error_code}</span>`:'<span class="tdim">—</span>'}</td>
+    <td class="ttrunc tdim">${esc(e.message||'')}</td>
+  </tr>`).join('');
 }
 
-// ── Payments tab ─────────────────────────────────────────────────────────────
-function renderPaymentsTab(s) {
-  if (!s) return;
-  $('p-created').textContent  = fmt(s.payments_created);
-  $('p-captured').textContent = fmt(s.payments_captured);
-  $('p-failed').textContent   = fmt(s.payments_failed);
-  $('p-revenue').textContent  = fmtR(s.revenue_inr);
+// ─── Payments tab ─────────────────────────────────────────────────────────────
+function renderPayTab(s){
+  if(!s) return;
+  $('p-cre').textContent=fmt(s.payments_created);
+  $('p-cap').textContent=fmt(s.payments_captured);
+  $('p-fail').textContent=fmt(s.payments_failed);
+  $('p-rev').textContent=fmtR(s.revenue_inr);
 
-  // Daily revenue chart — daily breakdown if available
-  const days = Object.keys(s.daily || {});
-  const captured = days.map(d => {
-    // approximate: use total amount / days (full breakdown would need per-day query)
-    return s.revenue_inr / Math.max(days.length, 1);
-  });
+  const dK=Object.keys(s.daily||{});
+  CHR.line('ch-da',dK,[{data:dK.map(k=>s.daily[k]),color:PURPLE}]);
+  CHR.bar('ch-fn',['Created','Captured','Failed'],[s.payments_created,s.payments_captured,s.payments_failed],[ACCENT,GREEN,RED]);
 
-  mkChart('ch-rev', {
-    type: 'bar',
-    data: {
-      labels: days,
-      datasets: [{ label: 'Revenue ₹', data: captured, backgroundColor: PURPLE }]
-    },
-    options: { ...baseOpts }
-  });
-
-  // Funnel
-  mkChart('ch-funnel', {
-    type: 'bar',
-    data: {
-      labels: ['Orders Created', 'Payments Captured', 'Failed'],
-      datasets: [{
-        data: [s.payments_created, s.payments_captured, s.payments_failed],
-        backgroundColor: [ACCENT, GREEN, RED]
-      }]
-    },
-    options: { ...baseOpts }
-  });
-
-  // UPI methods
-  const pmKeys = Object.keys(s.payment_methods || {});
-  const pmVals = pmKeys.map(k => s.payment_methods[k]);
-  mkChart('ch-pay-methods', {
-    type: 'doughnut',
-    data: { labels: pmKeys.map(k => k||'unknown'), datasets: [{ data: pmVals, backgroundColor: [TEAL, BLUE, YELLOW, PURPLE], borderWidth: 2, borderColor: '#121929' }] },
-    options: { responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: true, position: 'bottom', labels: { color: LBLCOL } } } }
-  });
-
-  // Payment table — from recent_errors we can pull captured payments
-  const allEntries = (s.recent_errors || []);
-  // We only have error entries here; captured payments come from /api/logs
-  $('payments-body').innerHTML = '<tr><td colspan="8" class="empty" style="color:var(--text2)">Use Log Explorer → filter by Rz Status "captured" for full payment list</td></tr>';
+  const pmK=Object.keys(s.payment_methods||{});
+  if(pmK.length) CHR.donut('ch-um',pmK,pmK.map(k=>s.payment_methods[k]),[TEAL,BLUE,YELLOW,GREEN]);
 }
 
-// ── Log Explorer ──────────────────────────────────────────────────────────────
-$('btn-search-logs').addEventListener('click', () => { logsPage = 1; loadLogs(); });
-$('log-sel-api').addEventListener('change', async () => {
-  const api = $('log-sel-api').value;
-  const dates = (await fetch('/api/dates' + (api ? '?api='+api : '')).then(r=>r.json())).dates;
-  const sel = $('log-sel-date');
-  sel.innerHTML = '<option value="">All dates</option>';
-  dates.forEach(d => { const o = document.createElement('option'); o.value=d; o.textContent=d; sel.appendChild(o); });
+// ─── Log Explorer ──────────────────────────────────────────────────────────────
+$('btn-srch').addEventListener('click',()=>{logsPage=1;loadLogs();});
+$('l-api').addEventListener('change', async()=>{
+  const a=$('l-api').value;
+  const {dates}=await apiFetch('/api/dates'+(a?'?api='+a:''));
+  const sel=$('l-date');
+  sel.innerHTML='<option value="">All dates</option>';
+  dates.forEach(d=>{ const o=document.createElement('option'); o.value=d; o.textContent=d; sel.appendChild(o); });
 });
 
-async function loadLogs() {
-  const params = new URLSearchParams({
-    api:      $('log-sel-api').value,
-    date:     $('log-sel-date').value,
-    level:    $('log-sel-level').value,
-    endpoint: $('log-sel-endpoint').value,
-    search:   $('log-search').value,
-    page:     logsPage,
-    per_page: 50,
+async function loadLogs(){
+  const p=new URLSearchParams({
+    api:$('l-api').value, date:$('l-date').value,
+    level:$('l-lvl').value, endpoint:$('l-ep').value,
+    search:$('l-srch').value, page:logsPage, per_page:50
   });
-
-  $('logs-loading').style.display = 'block';
-  $('logs-table-wrap').style.opacity = '0.3';
-
+  $('l-ld').style.display='block'; $('l-tw').style.opacity='0.3';
   try {
-    const data = await api('/api/logs?' + params);
-    renderLogsTable(data.logs || []);
-    $('log-total-txt').textContent = `${fmt(data.total)} entries · page ${data.page}/${data.pages}`;
-    renderPagination(data.page, data.pages);
-  } catch(e) {
-    toast('Failed to load logs: ' + e.message, 'error');
-  } finally {
-    $('logs-loading').style.display = 'none';
-    $('logs-table-wrap').style.opacity = '1';
-  }
+    const d=await apiFetch('/api/logs?'+p);
+    renderLogsTable(d.logs||[]);
+    $('l-tot').textContent=fmt(d.total)+' entries · pg '+d.page+'/'+d.pages;
+    renderPagination(d.page,d.pages);
+  } catch(e){ toast('Failed: '+e.message,'error'); }
+  finally{ $('l-ld').style.display='none'; $('l-tw').style.opacity='1'; }
 }
 
-function renderLogsTable(logs) {
-  const body = $('logs-body');
-  if (!logs.length) {
-    body.innerHTML = '<tr><td colspan="11" class="empty"><div class="empty-icon">🔍</div>No logs match your filters</td></tr>';
-    return;
-  }
-  body.innerHTML = logs.map(e => {
-    const rzBadge = e.rz_status
-      ? `<span class="badge badge-${e.rz_status==='captured'?'ok':e.rz_status==='created'?'created':'fail'}">${e.rz_status}</span>`
-      : '<span class="text-dim">—</span>';
+function renderLogsTable(logs){
+  const body=$('l-body');
+  if(!logs.length){ body.innerHTML='<tr><td colspan="11" class="emp">No logs match filters</td></tr>'; return; }
+  body.innerHTML=logs.map(e=>{
+    const rzB=e.rz_status?`<span class="badge b${e.rz_status==='captured'?'ok':e.rz_status==='created'?'created':'fail'}">${e.rz_status}</span>`:'<span class="tdim">—</span>';
     return `<tr>
-      <td><span class="badge badge-${e.level}">${e.level}</span></td>
-      <td class="mono text-dim" style="white-space:nowrap">${e.timestamp}</td>
-      <td class="text-dim">${e.api}</td>
-      <td><span class="badge badge-${e.method==='POST'?'created':'INFO'}">${e.method}</span></td>
-      <td class="mono text-orange">${e.endpoint}</td>
-      <td class="text-dim">${(e.flow||'').replace('implemtation_','').replace('_flowSub_Flow','')}</td>
-      <td>${rzBadge}</td>
-      <td class="mono">${e.amount_inr != null ? '₹'+e.amount_inr.toLocaleString('en-IN') : '—'}</td>
-      <td>${e.error_code ? `<span class="text-red">${e.error_code}</span>` : '<span class="text-dim">—</span>'}</td>
-      <td class="mono text-dim" style="font-size:10px">${e.loan_number||'—'}</td>
-      <td class="text-trunc text-dim">${esc(e.message||'')}</td>
+      <td><span class="badge b${e.level}">${e.level}</span></td>
+      <td class="mono tdim" style="font-size:10px;white-space:nowrap">${e.timestamp}</td>
+      <td class="tdim">${e.api}</td>
+      <td><span class="badge b${e.method==='POST'?'created':'INFO'}">${e.method}</span></td>
+      <td class="mono torn">${e.endpoint}</td>
+      <td class="tdim" style="font-size:10px">${(e.flow||'').replace('implemtation_','').replace('_flowSub_Flow','')}</td>
+      <td>${rzB}</td>
+      <td class="mono">${e.amount_inr!=null?'₹'+e.amount_inr.toLocaleString('en-IN'):'—'}</td>
+      <td>${e.error_code?`<span class="tred">${e.error_code}</span>`:'<span class="tdim">—</span>'}</td>
+      <td class="mono tdim" style="font-size:10px">${e.loan_number||'—'}</td>
+      <td class="ttrunc tdim">${esc(e.message||'')}</td>
     </tr>`;
   }).join('');
 }
 
-function renderPagination(page, pages) {
-  const el = $('logs-pagination');
-  if (pages <= 1) { el.innerHTML = ''; return; }
-  const maxShow = 7;
-  let btns = `<button class="page-btn" ${page===1?'disabled':''} onclick="goPage(${page-1})">‹ Prev</button>`;
-  let start = Math.max(1, page - 3), end = Math.min(pages, start + maxShow - 1);
-  for (let p = start; p <= end; p++) {
-    btns += `<button class="page-btn ${p===page?'active':''}" onclick="goPage(${p})">${p}</button>`;
-  }
-  btns += `<button class="page-btn" ${page===pages?'disabled':''} onclick="goPage(${page+1})">Next ›</button>`;
-  el.innerHTML = btns;
+function renderPagination(page,pages){
+  const el=$('l-pg'); if(pages<=1){el.innerHTML='';return;}
+  let h=`<button class="pb" ${page===1?'disabled':''} onclick="goPage(${page-1})">‹ Prev</button>`;
+  const s=Math.max(1,page-3), e2=Math.min(pages,s+6);
+  for(let p=s;p<=e2;p++) h+=`<button class="pb ${p===page?'active':''}" onclick="goPage(${p})">${p}</button>`;
+  h+=`<button class="pb" ${page===pages?'disabled':''} onclick="goPage(${page+1})">Next ›</button>`;
+  el.innerHTML=h;
 }
+function goPage(p){logsPage=p;loadLogs();}
 
-function goPage(p) { logsPage = p; loadLogs(); }
-
-// ── Alerts ────────────────────────────────────────────────────────────────────
-$('btn-create-alert').addEventListener('click', async () => {
-  const name = $('al-name').value.trim();
-  const threshold = $('al-threshold').value;
-  if (!name || !threshold) { toast('Name and threshold are required', 'error'); return; }
-
+// ─── Alerts ───────────────────────────────────────────────────────────────────
+$('btn-cal').addEventListener('click', async()=>{
+  const nm=$('al-nm').value.trim(), th=$('al-th').value;
+  if(!nm||!th){toast('Name and threshold required','error');return;}
   try {
-    await fetch('/api/alerts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name,
-        api:         $('al-api').value,
-        metric:      $('al-metric').value,
-        operator:    $('al-op').value,
-        threshold:   parseFloat(threshold),
-        webhook_url: $('al-webhook').value.trim(),
-        enabled:     true,
-      })
-    });
-    toast('Alert created ✓', 'success');
-    $('al-name').value = '';
-    $('al-threshold').value = '';
-    loadAlerts();
-  } catch(e) {
-    toast('Failed: ' + e.message, 'error');
-  }
+    await fetch('/api/alerts',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name:nm,api:$('al-api').value,metric:$('al-mt').value,
+        operator:$('al-op').value,threshold:parseFloat(th),webhook_url:$('al-wh').value.trim(),enabled:true})});
+    toast('Alert created ✓','success'); $('al-nm').value=''; $('al-th').value=''; loadAlerts();
+  } catch(e){toast('Failed: '+e.message,'error');}
 });
 
-$('btn-test-webhook').addEventListener('click', async () => {
-  const url = $('al-webhook').value.trim();
-  if (!url) { toast('Enter a webhook URL first', 'error'); return; }
+$('btn-twh').addEventListener('click', async()=>{
+  const url=$('al-wh').value.trim();
+  if(!url){toast('Enter a webhook URL','error');return;}
   try {
-    const r = await fetch('/api/alerts/test-webhook', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ webhook_url: url })
-    });
-    const d = await r.json();
-    if (d.success) toast('Test webhook sent ✓ (status '+d.status_code+')', 'success');
-    else toast('Webhook failed: ' + d.error, 'error');
-  } catch(e) {
-    toast('Error: ' + e.message, 'error');
-  }
+    const r=await fetch('/api/alerts/test-webhook',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({webhook_url:url})});
+    const d=await r.json();
+    if(d.success) toast('Sent ✓ status '+d.status_code,'success'); else toast('Failed: '+d.error,'error');
+  } catch(e){toast('Error: '+e.message,'error');}
 });
 
-async function loadAlerts() {
-  try {
-    const { alerts } = await api('/api/alerts');
-    const el = $('alerts-list');
-    if (!alerts.length) {
-      el.innerHTML = '<div class="empty"><div class="empty-icon">🔔</div>No alerts configured</div>';
-      return;
-    }
-    el.innerHTML = alerts.map(a => `
-      <div class="alert-item">
-        <div class="alert-item-info">
-          <div class="alert-name">${esc(a.name)}</div>
-          <div class="alert-meta">
-            ${a.api || 'All APIs'} · <code>${a.metric}</code> ${a.operator} ${a.threshold}
-            ${a.last_fired ? ' · Last fired: ' + a.last_fired.slice(0,16) : ''}
-          </div>
-          ${a.webhook_url ? `<div class="alert-meta text-dim">${a.webhook_url.slice(0,50)}…</div>` : ''}
-        </div>
-        <div class="alert-actions">
-          <label class="toggle">
-            <input type="checkbox" ${a.enabled ? 'checked' : ''} onchange="toggleAlert('${a.id}', this.checked)">
-            <span class="toggle-slider"></span>
-          </label>
-          <button class="btn btn-danger btn-sm" onclick="deleteAlert('${a.id}')">✕</button>
-        </div>
+async function loadAlerts(){
+  try{
+    const {alerts}=await apiFetch('/api/alerts');
+    const el=$('al-list');
+    if(!alerts.length){el.innerHTML='<div class="emp">🔔 No alerts configured</div>';return;}
+    el.innerHTML=alerts.map(a=>`<div class="ai">
+      <div class="ai-info">
+        <div class="ai-name">${esc(a.name)}</div>
+        <div class="ai-meta">${a.api||'All APIs'} · <code>${a.metric}</code> ${a.operator} ${a.threshold}${a.last_fired?' · Last: '+a.last_fired.slice(0,16):''}</div>
+        ${a.webhook_url?`<div class="ai-meta tdim">${a.webhook_url.slice(0,48)}…</div>`:''}
       </div>
-    `).join('');
-  } catch(e) {
-    toast('Could not load alerts', 'error');
-  }
+      <div class="ai-acts">
+        <label class="tog"><input type="checkbox" ${a.enabled?'checked':''} onchange="togAlert('${a.id}',this.checked)"><span class="tsl"></span></label>
+        <button class="btn btn-d btn-sm" onclick="delAlert('${a.id}')">✕</button>
+      </div>
+    </div>`).join('');
+  }catch(e){toast('Could not load alerts','error');}
+}
+async function togAlert(id,e){
+  await fetch('/api/alerts/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:e})});
+  toast(e?'Enabled':'Disabled');
+}
+async function delAlert(id){
+  if(!confirm('Delete this alert?')) return;
+  await fetch('/api/alerts/'+id,{method:'DELETE'}); toast('Deleted'); loadAlerts();
 }
 
-async function toggleAlert(id, enabled) {
-  await fetch('/api/alerts/' + id, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ enabled })
-  });
-  toast(enabled ? 'Alert enabled' : 'Alert disabled');
-}
-
-async function deleteAlert(id) {
-  if (!confirm('Delete this alert?')) return;
-  await fetch('/api/alerts/' + id, { method: 'DELETE' });
-  toast('Alert deleted');
-  loadAlerts();
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-function esc(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
+// Re-draw charts on window resize
+let _rt; window.addEventListener('resize',()=>{ clearTimeout(_rt); _rt=setTimeout(()=>{ if(gStats){renderCharts(gStats); renderPayTab(gStats);} },300); });
 </script>
 </body>
 </html>

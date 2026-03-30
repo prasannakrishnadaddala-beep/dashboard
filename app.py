@@ -534,3 +534,10 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     debug = os.environ.get('FLASK_ENV', 'production') == 'development'
     app.run(host='0.0.0.0', port=port, debug=debug)
+
+@app.route('/favicon.ico')
+def favicon():
+    from flask import Response
+    svg = b'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" rx="3" fill="#FF6B35"/><text x="3" y="13" font-size="12" font-family="sans-serif" fill="white">M</text></svg>'
+    return Response(svg, mimetype='image/svg+xml')
+
