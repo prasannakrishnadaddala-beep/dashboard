@@ -1,4 +1,4 @@
-import re, json, os, threading, time, sqlite3, pickle, hashlib
+import re, json, os, threading, time, sqlite3, pickle, hashlib, gc
 from flask import Flask, jsonify, request, Response
 from datetime import datetime, timedelta
 from collections import defaultdict, Counter
@@ -31,9 +31,11 @@ SYNC_INTERVAL      = int(os.environ.get('SYNC_INTERVAL', '1800'))
 STORE_DAYS         = int(os.environ.get('STORE_DAYS', '7'))           # 7 days (was 14)
 ALERT_FILE         = os.environ.get('ALERT_FILE', 'alerts.json')
 CHECK_INTERVAL     = int(os.environ.get('ALERT_CHECK_INTERVAL', '300'))
-MAX_LINES_PER_FILE = int(os.environ.get('MAX_LINES_PER_FILE', '50000'))  # was 100k
-MAX_BYTES_PER_FILE = int(os.environ.get('MAX_BYTES_PER_FILE', str(5 * 1024 * 1024)))  # 5MB (was 10MB)
-PARALLEL_WORKERS   = int(os.environ.get('PARALLEL_WORKERS', '16'))
+MAX_LINES_PER_FILE = int(os.environ.get('MAX_LINES_PER_FILE', '20000'))  # 20k lines max per file
+MAX_BYTES_PER_FILE = int(os.environ.get('MAX_BYTES_PER_FILE', str(2 * 1024 * 1024)))  # 2MB (OOM fix)
+PARALLEL_WORKERS   = int(os.environ.get('PARALLEL_WORKERS', '4'))        # 4 not 16 — OOM fix
+MAX_ENTRIES_TOTAL  = int(os.environ.get('MAX_ENTRIES_TOTAL', '150000'))   # hard cap on in-RAM entries
+BATCH_FLUSH_SIZE   = int(os.environ.get('BATCH_FLUSH_SIZE', '50'))        # flush to store every N files
 DISK_CACHE_PATH    = os.environ.get('DISK_CACHE_PATH', '/tmp/mulesoft_cache.db')
 
 # ─── SQLite Disk Cache ─────────────────────────────────────────────────────────
@@ -389,85 +391,123 @@ def _do_sync():
         disk_hits  = 0
         mem_hits   = 0
         s3_fetches = 0
-        all_today  = []
-        all_hist   = []
 
-        def _run_batch(batch, collector, phase_label):
+        # ── Streaming batch runner — never holds all entries in RAM at once ───
+        # Processes files in small chunks, flushing parsed entries to _bg_store
+        # immediately so Python can GC them. The bg_store list is the only copy.
+        def _run_batch_streaming(batch, phase_label, is_today_phase=False):
             nonlocal files_done, disk_hits, mem_hits, s3_fetches
-            with ThreadPoolExecutor(max_workers=PARALLEL_WORKERS) as pool:
-                futures = {pool.submit(_fetch_one, f): f for f in batch}
-                for future in as_completed(futures):
-                    try:
-                        f, entries, source = future.result()
-                        pfx = f.get('prefix', S3_PREFIXES_LIST[0])
-                        files_done += 1
-                        if source == 'disk': disk_hits  += 1
-                        elif source == 'mem': mem_hits   += 1
-                        else:
-                            s3_fetches += 1
+
+            chunk_size = BATCH_FLUSH_SIZE
+            for chunk_start in range(0, len(batch), chunk_size):
+                chunk = batch[chunk_start:chunk_start + chunk_size]
+
+                # Submit chunk — small window of parallel downloads
+                with ThreadPoolExecutor(max_workers=PARALLEL_WORKERS) as pool:
+                    futures = {pool.submit(_fetch_one, f): f for f in chunk}
+                    chunk_entries = []
+                    for future in as_completed(futures):
+                        try:
+                            f, entries, source = future.result()
+                            pfx = f.get('prefix', S3_PREFIXES_LIST[0])
+                            files_done += 1
+                            if source == 'disk':
+                                disk_hits += 1
+                            elif source == 'mem':
+                                mem_hits += 1
+                            else:
+                                s3_fetches += 1
+                                with _sp_lock:
+                                    for pr in _sync_progress['prefixes']:
+                                        if pr['prefix'] == pfx:
+                                            pr['files_s3']   += 1
+                                            pr['bytes_read'] += f['size']
                             with _sp_lock:
                                 for pr in _sync_progress['prefixes']:
-                                    if pr['prefix'] == pfx:
-                                        pr['files_s3']   += 1
-                                        pr['bytes_read'] += f['size']
-                        with _sp_lock:
-                            for pr in _sync_progress['prefixes']:
-                                if pr['prefix'] == pfx and source in ('disk', 'mem'):
-                                    pr['files_cached'] += 1
-                        collector.extend(entries)
-                        _sp({
-                            'current_file':   f['filename'],
-                            'files_done':     files_done,
-                            'disk_hits':      disk_hits,
-                            'mem_hits':       mem_hits,
-                            's3_fetches':     s3_fetches,
-                            'entries_parsed': len(all_today) + len(all_hist) + len(collector),
-                            'phase_label':    f'{phase_label} [{files_done}/{len(files)}] {f["filename"]} ({source.upper()})',
-                        })
-                    except Exception as e:
-                        app.logger.error(f"Worker error: {e}")
+                                    if pr['prefix'] == pfx and source in ('disk', 'mem'):
+                                        pr['files_cached'] += 1
 
-        # ── Phase A: today's files — always fresh, publish partial results ────
+                            chunk_entries.extend(entries)
+                            _sp({
+                                'current_file':   f['filename'],
+                                'files_done':     files_done,
+                                'disk_hits':      disk_hits,
+                                'mem_hits':       mem_hits,
+                                's3_fetches':     s3_fetches,
+                                'phase_label':    f'{phase_label} [{files_done}/{len(files)}] {f["filename"]} ({source.upper()})',
+                            })
+                        except Exception as e:
+                            app.logger.error(f"Worker error: {e}")
+
+                # Flush this chunk's entries into bg_store immediately
+                # so we don't hold two copies (chunk_entries + all_entries) in RAM
+                if chunk_entries:
+                    with _bg_lock:
+                        current = _bg_store['entries']
+                        merged  = current + chunk_entries
+                        # Hard cap: if over limit, drop oldest (by timestamp) entries
+                        if len(merged) > MAX_ENTRIES_TOTAL:
+                            merged.sort(key=lambda e: e['timestamp'])
+                            merged = merged[-MAX_ENTRIES_TOTAL:]
+                        _bg_store['entries']     = merged
+                        _bg_store['stats_cache'] = {}
+                        current_count = len(merged)
+                    _sp({'entries_parsed': current_count})
+                    del chunk_entries  # explicit GC hint
+                    chunk_entries = None
+                    gc.collect()      # force free S3 download buffers and parsed dicts
+
+                # After today's first chunk publish partial results
+                if is_today_phase and chunk_start == 0:
+                    with _bg_lock:
+                        n = len(_bg_store['entries'])
+                    if n:
+                        _sp({}, msg=f'✓ Phase A partial: {n} entries live')
+
+        # ── Phase A: today's files — publish partial results fast ─────────────
         _sp({}, msg=f'Phase A: {len(today_files)} today files → partial results after')
-        _run_batch(today_files, all_today, 'TODAY')
 
-        if all_today:
-            all_today.sort(key=lambda e: e['timestamp'])
-            with _bg_lock:
-                _bg_store['entries']     = all_today
-                _bg_store['stats_cache'] = {}
-            _sp({'entries_parsed': len(all_today)},
-                msg=f'✓ Phase A: {len(all_today)} entries live — dashboard updates now')
+        # Clear stale entries before Phase A so we start fresh
+        with _bg_lock:
+            _bg_store['entries']     = []
+            _bg_store['stats_cache'] = {}
+
+        _run_batch_streaming(today_files, 'TODAY', is_today_phase=True)
+        with _bg_lock:
+            n_today = len(_bg_store['entries'])
+        _sp({'entries_parsed': n_today},
+            msg=f'✓ Phase A done: {n_today} today entries live — loading history…')
 
         # ── Phase B: historical files — mostly SQLite cache hits ──────────────
         _sp({}, msg=f'Phase B: {len(hist_files)} historical files (SQLite cache expected)')
-        _run_batch(hist_files, all_hist, 'HIST')
+        _run_batch_streaming(hist_files, 'HIST')
 
-        all_entries = all_today + all_hist
-        all_entries.sort(key=lambda e: e['timestamp'])
+        # Final sort of the merged store
+        with _bg_lock:
+            _bg_store['entries'].sort(key=lambda e: e['timestamp'])
 
         now = datetime.now()
         with _bg_lock:
-            _bg_store['entries']     = all_entries
             _bg_store['file_list']   = files
             _bg_store['last_sync']   = now.isoformat()
             _bg_store['next_sync']   = (now + timedelta(seconds=SYNC_INTERVAL)).isoformat()
             _bg_store['syncing']     = False
             _bg_store['stats_cache'] = {}
+            final_count = len(_bg_store['entries'])
 
         _disk_cache.evict_old(keep_days=STORE_DAYS + 2)
         cs = _disk_cache.stats()
 
         elapsed = _sync_progress['elapsed_secs']
         _sp({'phase': 'done', 'phase_label': 'Sync complete',
-             'files_done': len(files), 'entries_parsed': len(all_entries),
+             'files_done': len(files), 'entries_parsed': final_count,
              'current_file': '', 'finished_at': datetime.now().isoformat(),
              'cache_stats': cs},
-            msg=(f'✓ Done in {elapsed}s — {len(all_entries)} entries | '
+            msg=(f'✓ Done in {elapsed}s — {final_count} entries | '
                  f'{s3_fetches} S3 fetches | {disk_hits} disk hits | '
                  f'{mem_hits} mem hits | SQLite: {cs["rows"]} rows, {cs["size_mb"]}MB'))
         app.logger.info(
-            f"✓ Sync done: {len(all_entries)} entries | {elapsed}s | "
+            f"✓ Sync done: {final_count} entries | {elapsed}s | "
             f"S3:{s3_fetches} disk:{disk_hits} mem:{mem_hits}"
         )
 
