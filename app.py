@@ -20,7 +20,11 @@ app = Flask(__name__, template_folder='templates')
 app.config['JSON_SORT_KEYS'] = False
 
 S3_BUCKET          = os.environ.get('S3_BUCKET', 'pe-mule-prod-log')
-S3_PREFIX          = os.environ.get('S3_PREFIX', '10.1.7.84/')
+# Support both S3_PREFIXES (comma-separated, e.g. "10.1.7.84/,10.1.8.118/")
+# and legacy S3_PREFIX (single value). S3_PREFIXES takes priority.
+_raw_prefixes      = os.environ.get('S3_PREFIXES') or os.environ.get('S3_PREFIX', '10.1.7.84/')
+S3_PREFIXES_LIST   = [p.strip() for p in _raw_prefixes.split(',') if p.strip()]
+S3_PREFIX          = S3_PREFIXES_LIST[0]   # kept for backward-compat display in /api/debug
 AWS_REGION         = os.environ.get('AWS_REGION', 'ap-south-1')
 SYNC_INTERVAL      = int(os.environ.get('SYNC_INTERVAL', '1800'))       # 30 min — matches S3 cadence
 STORE_DAYS         = int(os.environ.get('STORE_DAYS', '14'))             # keep last 14 days in RAM
@@ -76,35 +80,48 @@ def _parse_filename(filename):
     return None
 
 def _list_s3_files_raw():
-    """List all matching S3 files within STORE_DAYS window. Called only from background thread."""
+    """List all matching S3 files across ALL prefixes within STORE_DAYS window."""
     s3 = get_s3()
     paginator = s3.get_paginator('list_objects_v2')
     files, skipped = [], 0
+    seen_keys = set()  # deduplicate in case prefixes overlap
     cutoff = (datetime.now() - timedelta(days=STORE_DAYS)).strftime('%Y-%m-%d')
     today  = datetime.now().strftime('%Y-%m-%d')
-    for page in paginator.paginate(Bucket=S3_BUCKET, Prefix=S3_PREFIX):
-        for obj in page.get('Contents', []):
-            if obj['Size'] == 0:
-                continue
-            key = obj['Key']
-            filename = key.split('/')[-1]
-            result = _parse_filename(filename)
-            if result is None:
-                skipped += 1
-                continue
-            api, date = result
-            if date is None:
-                date = obj['LastModified'].strftime('%Y-%m-%d')
-            if date < cutoff:
-                continue  # outside retention window
-            files.append({
-                'key': key, 'api': api, 'date': date,
-                'filename': filename, 'size': obj['Size'],
-                'last_modified': obj['LastModified'].isoformat(),
-                'is_today': (date == today),
-            })
+
+    app.logger.info(f"S3 listing {len(S3_PREFIXES_LIST)} prefix(es): {S3_PREFIXES_LIST}")
+
+    for prefix in S3_PREFIXES_LIST:
+        prefix_files = 0
+        for page in paginator.paginate(Bucket=S3_BUCKET, Prefix=prefix):
+            for obj in page.get('Contents', []):
+                if obj['Size'] == 0:
+                    continue
+                key = obj['Key']
+                if key in seen_keys:
+                    continue
+                seen_keys.add(key)
+                filename = key.split('/')[-1]
+                result = _parse_filename(filename)
+                if result is None:
+                    skipped += 1
+                    continue
+                api, date = result
+                if date is None:
+                    date = obj['LastModified'].strftime('%Y-%m-%d')
+                if date < cutoff:
+                    continue  # outside retention window
+                files.append({
+                    'key': key, 'api': api, 'date': date,
+                    'filename': filename, 'size': obj['Size'],
+                    'last_modified': obj['LastModified'].isoformat(),
+                    'is_today': (date == today),
+                    'prefix': prefix,  # track which server this came from
+                })
+                prefix_files += 1
+        app.logger.info(f"  prefix '{prefix}': {prefix_files} files matched")
+
     files.sort(key=lambda x: (x['date'], x['api']), reverse=True)
-    app.logger.info(f"S3 list: {len(files)} files matched, {skipped} skipped")
+    app.logger.info(f"S3 list total: {len(files)} files matched, {skipped} skipped")
     return files
 
 def _stream_lines(key):
@@ -376,7 +393,10 @@ def debug():
         store['entry_count'] = len(_bg_store['entries'])
     info = {
         'boto3_installed': HAS_BOTO,
-        'S3_BUCKET': S3_BUCKET, 'S3_PREFIX': S3_PREFIX, 'AWS_REGION': AWS_REGION,
+        'S3_BUCKET': S3_BUCKET, 'S3_PREFIXES': S3_PREFIXES_LIST,
+        'S3_PREFIX_legacy_env': os.environ.get('S3_PREFIX'),
+        'S3_PREFIXES_env': os.environ.get('S3_PREFIXES'),
+        'AWS_REGION': AWS_REGION,
         'has_access_key': bool(os.environ.get('AWS_ACCESS_KEY_ID')),
         'has_secret_key': bool(os.environ.get('AWS_SECRET_ACCESS_KEY')),
         'sync_interval_secs': SYNC_INTERVAL, 'store_days': STORE_DAYS,
