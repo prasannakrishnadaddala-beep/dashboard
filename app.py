@@ -29,13 +29,16 @@ AWS_REGION            = os.environ.get('AWS_REGION', 'ap-south-1')
 # Set TZ_OFFSET_HOURS=5.5 in Railway to match your log timezone.
 TZ_OFFSET_HOURS       = float(os.environ.get('TZ_OFFSET_HOURS', '5.5'))
 CACHE_TTL             = int(os.environ.get('CACHE_TTL', '300'))
-CACHE_TTL_RECENT      = int(os.environ.get('CACHE_TTL_RECENT', '60'))   # shorter TTL for hours_back queries
+CACHE_TTL_RECENT      = int(os.environ.get('CACHE_TTL_RECENT', '60'))    # short TTL for hours_back queries
+# Historical files (not today) never change — cache parsed entries for 1 hour
+FILE_CACHE_TTL_HIST   = int(os.environ.get('FILE_CACHE_TTL_HIST', '3600'))
 ALERT_FILE            = os.environ.get('ALERT_FILE', 'alerts.json')
 CHECK_INTERVAL        = int(os.environ.get('ALERT_CHECK_INTERVAL', '300'))
-MAX_FILES_PER_REQUEST = int(os.environ.get('MAX_FILES_PER_REQUEST', '5'))
+# Raised default from 5 → 20; each file is read from in-memory cache after first fetch
+MAX_FILES_PER_REQUEST = int(os.environ.get('MAX_FILES_PER_REQUEST', '20'))
 MAX_LINES_PER_FILE    = int(os.environ.get('MAX_LINES_PER_FILE', '50000'))
 MAX_BYTES_PER_FILE    = int(os.environ.get('MAX_BYTES_PER_FILE', str(4 * 1024 * 1024)))
-MAX_BYTES_TAIL        = int(os.environ.get('MAX_BYTES_TAIL', str(8 * 1024 * 1024)))  # read more for tail
+MAX_BYTES_TAIL        = int(os.environ.get('MAX_BYTES_TAIL', str(8 * 1024 * 1024)))
 
 _cache = {}
 _cache_lock = threading.Lock()
@@ -47,13 +50,16 @@ def cache_get(key, ttl=None):
             return entry['val']
     return None
 
-def cache_set(key, val):
+def cache_set(key, val, ttl_hint=None):
     with _cache_lock:
-        _cache[key] = {'val': val, 'ts': time.time()}
+        _cache[key] = {'val': val, 'ts': time.time(), 'ttl': ttl_hint or CACHE_TTL}
 
 def cache_clear():
     with _cache_lock:
         _cache.clear()
+
+def _is_today(date_str):
+    return date_str == local_now().strftime('%Y-%m-%d')
 
 def local_now():
     """Return current datetime in the log's local timezone (avoids UTC vs IST mismatch)."""
@@ -247,16 +253,41 @@ def parse_streamed_lines(line_iter, api_hint=''):
     return entries
 
 def load_entries_for_files(file_list, tail=False):
+    """
+    Load and parse entries for a list of S3 files.
+
+    Caching strategy (avoids re-downloading on every request):
+      • Historical files (date != today): parsed entries cached for FILE_CACHE_TTL_HIST (1 hour).
+        These files are finalised and never change on S3.
+      • Today's active file: cached for CACHE_TTL_RECENT (60 s) to pick up new log lines.
+        Cache key includes `last_modified` so a file update on S3 auto-invalidates it.
+      • `tail=True` uses a separate cache key (reads last 8 MB, not first 4 MB).
+    """
     all_entries = []
     for f in file_list:
-        if tail:
-            lines = stream_s3_file_lines_tail(f['key'])
-            entries = parse_streamed_lines(iter(lines), api_hint=f.get('api', ''))
+        is_active   = _is_today(f['date'])
+        ttl         = CACHE_TTL_RECENT if is_active else FILE_CACHE_TTL_HIST
+        mode        = 'tail' if tail else 'head'
+        # last_modified in key ensures stale cache is busted when S3 file updates
+        ck          = f"filecontent:{mode}:{f['key']}:{f.get('last_modified','')}"
+
+        entries = cache_get(ck, ttl=ttl)
+        if entries is None:
+            if tail:
+                lines   = stream_s3_file_lines_tail(f['key'])
+                entries = parse_streamed_lines(iter(lines), api_hint=f.get('api', ''))
+            else:
+                entries = parse_streamed_lines(stream_s3_file_lines(f['key']), api_hint=f.get('api', ''))
+            cache_set(ck, entries, ttl_hint=ttl)
+            src = 'S3'
         else:
-            entries = parse_streamed_lines(stream_s3_file_lines(f['key']), api_hint=f.get('api', ''))
+            src = 'cache'
+
         all_entries.extend(entries)
-        app.logger.info(f"  {f['filename']}: {len(entries)} entries ({f['size'] // 1024}KB)"
-                        f"{' [tail]' if tail else ''}")
+        app.logger.info(
+            f"  {f['filename']}: {len(entries)} entries ({f['size'] // 1024}KB)"
+            f" [{mode}] [{src}] ttl={ttl}s"
+        )
     return all_entries
 
 def aggregate(entries, per_minute_mode=False):
@@ -429,7 +460,7 @@ def list_dates():
 @app.route('/api/stats')
 def get_stats():
     api        = request.args.get('api', '')
-    hours_back = request.args.get('hours_back', type=int)
+    hours_back = request.args.get('hours_back', type=float)
     date_from  = request.args.get('date_from', (local_now() - timedelta(days=7)).strftime('%Y-%m-%d'))
     date_to    = request.args.get('date_to',  local_now().strftime('%Y-%m-%d'))
     show_all   = request.args.get('all', 'false').lower() == 'true'
@@ -463,7 +494,8 @@ def get_stats():
         entries = load_entries_for_files(matched, tail=True)
         # Filter by actual log timestamp vs local cutoff (both in same IST timezone)
         entries = [e for e in entries if _parse_ts(e['timestamp']) >= cutoff_dt]
-        per_minute_mode = hours_back <= 12
+        # Use per-minute granularity for anything ≤ 24h so charts are useful
+        per_minute_mode = hours_back <= 24
     elif show_all:
         candidates = [f for f in files if not api or f['api'] == api]
         matched = candidates[:MAX_FILES_PER_REQUEST]
@@ -489,14 +521,14 @@ def get_stats():
         all_dates = sorted(set(f['date'] for f in files))
         result['available_from'] = all_dates[0]
         result['available_to']   = all_dates[-1]
-    cache_set(ck, result)
+    cache_set(ck, result, ttl_hint=ttl)
     return jsonify(result)
 
 @app.route('/api/logs')
 def get_logs():
     api        = request.args.get('api', '')
     date       = request.args.get('date', '')
-    hours_back = request.args.get('hours_back', type=int)      # NEW
+    hours_back = request.args.get('hours_back', type=float)      # NEW
     level      = request.args.get('level', '').upper()
     endpoint   = request.args.get('endpoint', '')
     search     = request.args.get('search', '')
