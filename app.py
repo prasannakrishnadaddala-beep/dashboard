@@ -518,14 +518,16 @@ def aggregate_to_dict(entries):
     daily    = Counter(e['date'] for e in entries)
     eps      = Counter(f"{e['method']} {e['endpoint']}" for e in entries)
     flows    = Counter(e['flow'] for e in entries)
+    _captured_statuses = ('captured', 'success')  # Razorpay UPI uses 'success'
     created  = sum(1 for e in entries if e.get('rz_status') == 'created')
-    captured = sum(1 for e in entries if e.get('rz_status') == 'captured')
+    captured = sum(1 for e in entries if e.get('rz_status') in _captured_statuses)
     failed   = sum(1 for e in entries if e.get('error_code'))
-    revenue  = sum(e.get('amount_inr') or 0 for e in entries if e.get('rz_status') == 'captured')
+    revenue  = sum(e.get('amount_inr') or 0 for e in entries if e.get('rz_status') in _captured_statuses)
     methods  = Counter(e.get('upi_method') for e in entries if e.get('upi_method'))
     statuses = Counter(e.get('rz_status')  for e in entries if e.get('rz_status'))
     err_ep   = Counter(f"{e['method']} {e['endpoint']}" for e in entries if e['is_error'])
     err_fl   = Counter(e['flow'] for e in entries if e['is_error'])
+    err_day  = Counter(e['date'] for e in entries if e['is_error'])
     # Keep only the 50 most recent errors (compact list of small dicts)
     recent_errors = [
         {'level': e['level'], 'timestamp': e['timestamp'], 'api': e['api'],
@@ -552,6 +554,7 @@ def aggregate_to_dict(entries):
         'payment_statuses': dict(statuses.most_common()),
         'err_by_endpoint': dict(err_ep.most_common(10)),
         'err_by_flow': dict(err_fl.most_common()),
+        'err_by_day': dict(err_day),
         'recent_errors': recent_errors,
         'apis': sorted(set(e['api'] for e in entries)),
     }
@@ -596,6 +599,7 @@ def merge_stats(a: dict, b: dict) -> dict:
         'payment_statuses': _merge_counter(a.get('payment_statuses'), b.get('payment_statuses')),
         'err_by_endpoint': _merge_counter(a.get('err_by_endpoint'), b.get('err_by_endpoint')),
         'err_by_flow': _merge_counter(a.get('err_by_flow'), b.get('err_by_flow')),
+        'err_by_day': _merge_counter(a.get('err_by_day'), b.get('err_by_day')),
         'recent_errors': recent,
         'apis': apis,
     }
@@ -604,44 +608,6 @@ def aggregate(entries):
     """Legacy: aggregate raw entries list. Used for today's entries only."""
     return aggregate_to_dict(entries)
 
-
-    total = len(entries)
-    if total == 0: return empty_stats()
-    errors      = sum(1 for e in entries if e['is_error'])
-    warnings    = sum(1 for e in entries if e['level'] == 'WARN')
-    hourly      = defaultdict(int)
-    for e in entries:
-        hourly[f"{e['date']} {e['hour']}:00"] += 1
-    daily       = Counter(e['date'] for e in entries)
-    endpoints   = Counter(f"{e['method']} {e['endpoint']}" for e in entries)
-    flows       = Counter(e['flow']   for e in entries)
-    created     = sum(1 for e in entries if e.get('rz_status') == 'created')
-    captured    = sum(1 for e in entries if e.get('rz_status') == 'captured')
-    failed      = sum(1 for e in entries if e.get('error_code'))
-    revenue     = sum(e.get('amount_inr') or 0 for e in entries if e.get('rz_status') == 'captured')
-    methods     = Counter(e.get('upi_method') for e in entries if e.get('upi_method'))
-    statuses    = Counter(e.get('rz_status')  for e in entries if e.get('rz_status'))
-    err_by_ep   = Counter(f"{e['method']} {e['endpoint']}" for e in entries if e['is_error'])
-    err_by_flow = Counter(e['flow'] for e in entries if e['is_error'])
-    sorted_hours = sorted(hourly.keys())
-    return {
-        'total': total, 'errors': errors, 'warnings': warnings,
-        'error_rate': round(errors / total * 100, 2) if total else 0,
-        'payments_created': created, 'payments_captured': captured,
-        'payments_failed': failed, 'revenue_inr': round(revenue, 2),
-        'hourly_labels': sorted_hours,
-        'hourly_values': [hourly[h] for h in sorted_hours],
-        'daily': dict(sorted(daily.items())),
-        'endpoints': dict(endpoints.most_common()),
-        'flows': dict(flows.most_common()),
-        'payment_methods': dict(methods.most_common()),
-        'payment_statuses': dict(statuses.most_common()),
-        'err_by_endpoint': dict(err_by_ep.most_common(10)),
-        'err_by_flow': dict(err_by_flow.most_common()),
-        'recent_errors': [e for e in entries if e['is_error']][-50:],
-        'apis': sorted(set(e['api'] for e in entries)),
-    }
-
 def empty_stats():
     return {
         'total': 0, 'errors': 0, 'warnings': 0, 'error_rate': 0,
@@ -649,7 +615,7 @@ def empty_stats():
         'revenue_inr': 0, 'hourly_labels': [], 'hourly_values': [],
         'daily': {}, 'endpoints': {}, 'flows': {}, 'payment_methods': {},
         'payment_statuses': {}, 'err_by_endpoint': {}, 'err_by_flow': {},
-        'recent_errors': [], 'apis': [],
+        'err_by_day': {}, 'recent_errors': [], 'apis': [],
     }
 
 # ─── Routes ──────────────────────────────────────────────────────────────────
