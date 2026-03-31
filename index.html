@@ -206,6 +206,47 @@ tr:hover td{background:var(--bg3)}
 @media(max-width:1100px){.cr1{grid-template-columns:1fr 1fr}.cr2{grid-template-columns:1fr 1fr}}
 @media(max-width:700px){.cr1,.cr2,.ag{grid-template-columns:1fr}.ctrls{display:none}}
 @media(max-width:700px){#sync-drawer{width:100%}}
+/* ── Log Detail Modal ── */
+#log-modal{
+  position:fixed;inset:0;z-index:2000;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(8,12,18,.82);backdrop-filter:blur(4px);
+  opacity:0;pointer-events:none;transition:opacity .2s
+}
+#log-modal.open{opacity:1;pointer-events:all}
+.lm-box{
+  background:var(--bg2);border:1px solid var(--border2);border-radius:12px;
+  width:min(780px,96vw);max-height:88vh;display:flex;flex-direction:column;
+  box-shadow:0 24px 64px rgba(0,0,0,.7);
+  transform:translateY(16px);transition:transform .2s
+}
+#log-modal.open .lm-box{transform:translateY(0)}
+.lm-head{
+  display:flex;align-items:center;gap:10px;padding:15px 20px;
+  border-bottom:1px solid var(--border);background:var(--bg3);
+  border-radius:12px 12px 0 0;flex-shrink:0
+}
+.lm-head-level{flex-shrink:0}
+.lm-head-title{flex:1;font-family:var(--fh);font-size:13px;font-weight:700;color:var(--text)}
+.lm-close{background:none;border:none;color:var(--text2);cursor:pointer;font-size:20px;
+  line-height:1;padding:2px 7px;border-radius:5px;transition:all .2s;flex-shrink:0}
+.lm-close:hover{background:var(--border);color:var(--text)}
+.lm-body{overflow-y:auto;padding:18px 20px;display:flex;flex-direction:column;gap:14px}
+.lm-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.lm-field{background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:9px 12px}
+.lm-field.full{grid-column:1/-1}
+.lm-key{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px}
+.lm-val{font-family:var(--fm);font-size:11px;color:var(--text);word-break:break-all;line-height:1.6}
+.lm-val.msg{color:var(--text2);white-space:pre-wrap;max-height:200px;overflow-y:auto;
+  background:var(--bg);border-radius:5px;padding:8px 10px;border:1px solid var(--border);font-size:11px}
+.lm-val.hi{color:var(--red)}
+.lm-val.ok{color:var(--green)}
+.lm-val.torn{color:var(--accent)}
+.lm-section{font-family:var(--fh);font-size:10px;font-weight:700;color:var(--text3);
+  letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid var(--border);
+  padding-bottom:6px;margin-bottom:2px}
+tr.clickable{cursor:pointer}
+tr.clickable:hover td{background:rgba(77,158,255,.07)!important}
 </style>
 </head>
 <body>
@@ -230,7 +271,6 @@ tr:hover td{background:var(--bg3)}
 <div class="tabs">
   <div class="tab active" data-tab="overview">Overview</div>
   <div class="tab" data-tab="logs">Log Explorer</div>
-  <div class="tab" data-tab="payments">Payments</div>
   <div class="tab" data-tab="alerts">Alerts</div>
   <div class="tab" data-tab="diagnostics">Diagnostics</div>
 </div>
@@ -336,17 +376,27 @@ tr:hover td{background:var(--bg3)}
       <div class="card c-warn"><div class="card-lbl">Warnings</div><div class="card-val" style="color:var(--yellow)" id="c-warn">—</div><div class="card-sub">WARN level</div><div class="card-icon">⚠️</div></div>
       <div class="card c-ok"><div class="card-lbl">Orders Created</div><div class="card-val tgrn" id="c-cre">—</div><div class="card-sub">Razorpay orders</div><div class="card-icon">🧾</div></div>
       <div class="card c-blue"><div class="card-lbl">Captured</div><div class="card-val" style="color:var(--blue)" id="c-cap">—</div><div class="card-sub" id="c-fail">—</div><div class="card-icon">💳</div></div>
-      <div class="card c-pur"><div class="card-lbl">Revenue (INR)</div><div class="card-val" style="color:var(--purple)" id="c-rev">—</div><div class="card-sub">captured sum</div><div class="card-icon">₹</div></div>
     </div>
-    <div class="cr1">
+    <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:13px;margin-bottom:13px">
       <div class="cbox"><div class="ctitle"><span>◆</span>Request Timeline</div><canvas id="ch-tl" height="200"></canvas></div>
       <div class="cbox"><div class="ctitle"><span>◆</span>Endpoints</div><canvas id="ch-ep" height="200"></canvas></div>
-      <div class="cbox"><div class="ctitle"><span>◆</span>Payment Status</div><canvas id="ch-ps" height="200"></canvas></div>
+      <div class="cbox"><div class="ctitle"><span>◆</span>UPI Methods</div><canvas id="ch-pm" height="200"></canvas></div>
     </div>
     <div class="cr2">
       <div class="cbox"><div class="ctitle"><span>◆</span>Errors by Endpoint</div><canvas id="ch-ee" height="200"></canvas></div>
       <div class="cbox"><div class="ctitle"><span>◆</span>Flow Distribution</div><canvas id="ch-fl" height="200"></canvas></div>
-      <div class="cbox"><div class="ctitle"><span>◆</span>UPI Methods</div><canvas id="ch-pm" height="200"></canvas></div>
+      <div class="cbox"><div class="ctitle"><span>◆</span>Daily Error Rate <span style="color:var(--red);font-size:10px">% per day</span></div><canvas id="ch-ert" height="200"></canvas></div>
+    </div>
+    <!-- Errors by API — clickable drill-down to Log Explorer -->
+    <div style="margin-top:15px">
+      <div class="sh">
+        <div class="st">Errors by API</div>
+        <span style="font-size:11px;color:var(--text3)">Click row → Log Explorer</span>
+      </div>
+      <div class="ltw" id="err-api-wrap">
+        <table><thead><tr><th>API</th><th>Errors</th><th>% of API Total</th><th>Share of All Errors</th><th></th></tr></thead>
+        <tbody id="err-api-body"><tr><td colspan="5" class="emp">No data</td></tr></tbody></table>
+      </div>
     </div>
     <div style="margin-top:15px">
       <div class="sh"><div class="st">Recent Errors & Warnings</div><span id="rc-ct" style="font-size:11px;color:var(--text3)"></span></div>
@@ -373,24 +423,6 @@ tr:hover td{background:var(--bg3)}
     <tbody id="l-body"><tr><td colspan="11" class="emp">Select API and click Search</td></tr></tbody></table>
   </div>
   <div class="pg" id="l-pg"></div>
-</div>
-
-<!-- PAYMENTS -->
-<div class="tp" id="tab-payments">
-  <div id="p-ld" class="ld" style="display:none"><div class="sp"></div><div>Loading…</div></div>
-  <div id="p-ct">
-    <div class="cards" style="margin-bottom:18px">
-      <div class="card c-ok"><div class="card-lbl">Orders Created</div><div class="card-val tgrn" id="p-cre">—</div></div>
-      <div class="card c-blue"><div class="card-lbl">Captured</div><div class="card-val" style="color:var(--blue)" id="p-cap">—</div></div>
-      <div class="card c-err"><div class="card-lbl">Failed</div><div class="card-val tred" id="p-fail">—</div></div>
-      <div class="card c-pur"><div class="card-lbl">Total Revenue</div><div class="card-val" style="color:var(--purple)" id="p-rev">—</div></div>
-    </div>
-    <div class="cr1">
-      <div class="cbox"><div class="ctitle"><span>◆</span>Daily Activity</div><canvas id="ch-da" height="200"></canvas></div>
-      <div class="cbox"><div class="ctitle"><span>◆</span>Order → Capture Funnel</div><canvas id="ch-fn" height="200"></canvas></div>
-      <div class="cbox"><div class="ctitle"><span>◆</span>UPI Methods</div><canvas id="ch-um" height="200"></canvas></div>
-    </div>
-  </div>
 </div>
 
 <!-- ALERTS -->
@@ -467,6 +499,48 @@ tr:hover td{background:var(--bg3)}
 
 </div><!-- /main -->
 </div><!-- /app -->
+
+<!-- ── Log Detail Modal ── -->
+<div id="log-modal" onclick="if(event.target===this)closeLM()">
+  <div class="lm-box">
+    <div class="lm-head">
+      <div class="lm-head-level" id="lm-badge"></div>
+      <div class="lm-head-title" id="lm-title">Log Entry Detail</div>
+      <button class="lm-close" onclick="closeLM()">✕</button>
+    </div>
+    <div class="lm-body">
+      <div class="lm-section">Request</div>
+      <div class="lm-grid">
+        <div class="lm-field"><div class="lm-key">Timestamp</div><div class="lm-val" id="lm-ts"></div></div>
+        <div class="lm-field"><div class="lm-key">API</div><div class="lm-val" id="lm-api"></div></div>
+        <div class="lm-field"><div class="lm-key">Method</div><div class="lm-val" id="lm-method"></div></div>
+        <div class="lm-field"><div class="lm-key">Endpoint</div><div class="lm-val torn" id="lm-ep"></div></div>
+        <div class="lm-field full"><div class="lm-key">Flow</div><div class="lm-val" id="lm-flow"></div></div>
+        <div class="lm-field full"><div class="lm-key">Event ID</div><div class="lm-val tdim" id="lm-evid" style="font-size:10px"></div></div>
+      </div>
+      <div class="lm-section" id="lm-pay-sec" style="display:none">Payment</div>
+      <div class="lm-grid" id="lm-pay-grid" style="display:none">
+        <div class="lm-field"><div class="lm-key">Status</div><div class="lm-val" id="lm-rzst"></div></div>
+        <div class="lm-field"><div class="lm-key">Amount (INR)</div><div class="lm-val ok" id="lm-amt"></div></div>
+        <div class="lm-field"><div class="lm-key">Payment ID</div><div class="lm-val" id="lm-pid"></div></div>
+        <div class="lm-field"><div class="lm-key">Order ID</div><div class="lm-val" id="lm-oid"></div></div>
+        <div class="lm-field"><div class="lm-key">UPI Method</div><div class="lm-val" id="lm-upi"></div></div>
+        <div class="lm-field"><div class="lm-key">Loan Number</div><div class="lm-val" id="lm-loan"></div></div>
+        <div class="lm-field full"><div class="lm-key">Customer</div><div class="lm-val" id="lm-cust"></div></div>
+      </div>
+      <div class="lm-section" id="lm-err-sec" style="display:none">Error</div>
+      <div class="lm-grid" id="lm-err-grid" style="display:none">
+        <div class="lm-field"><div class="lm-key">Error Code</div><div class="lm-val hi" id="lm-ec"></div></div>
+        <div class="lm-field full"><div class="lm-key">Error Description</div><div class="lm-val hi" id="lm-ed"></div></div>
+      </div>
+      <div class="lm-section">Message</div>
+      <div class="lm-grid">
+        <div class="lm-field full"><div class="lm-val msg" id="lm-msg"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -756,7 +830,6 @@ document.querySelectorAll('.tab').forEach(tab=>{
     document.querySelectorAll('.tp').forEach(p=>p.classList.remove('active'));
     tab.classList.add('active');
     $('tab-'+tab.dataset.tab).classList.add('active');
-    if(tab.dataset.tab==='payments' && gStats) renderPayTab(gStats);
     if(tab.dataset.tab==='diagnostics') loadDiag();
   });
 });
@@ -776,7 +849,9 @@ async function loadOverview(){
     const p=new URLSearchParams({date_from:dfrom,date_to:dto});
     if(apiV) p.set('api',apiV);
     gStats = await apiFetch('/api/stats?'+p);
-    renderCards(gStats); renderCharts(gStats); renderRecentErrors(gStats.recent_errors||[]);
+    renderCards(gStats); renderCharts(gStats);
+    renderRecentErrors(gStats.recent_errors||[]);
+    renderErrByApi(gStats);
     $('stxt').textContent=(gStats.files_loaded||0)+' files · '+fmt(gStats.total)+' entries';
   } catch(e){ toast('Failed: '+e.message,'error'); $('stxt').textContent='Error'; }
   finally { $('ov-ld').style.display='none'; $('ov-ct').style.opacity='1'; }
@@ -784,26 +859,28 @@ async function loadOverview(){
 
 function renderCards(s){
   $('c-tot').textContent=fmt(s.total); $('c-files').textContent=(s.files_loaded||0)+' files';
+  const errRateColor = s.error_rate > 10 ? 'var(--red)' : s.error_rate > 3 ? 'var(--yellow)' : 'var(--green)';
   $('c-err').textContent=fmt(s.errors); $('c-erate').textContent=s.error_rate+'% error rate';
+  $('c-erate').style.color = errRateColor;
   $('c-warn').textContent=fmt(s.warnings);
   $('c-cre').textContent=fmt(s.payments_created);
+  const captureRate = s.payments_created > 0 ? Math.round(s.payments_captured / s.payments_created * 100) : 0;
   $('c-cap').textContent=fmt(s.payments_captured);
-  $('c-fail').textContent=fmt(s.payments_failed)+' failed';
-  $('c-rev').textContent=fmtR(s.revenue_inr);
+  $('c-fail').textContent=fmt(s.payments_failed)+' failed · '+captureRate+'% cap rate';
 }
 
 function renderCharts(s){
-  // Timeline line chart
+  // Timeline line chart — show both requests/hr and errors/hr as two series
   const hours=s.hourly_labels||[];
-  CHR.line('ch-tl', hours.map(h=>h.slice(11)), [{data:s.hourly_values||[],color:ACCENT}]);
+  const hourlyErr = hours.map(h => {
+    // Build errors-per-hour from err_by_day only gives per-day; use hourly approx
+    return 0; // placeholder — will overlay below if err_by_day available
+  });
+  CHR.line('ch-tl', hours.map(h=>h.slice(11)), [{data:s.hourly_values||[],color:ACCENT,label:'Req/hr'}]);
 
   // Endpoints bar
   const epK=Object.keys(s.endpoints||{}).slice(0,6);
   CHR.bar('ch-ep',epK.map(k=>k.replace('POST ','POST\n').replace('GET ','')),epK.map(k=>s.endpoints[k]),[ACCENT,BLUE],{horiz:true});
-
-  // Payment status donut
-  const psK=Object.keys(s.payment_statuses||{});
-  CHR.donut('ch-ps',psK,psK.map(k=>s.payment_statuses[k]),psK.map(k=>k==='captured'?GREEN:k==='created'?ACCENT:RED));
 
   // Errors by endpoint bar
   const eeK=Object.keys(s.err_by_endpoint||{}).slice(0,5);
@@ -817,37 +894,78 @@ function renderCharts(s){
   // UPI methods donut
   const pmK=Object.keys(s.payment_methods||{});
   if(pmK.length) CHR.donut('ch-pm',pmK,pmK.map(k=>s.payment_methods[k]),[TEAL,PURPLE,YELLOW,BLUE]);
+
+  // Daily Error Rate trend — errors per day vs total per day
+  const dlyAll=s.daily||{}, dlyErr=s.err_by_day||{};
+  const dlyK=Object.keys(dlyAll).sort();
+  if(dlyK.length>1){
+    const errRates=dlyK.map(d=>dlyAll[d]>0?Math.round((dlyErr[d]||0)/dlyAll[d]*100):0);
+    const errCounts=dlyK.map(d=>dlyErr[d]||0);
+    CHR.line('ch-ert',dlyK.map(d=>d.slice(5)),[
+      {data:errRates, color:RED,   label:'Err %'},
+      {data:errCounts.map(v=>Math.round(v/Math.max(...errCounts,1)*Math.max(...errRates,1))), color:YELLOW, label:'Errors (scaled)'}
+    ]);
+  }
 }
 
 function renderRecentErrors(errors){
   const body=$('re-body');
   $('rc-ct').textContent=errors.length+' entries';
   if(!errors.length){ body.innerHTML='<tr><td colspan="7" class="emp">✓ No errors in selected range</td></tr>'; return; }
-  body.innerHTML=errors.slice(-20).reverse().map(e=>`<tr>
+  const rows = errors.slice(-50).reverse();
+  body.innerHTML=rows.map((e,i)=>`<tr class="clickable" onclick="openLM(_recentErrors[${i}])">
     <td><span class="badge b${e.level}">${e.level}</span></td>
     <td class="mono tdim" style="white-space:nowrap;font-size:10px">${e.timestamp}</td>
     <td class="tdim">${e.api}</td>
     <td><span class="torn mono">${e.method} ${e.endpoint}</span></td>
     <td class="tdim" style="font-size:10px">${(e.flow||'').replace('implemtation_','').replace('_flowSub_Flow','')}</td>
     <td>${e.error_code?`<span class="tred">${e.error_code}</span>`:'<span class="tdim">—</span>'}</td>
-    <td class="ttrunc tdim">${esc(e.message||'')}</td>
+    <td class="ttrunc tdim" title="${esc(e.message||'')}">${esc(e.message||'')} <span style="color:var(--blue);font-size:10px">↗</span></td>
   </tr>`).join('');
+  window._recentErrors = rows;
 }
 
-// ─── Payments tab ─────────────────────────────────────────────────────────────
-function renderPayTab(s){
-  if(!s) return;
-  $('p-cre').textContent=fmt(s.payments_created);
-  $('p-cap').textContent=fmt(s.payments_captured);
-  $('p-fail').textContent=fmt(s.payments_failed);
-  $('p-rev').textContent=fmtR(s.revenue_inr);
+// ─── Errors by API drill-down ─────────────────────────────────────────────────
+function renderErrByApi(s) {
+  const body = $('err-api-body');
+  const byApi = s.err_by_api || {};
+  const keys = Object.keys(byApi);
+  const totalErr = Object.values(byApi).reduce((a,b)=>a+b,0)||1;
+  if(!keys.length){
+    body.innerHTML='<tr><td colspan="5" class="emp">✓ No errors in range</td></tr>';
+    return;
+  }
+  body.innerHTML = keys.map(api=>{
+    const cnt = byApi[api];
+    const share = Math.round(cnt/totalErr*100);
+    const barW = Math.min(share, 100);
+    return `<tr class="clickable" onclick="drillToApi('${esc(api)}')">
+      <td style="color:var(--teal);font-weight:700;white-space:nowrap">${esc(api)}</td>
+      <td class="mono tred" style="white-space:nowrap">${fmt(cnt)}</td>
+      <td style="min-width:120px;padding-right:20px">
+        <div style="background:var(--bg3);border-radius:3px;height:6px;overflow:hidden">
+          <div style="height:100%;width:${barW}%;background:var(--red);border-radius:3px;opacity:.8"></div>
+        </div>
+      </td>
+      <td class="tdim" style="white-space:nowrap">${share}% of errors</td>
+      <td style="color:var(--blue);font-size:10px;white-space:nowrap;cursor:pointer">View logs ↗</td>
+    </tr>`;
+  }).join('');
+}
 
-  const dK=Object.keys(s.daily||{});
-  CHR.line('ch-da',dK,[{data:dK.map(k=>s.daily[k]),color:PURPLE}]);
-  CHR.bar('ch-fn',['Created','Captured','Failed'],[s.payments_created,s.payments_captured,s.payments_failed],[ACCENT,GREEN,RED]);
-
-  const pmK=Object.keys(s.payment_methods||{});
-  if(pmK.length) CHR.donut('ch-um',pmK,pmK.map(k=>s.payment_methods[k]),[TEAL,BLUE,YELLOW,GREEN]);
+function drillToApi(api){
+  // Pre-fill Log Explorer filters and switch tab
+  const apiSel = $('l-api');
+  for(let i=0;i<apiSel.options.length;i++){
+    if(apiSel.options[i].value===api){ apiSel.selectedIndex=i; break; }
+  }
+  $('l-lvl').value='ERROR';
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tp').forEach(p=>p.classList.remove('active'));
+  document.querySelector('[data-tab="logs"]').classList.add('active');
+  $('tab-logs').classList.add('active');
+  logsPage=1; loadLogs();
+  toast('Showing ERROR logs for '+api,'success');
 }
 
 // ─── Log Explorer ──────────────────────────────────────────────────────────────
@@ -879,9 +997,10 @@ async function loadLogs(){
 function renderLogsTable(logs){
   const body=$('l-body');
   if(!logs.length){ body.innerHTML='<tr><td colspan="11" class="emp">No logs match filters</td></tr>'; return; }
-  body.innerHTML=logs.map(e=>{
+  window._logRows = logs;
+  body.innerHTML=logs.map((e,i)=>{
     const rzB=e.rz_status?`<span class="badge b${e.rz_status==='captured'?'ok':e.rz_status==='created'?'created':'fail'}">${e.rz_status}</span>`:'<span class="tdim">—</span>';
-    return `<tr>
+    return `<tr class="clickable" onclick="openLM(_logRows[${i}])">
       <td><span class="badge b${e.level}">${e.level}</span></td>
       <td class="mono tdim" style="font-size:10px;white-space:nowrap">${e.timestamp}</td>
       <td class="tdim">${e.api}</td>
@@ -892,7 +1011,7 @@ function renderLogsTable(logs){
       <td class="mono">${e.amount_inr!=null?'₹'+e.amount_inr.toLocaleString('en-IN'):'—'}</td>
       <td>${e.error_code?`<span class="tred">${e.error_code}</span>`:'<span class="tdim">—</span>'}</td>
       <td class="mono tdim" style="font-size:10px">${e.loan_number||'—'}</td>
-      <td class="ttrunc tdim">${esc(e.message||'')}</td>
+      <td class="ttrunc tdim" title="${esc(e.message||'')}">${esc(e.message||'')} <span style="color:var(--blue);font-size:10px">↗</span></td>
     </tr>`;
   }).join('');
 }
@@ -957,7 +1076,7 @@ async function delAlert(id){
 }
 
 // Re-draw charts on window resize
-let _rt; window.addEventListener('resize',()=>{ clearTimeout(_rt); _rt=setTimeout(()=>{ if(gStats){renderCharts(gStats); renderPayTab(gStats);} },300); });
+let _rt; window.addEventListener('resize',()=>{ clearTimeout(_rt); _rt=setTimeout(()=>{ if(gStats){renderCharts(gStats);} },300); });
 
 // ─── Sync Drawer ──────────────────────────────────────────────────────────────
 let _spPoll = null, _prevSyncPhase = null, _lastSyncDone = null;
@@ -1053,7 +1172,7 @@ function renderSyncDrawer(p){
         <div class="pfx-name">📡 ${pr.prefix}</div>
         <div class="pfx-stats">
           <div class="pfx-stat">Files found <span>${pr.files_found||0}</span></div>
-          <div class="pfx-stat">Fetched <span style="color:var(--blue)">${pr.files_parsed||0}</span></div>
+          <div class="pfx-stat">Fetched <span style="color:var(--blue)">${pr.files_s3||0}</span></div>
           <div class="pfx-stat">Cached <span style="color:var(--green)">${pr.files_cached||0}</span></div>
           <div class="pfx-stat">Downloaded <span style="color:var(--accent)">${pr.bytes_read?Math.round(pr.bytes_read/1024)+'KB':'—'}</span></div>
         </div>
@@ -1094,10 +1213,17 @@ function renderStatusBar(p){
 }
 
 function timeAgo(iso, future=false){
-  const diff=Math.round((new Date(iso)-Date.now())/1000);
+  // Normalise: if no timezone info, assume UTC (server emits 'Z' suffix now)
+  const ts = iso.endsWith('Z') || iso.includes('+') ? iso : iso + 'Z';
+  const diff=Math.round((new Date(ts)-Date.now())/1000);
   const abs=Math.abs(diff);
   const str=abs<60?abs+'s':abs<3600?Math.round(abs/60)+'m':Math.round(abs/3600)+'h';
-  return future?(diff>0?'in '+str:'overdue'):(diff<0?str+' ago':'just now');
+  if(future){
+    if(diff>0) return 'in '+str;
+    if(abs<120) return 'due now';
+    return str+' overdue';
+  }
+  return diff<0?str+' ago':'just now';
 }
 
 // ─── Diagnostics ─────────────────────────────────────────────────────────────
@@ -1183,6 +1309,57 @@ setInterval(async()=>{
 setInterval(()=>{
   if($('sync-drawer').classList.contains('open')) pollSyncProgress();
 },2000);
+
+// ─── Log Detail Modal ──────────────────────────────────────────────────────────
+function openLM(e) {
+  const m = $('log-modal');
+  const lvl = e.level || 'INFO';
+  $('lm-badge').innerHTML = `<span class="badge b${lvl}">${lvl}</span>`;
+  $('lm-title').textContent = `${e.method||''} ${e.endpoint||''}`.trim() || 'Log Entry';
+  $('lm-ts').textContent    = e.timestamp || '—';
+  $('lm-api').textContent   = e.api || '—';
+  $('lm-method').innerHTML  = e.method ? `<span class="badge b${e.method==='POST'?'created':'INFO'}">${e.method}</span>` : '—';
+  $('lm-ep').textContent    = e.endpoint || '—';
+  $('lm-flow').textContent  = (e.flow||'—').replace('implemtation_','').replace('_flowSub_Flow','');
+  $('lm-evid').textContent  = e.event_id || '—';
+  $('lm-msg').textContent   = e.message || '(no message)';
+
+  // Payment section — show only if any payment data exists
+  const hasPay = e.rz_status||e.amount_inr!=null||e.payment_id||e.order_id||e.loan_number||e.customer;
+  $('lm-pay-sec').style.display = hasPay ? '' : 'none';
+  $('lm-pay-grid').style.display = hasPay ? '' : 'none';
+  if (hasPay) {
+    const stMap = {captured:'ok',created:'torn',active:'',pending:'',failure:'hi',rejected:'hi'};
+    $('lm-rzst').innerHTML = e.rz_status
+      ? `<span class="badge b${e.rz_status==='captured'?'ok':e.rz_status==='created'?'created':'fail'}">${e.rz_status}</span>`
+      : '<span class="tdim">—</span>';
+    $('lm-amt').textContent  = e.amount_inr != null ? '₹' + e.amount_inr.toLocaleString('en-IN') : '—';
+    $('lm-pid').textContent  = e.payment_id || '—';
+    $('lm-oid').textContent  = e.order_id   || '—';
+    $('lm-upi').textContent  = e.upi_method || '—';
+    $('lm-loan').textContent = e.loan_number|| '—';
+    $('lm-cust').textContent = e.customer   || '—';
+  }
+
+  // Error section — show only if error code exists
+  const hasErr = e.error_code || e.error_desc;
+  $('lm-err-sec').style.display  = hasErr ? '' : 'none';
+  $('lm-err-grid').style.display = hasErr ? '' : 'none';
+  if (hasErr) {
+    $('lm-ec').textContent = e.error_code || '—';
+    $('lm-ed').textContent = e.error_desc || e.error_description || '—';
+  }
+
+  m.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeLM() {
+  $('log-modal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', e => { if(e.key==='Escape') closeLM(); });
 
 </script>
 </body>

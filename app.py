@@ -403,6 +403,13 @@ def _do_sync():
                     f, entries, source = future.result()
                     files_done += 1; s3_fetches += 1
                     new_today.extend(entries)
+                    # ── Fix: update per-prefix counter for today files ──
+                    pfx = f.get('prefix', S3_PREFIXES_LIST[0])
+                    with _sp_lock:
+                        for pr in _sync_progress['prefixes']:
+                            if pr['prefix'] == pfx:
+                                pr['files_s3']   += 1
+                                pr['bytes_read'] += f['size']
                     _sp({'current_file': f['filename'], 'files_done': files_done,
                          's3_fetches': s3_fetches,
                          'phase_label': f'TODAY [{files_done}/{len(files)}] {f["filename"]}'})
@@ -466,10 +473,10 @@ def _do_sync():
         del new_hist
         gc.collect()
 
-        now = datetime.now()
+        now = datetime.utcnow()
         with _bg_lock:
-            _bg_store['last_sync'] = now.isoformat()
-            _bg_store['next_sync'] = (now + timedelta(seconds=SYNC_INTERVAL)).isoformat()
+            _bg_store['last_sync'] = now.isoformat() + 'Z'
+            _bg_store['next_sync'] = (now + timedelta(seconds=SYNC_INTERVAL)).isoformat() + 'Z'
             _bg_store['syncing']   = False
             final_today = len(_bg_store['today_entries'])
             final_hist  = len(_bg_store['hist_stats'])
@@ -528,6 +535,7 @@ def aggregate_to_dict(entries):
     err_ep   = Counter(f"{e['method']} {e['endpoint']}" for e in entries if e['is_error'])
     err_fl   = Counter(e['flow'] for e in entries if e['is_error'])
     err_day  = Counter(e['date'] for e in entries if e['is_error'])
+    err_api  = Counter(e['api'] for e in entries if e['is_error'])
     # Keep only the 50 most recent errors (compact list of small dicts)
     recent_errors = [
         {'level': e['level'], 'timestamp': e['timestamp'], 'api': e['api'],
@@ -555,6 +563,7 @@ def aggregate_to_dict(entries):
         'err_by_endpoint': dict(err_ep.most_common(10)),
         'err_by_flow': dict(err_fl.most_common()),
         'err_by_day': dict(err_day),
+        'err_by_api': dict(err_api.most_common()),
         'recent_errors': recent_errors,
         'apis': sorted(set(e['api'] for e in entries)),
     }
@@ -600,6 +609,7 @@ def merge_stats(a: dict, b: dict) -> dict:
         'err_by_endpoint': _merge_counter(a.get('err_by_endpoint'), b.get('err_by_endpoint')),
         'err_by_flow': _merge_counter(a.get('err_by_flow'), b.get('err_by_flow')),
         'err_by_day': _merge_counter(a.get('err_by_day'), b.get('err_by_day')),
+        'err_by_api': _merge_counter(a.get('err_by_api'), b.get('err_by_api')),
         'recent_errors': recent,
         'apis': apis,
     }
@@ -615,7 +625,7 @@ def empty_stats():
         'revenue_inr': 0, 'hourly_labels': [], 'hourly_values': [],
         'daily': {}, 'endpoints': {}, 'flows': {}, 'payment_methods': {},
         'payment_statuses': {}, 'err_by_endpoint': {}, 'err_by_flow': {},
-        'err_by_day': {}, 'recent_errors': [], 'apis': [],
+        'err_by_day': {}, 'err_by_api': {}, 'recent_errors': [], 'apis': [],
     }
 
 # ─── Routes ──────────────────────────────────────────────────────────────────
