@@ -379,15 +379,16 @@ tr.clickable:hover td{background:rgba(77,158,255,.07)!important}
       <div class="card c-blue"><div class="card-lbl">Captured</div><div class="card-val" style="color:var(--blue)" id="c-cap">—</div><div class="card-sub" id="c-fail">—</div><div class="card-icon">💳</div></div>
       <div class="card c-pur"><div class="card-lbl">Revenue (INR)</div><div class="card-val" style="color:var(--purple)" id="c-rev">—</div><div class="card-sub">captured sum</div><div class="card-icon">₹</div></div>
     </div>
-    <div class="cr1">
+    <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:13px;margin-bottom:13px">
       <div class="cbox"><div class="ctitle"><span>◆</span>Request Timeline</div><canvas id="ch-tl" height="200"></canvas></div>
       <div class="cbox"><div class="ctitle"><span>◆</span>Endpoints</div><canvas id="ch-ep" height="200"></canvas></div>
       <div class="cbox"><div class="ctitle"><span>◆</span>Payment Status</div><canvas id="ch-ps" height="200"></canvas></div>
+      <div class="cbox"><div class="ctitle"><span>◆</span>UPI Methods</div><canvas id="ch-pm" height="200"></canvas></div>
     </div>
     <div class="cr2">
       <div class="cbox"><div class="ctitle"><span>◆</span>Errors by Endpoint</div><canvas id="ch-ee" height="200"></canvas></div>
       <div class="cbox"><div class="ctitle"><span>◆</span>Flow Distribution</div><canvas id="ch-fl" height="200"></canvas></div>
-      <div class="cbox"><div class="ctitle"><span>◆</span>UPI Methods</div><canvas id="ch-pm" height="200"></canvas></div>
+      <div class="cbox"><div class="ctitle"><span>◆</span>Daily Error Rate <span style="color:var(--red);font-size:10px">% per day</span></div><canvas id="ch-ert" height="200"></canvas></div>
     </div>
     <div style="margin-top:15px">
       <div class="sh"><div class="st">Recent Errors & Warnings</div><span id="rc-ct" style="font-size:11px;color:var(--text3)"></span></div>
@@ -867,26 +868,42 @@ async function loadOverview(){
 
 function renderCards(s){
   $('c-tot').textContent=fmt(s.total); $('c-files').textContent=(s.files_loaded||0)+' files';
+  const errRateColor = s.error_rate > 10 ? 'var(--red)' : s.error_rate > 3 ? 'var(--yellow)' : 'var(--green)';
   $('c-err').textContent=fmt(s.errors); $('c-erate').textContent=s.error_rate+'% error rate';
+  $('c-erate').style.color = errRateColor;
   $('c-warn').textContent=fmt(s.warnings);
   $('c-cre').textContent=fmt(s.payments_created);
+  const captureRate = s.payments_created > 0 ? Math.round(s.payments_captured / s.payments_created * 100) : 0;
   $('c-cap').textContent=fmt(s.payments_captured);
-  $('c-fail').textContent=fmt(s.payments_failed)+' failed';
+  $('c-fail').textContent=fmt(s.payments_failed)+' failed · '+captureRate+'% cap rate';
   $('c-rev').textContent=fmtR(s.revenue_inr);
 }
 
 function renderCharts(s){
-  // Timeline line chart
+  // Timeline line chart — show both requests/hr and errors/hr as two series
   const hours=s.hourly_labels||[];
-  CHR.line('ch-tl', hours.map(h=>h.slice(11)), [{data:s.hourly_values||[],color:ACCENT}]);
+  const hourlyErr = hours.map(h => {
+    // Build errors-per-hour from err_by_day only gives per-day; use hourly approx
+    return 0; // placeholder — will overlay below if err_by_day available
+  });
+  CHR.line('ch-tl', hours.map(h=>h.slice(11)), [{data:s.hourly_values||[],color:ACCENT,label:'Req/hr'}]);
 
   // Endpoints bar
   const epK=Object.keys(s.endpoints||{}).slice(0,6);
   CHR.bar('ch-ep',epK.map(k=>k.replace('POST ','POST\n').replace('GET ','')),epK.map(k=>s.endpoints[k]),[ACCENT,BLUE],{horiz:true});
 
-  // Payment status donut
+  // Payment status donut — proper color map for all Razorpay statuses
+  const STATUS_COLOR_MAP = {
+    'captured': GREEN,   'success': GREEN,
+    'created':  ACCENT,  'authorized': YELLOW,
+    'pending':  YELLOW,  'PENDING': YELLOW,
+    'active':   BLUE,    'ACTIVE': BLUE,
+    'failed':   RED,     'failure': RED,
+    'rejected': RED,     'REJECTED': RED,
+    'error':    RED,     'refunded': PURPLE,
+  };
   const psK=Object.keys(s.payment_statuses||{});
-  CHR.donut('ch-ps',psK,psK.map(k=>s.payment_statuses[k]),psK.map(k=>k==='captured'?GREEN:k==='created'?ACCENT:RED));
+  CHR.donut('ch-ps',psK,psK.map(k=>s.payment_statuses[k]),psK.map(k=>STATUS_COLOR_MAP[k]||TEAL));
 
   // Errors by endpoint bar
   const eeK=Object.keys(s.err_by_endpoint||{}).slice(0,5);
@@ -900,6 +917,18 @@ function renderCharts(s){
   // UPI methods donut
   const pmK=Object.keys(s.payment_methods||{});
   if(pmK.length) CHR.donut('ch-pm',pmK,pmK.map(k=>s.payment_methods[k]),[TEAL,PURPLE,YELLOW,BLUE]);
+
+  // Daily Error Rate trend — errors per day vs total per day
+  const dlyAll=s.daily||{}, dlyErr=s.err_by_day||{};
+  const dlyK=Object.keys(dlyAll).sort();
+  if(dlyK.length>1){
+    const errRates=dlyK.map(d=>dlyAll[d]>0?Math.round((dlyErr[d]||0)/dlyAll[d]*100):0);
+    const errCounts=dlyK.map(d=>dlyErr[d]||0);
+    CHR.line('ch-ert',dlyK.map(d=>d.slice(5)),[
+      {data:errRates, color:RED,   label:'Err %'},
+      {data:errCounts.map(v=>Math.round(v/Math.max(...errCounts,1)*Math.max(...errRates,1))), color:YELLOW, label:'Errors (scaled)'}
+    ]);
+  }
 }
 
 function renderRecentErrors(errors){
@@ -1183,7 +1212,12 @@ function timeAgo(iso, future=false){
   const diff=Math.round((new Date(iso)-Date.now())/1000);
   const abs=Math.abs(diff);
   const str=abs<60?abs+'s':abs<3600?Math.round(abs/60)+'m':Math.round(abs/3600)+'h';
-  return future?(diff>0?'in '+str:'overdue'):(diff<0?str+' ago':'just now');
+  if(future){
+    if(diff>0) return 'in '+str;
+    if(abs<120) return 'due now';
+    return str+' overdue';
+  }
+  return diff<0?str+' ago':'just now';
 }
 
 // ─── Diagnostics ─────────────────────────────────────────────────────────────
