@@ -271,7 +271,6 @@ tr.clickable:hover td{background:rgba(77,158,255,.07)!important}
 <div class="tabs">
   <div class="tab active" data-tab="overview">Overview</div>
   <div class="tab" data-tab="logs">Log Explorer</div>
-  <div class="tab" data-tab="payments">Payments</div>
   <div class="tab" data-tab="alerts">Alerts</div>
   <div class="tab" data-tab="diagnostics">Diagnostics</div>
 </div>
@@ -377,18 +376,27 @@ tr.clickable:hover td{background:rgba(77,158,255,.07)!important}
       <div class="card c-warn"><div class="card-lbl">Warnings</div><div class="card-val" style="color:var(--yellow)" id="c-warn">—</div><div class="card-sub">WARN level</div><div class="card-icon">⚠️</div></div>
       <div class="card c-ok"><div class="card-lbl">Orders Created</div><div class="card-val tgrn" id="c-cre">—</div><div class="card-sub">Razorpay orders</div><div class="card-icon">🧾</div></div>
       <div class="card c-blue"><div class="card-lbl">Captured</div><div class="card-val" style="color:var(--blue)" id="c-cap">—</div><div class="card-sub" id="c-fail">—</div><div class="card-icon">💳</div></div>
-      <div class="card c-pur"><div class="card-lbl">Revenue (INR)</div><div class="card-val" style="color:var(--purple)" id="c-rev">—</div><div class="card-sub">captured sum</div><div class="card-icon">₹</div></div>
     </div>
-    <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:13px;margin-bottom:13px">
+    <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:13px;margin-bottom:13px">
       <div class="cbox"><div class="ctitle"><span>◆</span>Request Timeline</div><canvas id="ch-tl" height="200"></canvas></div>
       <div class="cbox"><div class="ctitle"><span>◆</span>Endpoints</div><canvas id="ch-ep" height="200"></canvas></div>
-      <div class="cbox"><div class="ctitle"><span>◆</span>Payment Status</div><canvas id="ch-ps" height="200"></canvas></div>
       <div class="cbox"><div class="ctitle"><span>◆</span>UPI Methods</div><canvas id="ch-pm" height="200"></canvas></div>
     </div>
     <div class="cr2">
       <div class="cbox"><div class="ctitle"><span>◆</span>Errors by Endpoint</div><canvas id="ch-ee" height="200"></canvas></div>
       <div class="cbox"><div class="ctitle"><span>◆</span>Flow Distribution</div><canvas id="ch-fl" height="200"></canvas></div>
       <div class="cbox"><div class="ctitle"><span>◆</span>Daily Error Rate <span style="color:var(--red);font-size:10px">% per day</span></div><canvas id="ch-ert" height="200"></canvas></div>
+    </div>
+    <!-- Errors by API — clickable drill-down to Log Explorer -->
+    <div style="margin-top:15px">
+      <div class="sh">
+        <div class="st">Errors by API</div>
+        <span style="font-size:11px;color:var(--text3)">Click row → Log Explorer</span>
+      </div>
+      <div class="ltw" id="err-api-wrap">
+        <table><thead><tr><th>API</th><th>Errors</th><th>% of API Total</th><th>Share of All Errors</th><th></th></tr></thead>
+        <tbody id="err-api-body"><tr><td colspan="5" class="emp">No data</td></tr></tbody></table>
+      </div>
     </div>
     <div style="margin-top:15px">
       <div class="sh"><div class="st">Recent Errors & Warnings</div><span id="rc-ct" style="font-size:11px;color:var(--text3)"></span></div>
@@ -415,24 +423,6 @@ tr.clickable:hover td{background:rgba(77,158,255,.07)!important}
     <tbody id="l-body"><tr><td colspan="11" class="emp">Select API and click Search</td></tr></tbody></table>
   </div>
   <div class="pg" id="l-pg"></div>
-</div>
-
-<!-- PAYMENTS -->
-<div class="tp" id="tab-payments">
-  <div id="p-ld" class="ld" style="display:none"><div class="sp"></div><div>Loading…</div></div>
-  <div id="p-ct">
-    <div class="cards" style="margin-bottom:18px">
-      <div class="card c-ok"><div class="card-lbl">Orders Created</div><div class="card-val tgrn" id="p-cre">—</div></div>
-      <div class="card c-blue"><div class="card-lbl">Captured</div><div class="card-val" style="color:var(--blue)" id="p-cap">—</div></div>
-      <div class="card c-err"><div class="card-lbl">Failed</div><div class="card-val tred" id="p-fail">—</div></div>
-      <div class="card c-pur"><div class="card-lbl">Total Revenue</div><div class="card-val" style="color:var(--purple)" id="p-rev">—</div></div>
-    </div>
-    <div class="cr1">
-      <div class="cbox"><div class="ctitle"><span>◆</span>Daily Activity</div><canvas id="ch-da" height="200"></canvas></div>
-      <div class="cbox"><div class="ctitle"><span>◆</span>Order → Capture Funnel</div><canvas id="ch-fn" height="200"></canvas></div>
-      <div class="cbox"><div class="ctitle"><span>◆</span>UPI Methods</div><canvas id="ch-um" height="200"></canvas></div>
-    </div>
-  </div>
 </div>
 
 <!-- ALERTS -->
@@ -840,7 +830,6 @@ document.querySelectorAll('.tab').forEach(tab=>{
     document.querySelectorAll('.tp').forEach(p=>p.classList.remove('active'));
     tab.classList.add('active');
     $('tab-'+tab.dataset.tab).classList.add('active');
-    if(tab.dataset.tab==='payments' && gStats) renderPayTab(gStats);
     if(tab.dataset.tab==='diagnostics') loadDiag();
   });
 });
@@ -860,7 +849,9 @@ async function loadOverview(){
     const p=new URLSearchParams({date_from:dfrom,date_to:dto});
     if(apiV) p.set('api',apiV);
     gStats = await apiFetch('/api/stats?'+p);
-    renderCards(gStats); renderCharts(gStats); renderRecentErrors(gStats.recent_errors||[]);
+    renderCards(gStats); renderCharts(gStats);
+    renderRecentErrors(gStats.recent_errors||[]);
+    renderErrByApi(gStats);
     $('stxt').textContent=(gStats.files_loaded||0)+' files · '+fmt(gStats.total)+' entries';
   } catch(e){ toast('Failed: '+e.message,'error'); $('stxt').textContent='Error'; }
   finally { $('ov-ld').style.display='none'; $('ov-ct').style.opacity='1'; }
@@ -876,7 +867,6 @@ function renderCards(s){
   const captureRate = s.payments_created > 0 ? Math.round(s.payments_captured / s.payments_created * 100) : 0;
   $('c-cap').textContent=fmt(s.payments_captured);
   $('c-fail').textContent=fmt(s.payments_failed)+' failed · '+captureRate+'% cap rate';
-  $('c-rev').textContent=fmtR(s.revenue_inr);
 }
 
 function renderCharts(s){
@@ -891,19 +881,6 @@ function renderCharts(s){
   // Endpoints bar
   const epK=Object.keys(s.endpoints||{}).slice(0,6);
   CHR.bar('ch-ep',epK.map(k=>k.replace('POST ','POST\n').replace('GET ','')),epK.map(k=>s.endpoints[k]),[ACCENT,BLUE],{horiz:true});
-
-  // Payment status donut — proper color map for all Razorpay statuses
-  const STATUS_COLOR_MAP = {
-    'captured': GREEN,   'success': GREEN,
-    'created':  ACCENT,  'authorized': YELLOW,
-    'pending':  YELLOW,  'PENDING': YELLOW,
-    'active':   BLUE,    'ACTIVE': BLUE,
-    'failed':   RED,     'failure': RED,
-    'rejected': RED,     'REJECTED': RED,
-    'error':    RED,     'refunded': PURPLE,
-  };
-  const psK=Object.keys(s.payment_statuses||{});
-  CHR.donut('ch-ps',psK,psK.map(k=>s.payment_statuses[k]),psK.map(k=>STATUS_COLOR_MAP[k]||TEAL));
 
   // Errors by endpoint bar
   const eeK=Object.keys(s.err_by_endpoint||{}).slice(0,5);
@@ -948,20 +925,47 @@ function renderRecentErrors(errors){
   window._recentErrors = rows;
 }
 
-// ─── Payments tab ─────────────────────────────────────────────────────────────
-function renderPayTab(s){
-  if(!s) return;
-  $('p-cre').textContent=fmt(s.payments_created);
-  $('p-cap').textContent=fmt(s.payments_captured);
-  $('p-fail').textContent=fmt(s.payments_failed);
-  $('p-rev').textContent=fmtR(s.revenue_inr);
+// ─── Errors by API drill-down ─────────────────────────────────────────────────
+function renderErrByApi(s) {
+  const body = $('err-api-body');
+  const byApi = s.err_by_api || {};
+  const keys = Object.keys(byApi);
+  const totalErr = Object.values(byApi).reduce((a,b)=>a+b,0)||1;
+  if(!keys.length){
+    body.innerHTML='<tr><td colspan="5" class="emp">✓ No errors in range</td></tr>';
+    return;
+  }
+  body.innerHTML = keys.map(api=>{
+    const cnt = byApi[api];
+    const share = Math.round(cnt/totalErr*100);
+    const barW = Math.min(share, 100);
+    return `<tr class="clickable" onclick="drillToApi('${esc(api)}')">
+      <td style="color:var(--teal);font-weight:700;white-space:nowrap">${esc(api)}</td>
+      <td class="mono tred" style="white-space:nowrap">${fmt(cnt)}</td>
+      <td style="min-width:120px;padding-right:20px">
+        <div style="background:var(--bg3);border-radius:3px;height:6px;overflow:hidden">
+          <div style="height:100%;width:${barW}%;background:var(--red);border-radius:3px;opacity:.8"></div>
+        </div>
+      </td>
+      <td class="tdim" style="white-space:nowrap">${share}% of errors</td>
+      <td style="color:var(--blue);font-size:10px;white-space:nowrap;cursor:pointer">View logs ↗</td>
+    </tr>`;
+  }).join('');
+}
 
-  const dK=Object.keys(s.daily||{});
-  CHR.line('ch-da',dK,[{data:dK.map(k=>s.daily[k]),color:PURPLE}]);
-  CHR.bar('ch-fn',['Created','Captured','Failed'],[s.payments_created,s.payments_captured,s.payments_failed],[ACCENT,GREEN,RED]);
-
-  const pmK=Object.keys(s.payment_methods||{});
-  if(pmK.length) CHR.donut('ch-um',pmK,pmK.map(k=>s.payment_methods[k]),[TEAL,BLUE,YELLOW,GREEN]);
+function drillToApi(api){
+  // Pre-fill Log Explorer filters and switch tab
+  const apiSel = $('l-api');
+  for(let i=0;i<apiSel.options.length;i++){
+    if(apiSel.options[i].value===api){ apiSel.selectedIndex=i; break; }
+  }
+  $('l-lvl').value='ERROR';
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tp').forEach(p=>p.classList.remove('active'));
+  document.querySelector('[data-tab="logs"]').classList.add('active');
+  $('tab-logs').classList.add('active');
+  logsPage=1; loadLogs();
+  toast('Showing ERROR logs for '+api,'success');
 }
 
 // ─── Log Explorer ──────────────────────────────────────────────────────────────
@@ -1072,7 +1076,7 @@ async function delAlert(id){
 }
 
 // Re-draw charts on window resize
-let _rt; window.addEventListener('resize',()=>{ clearTimeout(_rt); _rt=setTimeout(()=>{ if(gStats){renderCharts(gStats); renderPayTab(gStats);} },300); });
+let _rt; window.addEventListener('resize',()=>{ clearTimeout(_rt); _rt=setTimeout(()=>{ if(gStats){renderCharts(gStats);} },300); });
 
 // ─── Sync Drawer ──────────────────────────────────────────────────────────────
 let _spPoll = null, _prevSyncPhase = null, _lastSyncDone = null;
@@ -1168,7 +1172,7 @@ function renderSyncDrawer(p){
         <div class="pfx-name">📡 ${pr.prefix}</div>
         <div class="pfx-stats">
           <div class="pfx-stat">Files found <span>${pr.files_found||0}</span></div>
-          <div class="pfx-stat">Fetched <span style="color:var(--blue)">${pr.files_parsed||0}</span></div>
+          <div class="pfx-stat">Fetched <span style="color:var(--blue)">${pr.files_s3||0}</span></div>
           <div class="pfx-stat">Cached <span style="color:var(--green)">${pr.files_cached||0}</span></div>
           <div class="pfx-stat">Downloaded <span style="color:var(--accent)">${pr.bytes_read?Math.round(pr.bytes_read/1024)+'KB':'—'}</span></div>
         </div>
@@ -1209,7 +1213,9 @@ function renderStatusBar(p){
 }
 
 function timeAgo(iso, future=false){
-  const diff=Math.round((new Date(iso)-Date.now())/1000);
+  // Normalise: if no timezone info, assume UTC (server emits 'Z' suffix now)
+  const ts = iso.endsWith('Z') || iso.includes('+') ? iso : iso + 'Z';
+  const diff=Math.round((new Date(ts)-Date.now())/1000);
   const abs=Math.abs(diff);
   const str=abs<60?abs+'s':abs<3600?Math.round(abs/60)+'m':Math.round(abs/3600)+'h';
   if(future){
